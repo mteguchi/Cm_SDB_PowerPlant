@@ -1,0 +1,223 @@
+---
+title: "San Diego Bay satellite telemetry"
+author: "Tomo Eguchi"
+date: "July 17, 2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RODBC)
+library(dplyr)
+library(ggmap)
+library(sp)
+library(rgdal)         # bindings for the geospatial data abstraction library
+library(broom)        # instead of fortify in ggplot2 (recommended)
+library(viridis)
+
+SE <- function(x) sd(x, na.rm = T)/length(na.omit(x))
+
+# define if ODBC is available
+odbc <- T
+
+internet <- T
+# then set when it was run:
+Run.Date <- '2017-07-18'
+```
+
+```{r get_data, include = F}
+if (odbc){
+  # load a couple databases through ODBC
+  turtle <- odbcConnect(dsn = 'Turtle', uid = '', pwd = '')
+  #satellite <- odbcConnect(dsn = 'SatelliteTelemetry', uid = '', pwd = '')
+  #LIMS <- odbcConnect(dsn = 'LIMS', uid = '', pwd = '')
+
+  turtle.tbls <- sqlTables(turtle)
+  #satellite.tbls <- sqlTables(satellite)
+  #LIMS.tbls <- sqlTables(LIMS)
+
+  # TO FIND ALL TABLE NAMES:
+  turtle.tbls.names <- turtle.tbls$TABLE_NAME[grep(pattern = 'tbl_',
+                                                   turtle.tbls$TABLE_NAME)]
+
+  turtle.vw.names <- turtle.tbls$TABLE_NAME[grep(pattern = 'vw_',
+                                                 turtle.tbls$TABLE_NAME)]
+
+  # LIMS.tbls.names <- LIMS.tbls$TABLE_NAME[grep(pattern = 'tbl_',
+  #                                              LIMS.tbls$TABLE_NAME)]
+  #
+  # LIMS.vw.names <- LIMS.tbls$TABLE_NAME[grep(pattern = 'vw_',
+  #                                            LIMS.tbls$TABLE_NAME)]
+
+  # get SD Bay results:
+  turtle.SDB <- sqlQuery(turtle, 'select * from tbl_SD_Bay')
+  turtle.SDB <- turtle.SDB[, c('NMFS_Tag', 'Turtle_ID', 'Year_caught',
+                               'Month_caught', 'Day_caught', 'Caught_Dead',
+                               'PIT_Tag_LFF', 'PIT_Tag_RFF', 'Inconel_Tag_LFF',
+                               'Inconel_Tag_RFF', 'Sex', 'Weight_kg',
+                               'Str_Carapace_Length_cm', 'Str_Carapace_Width_cm',
+                               'Cur_Carapace_Length_cm', 'Cur_Carapace_Width_cm',
+                               'Sat_Tag_Type', 'Sat_Tag_ID', 'Satellite_Tag_Added')]
+
+  turtle.SDB <- turtle.SDB[!is.na(turtle.SDB$NMFS_Tag),]
+  # haplotypes
+  #haplos.turtles <- sqlQuery(LIMS, 'select * from vw_Sequence_Latest_Run')
+
+  # turtle archive:
+  #turtle.archive.tbl <- sqlQuery(turtle, 'select * from tbl_Turtle_Archive')
+
+  odbcClose(turtle)
+  #odbcClose(LIMS)
+
+  turtle.SDB.sat <- turtle.SDB[!is.na(turtle.SDB$Sat_Tag_ID),]
+
+  turtle.SDB.sat$Date <- as.Date(paste(turtle.SDB.sat$Year_caught,
+                                       turtle.SDB.sat$Month_caught,
+                                       turtle.SDB.sat$Day_caught, sep = '-'),
+                                 format = '%Y-%m-%d')
+
+  save(turtle.SDB.sat,
+       file = paste0('RData/turtle_SDB_satellite_', Sys.Date(), '.RData'))
+
+  # the following needs to be refined to see where all the data reside... 7/17/2017  
+  # satellite.data <- sqlQuery(satellite, 'select * from tbl_ARGOS_Download')
+  # save(satellite.sat,
+  #      file = paste0('RData/turtle_satellite_', Sys.Date(), '.RData'))
+  # odbcClose(satellite)
+  
+} else {
+
+  turtle.SDB.sat <- load('RData/turtle_SDB_satellite_', Run.Date, '.RData')
+  #satellite.data <- load('RData/turtle_satellite_', Run.Date, '.RData')
+}
+
+turtle.SDB.sat.1 <- dplyr::filter(turtle.SDB.sat,
+                                     Date >= as.Date('2016-05-01') &
+                                       Date <= as.Date('2017-04-30'))
+
+
+```
+
+From May 1, 2016 to April 30, 2017, ```r length(unique(turtle.SDB.sat.1$Sat_Tag_ID))``` green turtles were outfitted with GPS-enabled satellite transmitters (Mk-10, Wildlife Computers). All deployments were made in early summer (May, June, and July) of 2016. The straight carpace length ranged from ```r min(turtle.SDB.sat.1$Str_Carapace_Length_cm, na.rm = T)``` to ```r max(turtle.SDB.sat.1$Str_Carapace_Length_cm, na.rm = T)``` cm (mean = ```r formatC(mean(turtle.SDB.sat.1$Str_Carapace_Length_cm, na.rm = T), digits = 3)``` and SE = ```r formatC(SE(turtle.SDB.sat.1$Str_Carapace_Length_cm), digits = 3)```, whereas the mass ranged from ```r min(turtle.SDB.sat.1$Weight_kg, na.rm = T)``` to ```r max(turtle.SDB.sat.1$Weight_kg, na.rm = T)``` kg (mean = ```r formatC(mean(turtle.SDB.sat.1$Weight_kg, na.rm = T), digits = 3)```, SE = ```r formatC(SE(turtle.SDB.sat.1$Weight_kg), digits = 3)```, Table 1). 
+
+```{r get_sat_data, include=F}
+# load GPS - decoded files:
+
+all.data <- vector(mode = 'list', length = nrow(turtle.SDB.sat.1))
+summary.stats <- data.frame(ID = NA, NumTrans = NA, NumDays = NA)
+k<-1
+for (k in 1:nrow(turtle.SDB.sat.1)){
+  # the run # may have to be changed accordingly. 
+  file.name <- paste0('data/GPS_locs/', 
+                      turtle.SDB.sat.1$Sat_Tag_ID[k], '-1-FastGPS.csv')
+  dat <- read.csv(file.name)
+  end <- nrow(dat)
+  dat$Date <- strptime(paste(dat$Day, dat$Time), 
+                      format = '%d-%b-%Y %H:%M:%S')
+  summary.stats[k, 'ID'] <- dat$Name[1]
+  summary.stats[k, 'NumTrans'] <- length(!is.na(dat$Latitude))
+  summary.stats[k, 'NumDays'] <- dat$Date[end] - dat$Date[1]
+  all.data[[k]] <- dat[, c('Name', 'Date',  
+                           'Latitude', 'Longitude', 'Residual')]
+}
+
+```
+
+The  number of transmission days ranged from ```r floor(min(summary.stats$NumDays))``` to ```r floor(max(summary.stats$NumDays))``` days (Table 1), where the mean was ```r formatC(mean(summary.stats$NumDays), digits = 3)``` (SE = ```r formatC(SE(summary.stats$NumDays), digits = 3)```). Recaptures of tagged turtles with satellite transmitters indicated that the turtles somehow shear antennas of the transmitters (Figure x). Observations at SeaWorld have suggested turtles may bite on foreign material on other turtles' carapace (Jessica Patterson, SeaWorld, Pers Comm). 
+
+```{r get_maps, include=F}
+
+if (internet){
+  sdbay.all <- get_map(location = c(lon = -117.15,
+                                    lat = 32.65),
+                       zoom = 12,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_all',
+                       force = F)
+  saveRDS(sdbay.all, file = 'RData/sdbay_all.rds')
+
+  sdbay.south <- get_map(location = c(lon = -117.117,
+                                      lat = 32.625),
+                         zoom = 14,
+                         maptype = "satellite",
+                         color = "bw",
+                         filename = 'sdbay_south',
+                         force = F)
+  saveRDS(sdbay.south, file = 'RData/sdbay_south.rds')
+
+  sdbay.med <- get_map(location = c(lon =  -117.117,
+                                    lat = 32.625),
+                       zoom = 13,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_med',
+                       force = F)
+  saveRDS(sdbay.med, file = 'RData/sdbay_med.rds')
+} else {
+  sdbay.all <- readRDS(file = 'RData/sdbay_all.rds')
+  sdbay.south <- readRDS(file = 'RData/sdbay_south.rds')
+  sdbay.med <- readRDS(file = 'RData/sdbay_med.rds')
+}
+
+map.sdbay.zm <- ggmap(sdbay.all)
+
+map.sdbay.south <- ggmap(sdbay.south)
+
+map.sdbay.med <- ggmap(sdbay.med)
+
+
+# just use the 2014 data - there are old data files also
+SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2014.df <- tidy(SDBay.eelg.2014)
+
+SDBay <- read.csv("data/SDBay_polygon.csv")
+
+```
+
+As it has been reported previously (MacDonald et al. 2012, MacDonald et al. 2013, Madrak et al. 2016), the telemetered green turtles remained in the south portion of San Diego Bay while they were tracked (Figure x). 
+
+```{r make_plots, include=F}
+all.data.df <- na.omit(do.call(rbind, all.data))
+all.data.df$ID <- as.factor(all.data.df$Name)
+
+# check to see points are within SDB:
+in.out <- vector(mode = "numeric", length = dim(all.data.df)[1])
+for (k1 in 1:length(in.out)){
+  in.out[k1] <- point.in.polygon(all.data.df$Longitude[k1], 
+                                 all.data.df$Latitude[k1],
+                                 SDBay$long, SDBay$lat)
+}
+all.data.df$inside <- in.out
+all.data.df.1 <- all.data.df[in.out == 1,]
+
+map.sdbay.zm.locs <- map.sdbay.zm + 
+  geom_point(data = all.data.df.1,
+             aes(x = Longitude, 
+                 y = Latitude, 
+                 color = ID)) +
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.3) + 
+  labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(legend.title = element_text(size = 10, hjust = 0.5),
+        legend.text = element_text(size = 8, vjust = 0),
+        legend.position = c(0.9, 0.8))
+
+ggsave(plot = map.sdbay.zm.locs,
+       dpi = 1200,
+       height = 7,
+       units = 'in',
+       file = paste0('Figures/GPS_locations_', Sys.Date(), '.png'))
+
+#plot(map.sdbay.zm.locs)
+
+```

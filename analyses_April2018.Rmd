@@ -1,0 +1,80 @@
+---
+title: "Movements of green turtles before and after powerplant decomission"
+output: html_notebook
+---
+
+This document includes analyses of telemetry data of green turtles that evaluated the effects of the power plant decomission in the south part of San Diego Bay. All comparisons are between before and after the power plant decomission. These analyses include north-south distributions of locations, linear distance moved per day, difference in activity patterns (total movements) between day and night, and maybe others. 
+
+Raw files are treated with three R scripts before coming here: inside_outside_Oct2016.R, ARGOS_filters_Oct2016.R, and splitInto4hrs_ResFilter_Oct2016.R. The first filter (inside_outside_Oct2016.R) determines whether or not each data point is inside or outside the bay.  The second filter removes location classes A, B, 0, and Z in the data and add local sunset and sunrise times as well as whether or not each data point was recorded during the day or night (ARGOS_filters_Oct2016.R). Transmission date and time are converted into the local time at the beginning of the script. The last filter splits all data into 4-hr chunks at local time (0-3, 4-7, 8-11, 12-15, 16-19, 20-23) and extracts the best location for each 4-hr chunk 9splitInto4hrs_ResFilter_Oct2016.R). If there is at least one GPS location, then it will be used. If there is no good GPS location, i.e., residual value is greater than or equal to 35, then the best ARGOS location is selected. The output files contain one reading per each 4-hr chunk. 
+
+In April 2018, I found some errors in code, especially in ARGOS_filters_Oct2016.R, not extracting Argos data when GPS locations were not available. Because the antenna is shared between Argos and GPS location transmissions, I doubt there is much difference but wanted to doublel check the results between when it was first done in October 2016 and in April 2018. Also, the order of the filtering process was changed in April 2018. Rather than removing locations that were outside of San Diego Bay at the end, I now remove them at the beginning because that may result in more locations. For example, if "good" locations were selected based on LC values but they may be outside of SDB. 
+
+So, first I bring in two datasets for each turtle, from the different analysis dates, and compare them graphically
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+all.files.2016 <- as.list(list.files("data/files_Oct2016/", 
+                                     pattern = "_DayNight_4hrs_inout_2016-10-03.csv"))
+
+IDs.2016 <- unlist(lapply(all.files.2016, 
+                          FUN = function(name) unlist(strsplit(name, '_'))[1]))
+
+all.files.2018 <- as.list(list.files("data/", 
+                                     pattern = "_inside_DayNight_4hrs_2018-04-04.csv"))
+
+IDs.2018 <- unlist(lapply(all.files.2018, 
+                          FUN = function(name) unlist(strsplit(name, '_'))[1]))
+
+all.data.2016 <- lapply(all.files.2016,
+                   FUN = function(x) read.csv(paste0("data/files_Oct2016/", x)))
+
+all.data.2018 <- lapply(all.files.2018,
+                   FUN = function(x) read.csv(paste0("data/", x)))
+
+plots.1 <- vector(mode = "list", length = length(IDs.2016))
+
+for (k in 1:length(IDs.2016)){
+  data.2016 <- all.data.2016[[k]] %>% filter(inside == 1)
+  data.2018 <- all.data.2018[[which(IDs.2018 == IDs.2016[[k]])]]
+  
+  # make sure the IDs are the same:
+  if (data.2016$ArgosID[1] != data.2018$ArgosID[1]) error("Stop! Wrong datasets")
+  
+  plots.1[[k]] <- ggplot() + 
+    geom_point(data = data.2016, 
+               aes(x = Lon1, y = Lat1), 
+               color = 'red', size = 3) +
+    geom_point(data = data.2018, 
+               aes(x = Lon1, y = Lat1),
+               color = 'green', size = 1.5) + 
+    coord_map()
+}
+
+```
+
+I see that there are some new data points (green ones) and some that were dropped by the new filtering (red dots). So, I need to look at the differences. One error was as.Date was used without providing a time zone, which should have been the local time. So, whenever as.Date converted date/time to date, date was converted back to the UTC. 
+
+```{r}
+In2018Not2016 <- In2016Not2018 <- vector(mode = "list", length = length(IDs.2016))
+
+for (k in 1:length(IDs.2016)){
+  data.2016 <- all.data.2016[[k]] %>% filter(inside == 1) 
+
+  data.2018 <- all.data.2018[[which(IDs.2018 == IDs.2016[[k]])]]
+  
+  # make sure the IDs are the same:
+  if (data.2016$ArgosID[1] != data.2018$ArgosID[1]) error("Stop! Wrong datasets")
+
+  In2018Not2016[[k]] <- anti_join(data.2018, data.2016, by = "Lat1")
+  In2016Not2018[[k]] <- anti_join(data.2016, data.2018, by = "Lat1")
+  
+}
+  
+  
+```
+
+Also, it appears that by having local time correctly computed, diffrent sets of data are created for each 4-hr chunk. Consequently, the "best" by the residuall or first record can be different within a 4-hr chunk. The sets that have issues are 12, 14, 15, 17, and 18. I checked 12 but others have not been checked for each discrepancy - can be found in the In2016Not2018 list. 
+
+
