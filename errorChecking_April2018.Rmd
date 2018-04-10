@@ -1,0 +1,654 @@
+---
+title: "Movements of green turtles before and after powerplant decomission"
+output: html_notebook
+---
+
+This document includes analyses of telemetry data of green turtles that evaluated the effects of the power plant decomission in the south part of San Diego Bay. All comparisons are between before and after the power plant decomission. These analyses include north-south distributions of locations, linear distance moved per day, difference in activity patterns (total movements) between day and night, and maybe others. 
+
+Raw files are treated with three R scripts before coming here: inside_outside_Apr2018.R, ARGOS_filters_Apr2018.R, and splitInto4hrs_ResFilter_Apr2018.R. The first filter (inside_outside_Apr2018.R) determines whether or not each data point is inside or outside the bay.  The second filter (ARGOS_filters_Apr2018.R) removes location classes A, B, 0, and Z in the data and add local sunset and sunrise times as well as whether or not each data point was recorded during the day or night. Transmission date and time are converted into the local time at the beginning of the script. The last filter (splitInto4hrs_ResFilter_Apr2018.R) splits all data into 4-hr chunks at local time (0-3, 4-7, 8-11, 12-15, 16-19, 20-23) and extracts the best location for each 4-hr chunk. If there is at least one GPS location, then the location with the smallest residual value is used. If there is no good GPS location, i.e., residual value is greater than or equal to 35 or no GPS location, then the best ARGOS location based on LC is selected. The output files contain one reading per each 4-hr chunk. 
+
+In April 2018, I found some errors in code, specifically in ARGOS_filters_Oct2016.R, which did not extract Argos data when GPS locations were not available. Because the antenna is shared between Argos and GPS location transmissions, I doubt there is much difference but wanted to doublel check the results between when it was first done in October 2016 and in April 2018. Also, the order of the filtering process was changed in April 2018. Rather than removing locations that were outside of San Diego Bay at the end, I now remove them at the beginning because that may result in more locations. For example, if "good" locations were selected based on LC values but they may be outside of SDB. Finally, the time zone was not treated correctly in ARGOS_filters_Oct2016.R and splitInto4hrs_ResFilter_Oct2016.R. Time zone has to be specified whenever as.Date is used. Otherwise, it defaults to the UTC. To change a time zone to another, with_tz() in lubridate package was used in my code. 
+
+First I bring in two datasets for each turtle, from the different analysis dates, and compare them graphically
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+all.files.2016 <- as.list(list.files("data/files_Oct2016/", 
+                                     pattern = "_DayNight_4hrs_inout_2016-10-03.csv"))
+
+IDs.2016 <- unlist(lapply(all.files.2016, 
+                          FUN = function(name) unlist(strsplit(name, '_'))[1]))
+
+all.files.2018 <- as.list(list.files("data/files_Apr2018/", 
+                                     pattern = "_inside_DayNight_4hrs_2018-04-04.csv"))
+
+IDs.2018 <- unlist(lapply(all.files.2018, 
+                          FUN = function(name) unlist(strsplit(name, '_'))[1]))
+
+all.data.2016 <- lapply(all.files.2016,
+                   FUN = function(x) read.csv(paste0("data/files_Oct2016/", x)))
+
+all.data.2018 <- lapply(all.files.2018,
+                   FUN = function(x) read.csv(paste0("data/files_Apr2018/", x)))
+
+plots.1 <- vector(mode = "list", length = length(IDs.2016))
+
+for (k in 1:length(IDs.2016)){
+  data.2016 <- all.data.2016[[k]] %>% filter(inside == 1)
+  data.2018 <- all.data.2018[[which(IDs.2018 == IDs.2016[[k]])]]
+  
+  # make sure the IDs are the same:
+  if (data.2016$ArgosID[1] != data.2018$ArgosID[1]) error("Stop! Wrong datasets")
+  
+  plots.1[[k]] <- ggplot() + 
+    geom_point(data = data.2016, 
+               aes(x = Lon1, y = Lat1), 
+               color = 'red', size = 3) +
+    geom_point(data = data.2018, 
+               aes(x = Lon1, y = Lat1),
+               color = 'green', size = 1.5) + 
+    coord_map() + 
+    labs(title = IDs.2016[k])
+}
+
+```
+
+In the next chunk, I compare two analyses for each turtle then extract those data that are in the 2016 output but not in the 2018 output and save them into In2016Not2018. Those are in the 2018 output but not in the 2016 output are saved in In2018Not2016. 
+
+```{r}
+In2018Not2016 <- In2016Not2018 <- vector(mode = "list", length = length(IDs.2016))
+
+for (k in 1:length(IDs.2016)){
+  data.2016 <- all.data.2016[[k]] %>% filter(inside == 1) 
+
+  data.2018 <- all.data.2018[[which(IDs.2018 == IDs.2016[[k]])]]
+  
+  # make sure the IDs are the same:
+  if (data.2016$ArgosID[1] != data.2018$ArgosID[1]) error("Stop! Wrong datasets")
+
+  In2018Not2016[[k]] <- anti_join(data.2018, data.2016, by = "Lat1")
+  In2016Not2018[[k]] <- anti_join(data.2016, data.2018, by = "Lat1")
+  
+}
+  
+```
+
+Look through one at a time:
+
+```{r echo=TRUE}
+print(plots.1[[1]])
+```
+
+Red dots are from the 2016 analysis and green dots are from the recent analysis. We see that there are some new data points (green ones, which are likely Argos locations) but no red-only points.  
+
+```{r echo=T}
+dim(In2016Not2018[[1]])
+In2018Not2016[[1]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+```
+
+All new locations are Argos locations. Next...
+
+```{r echo=TRUE, include=TRUE}
+plot(plots.1[[2]])
+```
+
+Same here just green dots. 
+
+```{r}
+dim(In2016Not2018[[2]])
+In2018Not2016[[2]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+Again, all new argos data. 
+
+```{r echo=TRUE}
+plots.1[[3]]
+```
+
+```{r}
+dim(In2016Not2018[[3]])
+In2018Not2016[[3]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+One Argos data point was added.
+
+```{r echo=TRUE}
+plots.1[[4]]
+```
+
+More green dots.
+
+```{r}
+dim(In2016Not2018[[4]])
+In2018Not2016[[4]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+No new GPS data.
+
+```{r echo=TRUE}
+plots.1[[5]]
+```
+
+
+```{r}
+dim(In2016Not2018[[5]])
+In2018Not2016[[5]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+Also, Argos data.
+
+```{r}
+plots.1[[6]]
+```
+
+```{r}
+dim(In2016Not2018[[6]])
+In2018Not2016[[6]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+```{r}
+plots.1[[7]]
+```
+
+
+```{r}
+dim(In2016Not2018[[7]])
+In2018Not2016[[7]]%>% select( Message_Type, TransmissionDateTime, Date2) %>%
+  summary()
+
+```
+
+```{r}
+plots.1[[8]]
+```
+
+```{r}
+dim(In2016Not2018[[8]])
+In2018Not2016[[8]]%>% select( Message_Type, TransmissionDateTime, Date2, LC) %>%
+  summary()
+
+```
+
+```{r}
+plots.1[[9]]
+```
+
+```{r}
+dim(In2016Not2018[[9]])
+In2018Not2016[[9]]%>% select( Message_Type, TransmissionDateTime, Date2, LC) %>%
+  summary()
+
+```
+
+All Argos data so good.
+```{r}
+plots.1[[10]]
+```
+
+
+```{r}
+dim(In2016Not2018[[10]])
+In2018Not2016[[10]]%>% select( Message_Type, TransmissionDateTime, Date2, Residual, LC) %>%
+  summary()
+
+```
+
+Two GPS locations were added for this dataset. Take a closer look at them.
+
+```{r}
+filter(In2018Not2016[[10]], Message_Type == 'GPS')
+```
+
+From the data file prior to extracting four-hour chunks, here is what we have. Extract 6/6/2016 UTC data for the 2016 data
+
+```{r}
+read.csv("data/files_Oct2016/151377_DayNight_2016-10-03.csv") %>%
+  filter(., Date2 == "2016/06/06") %>%
+  select(Message_Type, TransmissionDateTime,Date2, Residual)
+```
+
+Do the same for the 2018 data:
+
+```{r}
+read.csv("data/files_Apr2018/151377_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/06/06") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+  
+```
+
+The last data point for June 6 was dropped in the 2016 data because there were two data points in the last chunk, from 2000 to 2359, and so the first one (and lower Residual value) was extracted. Recall that the local time was not used in the old approach (my mistake). In the 2018 data, however, there was only one datum in the 1600-1959 chunk. Look at the 6/11 data also:
+
+```{r}
+read.csv("data/files_Oct2016/151377_DayNight_2016-10-03.csv") %>%
+  filter(Date2 == "2016/06/11") %>%
+  select(Message_Type, TransmissionDateTime, Date2, Residual)
+```
+
+Do the same for the 2018 data:
+```{r}
+read.csv("data/files_Apr2018/151377_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/06/11") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+The UTC 20:32:11 data point (13:32:11 local) has the lowest Residual value for the 1200-1559 chunk. For the older approach, it is the lower Residual of the two (2000-2359) and the other one is too high (45.6). Done with this turtle. 
+
+```{r}
+plots.1[[11]]
+```
+
+```{r}
+dim(In2016Not2018[[11]])
+In2018Not2016[[11]]%>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+
+```
+
+All Argos data.
+
+```{r}
+plots.1[[12]]
+```
+
+We see a few data points that were dropped by the new filtering. 
+
+```{r}
+In2016Not2018[[12]] %>% select(Message_Type, TransmissionDateTime, Date2, Residual)
+
+```
+
+Why were these dropped by the new filtering? First one:
+
+```{r}
+read.csv("data/files_Apr2018/151380_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/09") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+Because in the 0400-0759 local time chunk, there are two readings and the second one has smaller Residual value. In the old analysis, UTC chunks put the 11:29 data point with one before (10:46:26), but the second one has lower Residual value so it was picked.  
+
+For the second one:
+
+```{r}
+read.csv("data/files_Apr2018/151380_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/14") %>% 
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+It's the same issue: Residual value is less for the 10:45:49 data point for the 0800-1159 chunk. Using the UTC, they are in different chunks (1200-1559 and 1600-1959). 
+
+Those that were in the new data but not in the old one.
+```{r}
+In2018Not2016[[12]]%>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+There are two GPS data points. So, take a look.
+
+```{r}
+filter(In2018Not2016[[12]], Message_Type == 'GPS') %>%
+  select(ID, Message_Type, TransmissionDateTime, Residual, LocalDateTime)
+```
+
+From the old data:
+
+```{r}
+read.csv("data/files_Oct2016/151380_DayNight_2016-10-03.csv") %>%
+  filter(., Date2 == "2016/07/09") %>%
+  select(Message_Type, TransmissionDateTime, Date2,  Residual)
+```
+
+This doesn't make sense... If they were grouped by UTC (0800-1200) and the first was selected, that would be the 10:46 data point. I think I was extracting the lowest Residual values for each chunk - that would make sense here and all others. For the other one (14:21:45 UTC), it is in the 1200-1559 chunk and the 15:17:07 data point has smaller Residual value, so the 14:21:45 data point was dropped. 
+
+From the new data:
+```{r}
+read.csv("data/files_Apr2018/151380_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/09") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+See here, using the local time chunk (0000-0359), the 10:46:26 data point is the only one. For the other one (14:21:45 UTC), this is the only datum for the 0400-0759 local time chunk, so it was retained. 
+
+Next turtle.
+
+```{r}
+plots.1[[13]]
+```
+
+```{r}
+dim(In2016Not2018[[13]])
+In2018Not2016[[13]]%>% select( Message_Type, TransmissionDateTime, Date2, LC) %>%
+  summary()
+```
+
+All Argos data so that's good.
+
+```{r}
+plots.1[[14]]
+```
+
+```{r}
+In2016Not2018[[14]] %>% select(Message_Type, TransmissionDateTime, Residual, Date2)
+```
+
+Find out why these were dropped in 2018:
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>% 
+  filter(., Date2 == "2016/07/02")%>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+The 04:17:28 data point has lower Residual value. The 11:17:28 would have been the only data point for the 0800-1159 chunk using the UTC. 
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/04") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+The 13:04:05 data point has lower Residual value. Using the UTC, 19:42:22 would have been the only data point in the 1600-1959 chunk. 
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/07") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+The same problem - lower Residual found in the new chunk (0400-0759 local) and only one in the old chunk (0800-1159).
+
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv")%>%
+  filter(., Date2 == "2016/07/08" | Date2 == "2016/07/07")%>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+The same again - lower Residual found in the new chunk (2000-2359 local) and the only GPS data oint in the old (0000-0359 UTC).
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/10") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+Lower Residual found in the new chunk (1200-1559 local). It is the lower Residual in the chunk.
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+ filter(., Date2 == "2016/07/16" | Date2 == "2016/07/15") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+The same problem - lower Residual found in the new chunk (1600-1959 local) and the first and lower Residual one in the old chunk (0000-0359).
+
+```{r}
+tmp.data.2018 <- read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv")
+tmp.data.0717 <- filter(tmp.data.2018, Date2 == "2016/07/17")
+tmp.data.0717[, c("Message_Type","TransmissionDateTime","Date2", 
+                  "LocalDateTime", "Residual")]
+```
+
+The same problem - lower Residual found in the new chunk (0400-0759 and 1600-1959 local) and only one in the old chunk (0800-1159 and 2000-2359).
+
+```{r}
+In2018Not2016[[14]] %>% select(ID, Message_Type, TransmissionDateTime, Residual, Date2) %>%
+  filter(Message_Type == "GPS")
+```
+
+There are a few GPS data points. 
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/06/30")%>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/01")%>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+
+For the new analysis, this has the smaller Residual value in the local 2000-2359 chunk. For the 21:22:29 UTC data point, it's not the first and not the lowest Residual - so it was dropped (23:43:46 has the lowest for 2000-2359 UTC chunk). For the new analysis, it is the lower Residual value (12.6) in the 1200-1559 chunk. 
+
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+ filter(., Date2 == "2016/07/02" | Date2 == "2016/07/01") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+This is the last one of the old chunk (0400-0759) and the lowest Residual value for the new chunk (0000-0359). 
+
+For the July 3 data point:
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>% 
+  filter(., Date2 == "2016/07/03" | Date2 == "2016/07/02") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+It is the first one of the 0800-1159 UTC chunk but the only one in the 0000-0359 local time chunk (correct). 
+
+For the July 4 (9:13:52) data point:
+```{r}
+read.csv("data/files_Apr2018/151384_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/07/04" | Date2 == "2016/07/03") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+Dropped in the 2016 because it has a higher Residual value in the 0800-1159 UTC chunk but the only one in the 0000-0359 local time chunk (correct).
+
+Next turtle.
+
+```{r}
+plots.1[[15]]
+```
+
+Again, a few red dots found.
+
+```{r}
+In2016Not2018[[15]] %>% select(Message_Type, TransmissionDateTime, Date2, Residual)
+```
+
+```{r}
+read.csv("data/files_Apr2018/152313_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/05/18" | Date2 == "2016/05/17") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+Only one in the 1600-1959 UTC chunk but the 1200-1559 local time chunk has lower Residual values. 
+
+```{r}
+read.csv("data/files_Apr2018/152313_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/06/16" ) %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+Only one in the 0800-1159 UTC chunk but the 0000-0359 local time chunk has a lower Residual value.
+
+```{r}
+In2018Not2016[[15]]%>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+There are 3 GPS points.
+
+```{r}
+In2018Not2016[[15]] %>% filter(Message_Type == "GPS") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+
+```{r}
+read.csv("data/files_Apr2018/152313_inside_DayNight_2018-04-04.csv") %>%
+ filter(., Date2 == "2016/05/20" | Date2 == "2016/05/19") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+I'm not sure how this was dropped in the 2016 analysis... 
+
+```{r}
+read.csv("data/files_Apr2018/152313_inside_DayNight_2018-04-04.csv") %>%
+  filter(., Date2 == "2016/05/23" | Date2 == "2016/05/24") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+I'm not sure how this was dropped in the 2016 analysis... 
+
+```{r}
+read.csv("data/files_Apr2018/152313_inside_DayNight_2018-04-04.csv") %>%
+ filter(., Date2 == "2016/06/16" | Date2 == "2016/06/15") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+```
+
+This is the higher Residual value of the 0400-0759 UTC chunk but the only one GPS datum in the 2000-2359 local chunk. So, this one makese sense. 
+
+Next turtle.
+
+```{r}
+plots.1[[16]]
+```
+
+```{r}
+dim(In2016Not2018[[16]])
+In2018Not2016[[16]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+Eleven GPS data points were added.
+
+```{r}
+In2018Not2016[[16]] %>% filter(Message_Type == "GPS")
+```
+
+12/16/2015 10:18:57
+```{r}
+read.csv("data/files_Apr2018/152314_inside_DayNight_2018-04-04.csv") %>%
+ filter(., Date2 == "2015/12/16") %>%
+  select(Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual)
+
+```
+
+The lowest Residual value and the last one of the UTC chunk (0800-1159) and the lowest Residual in the 0000-0359 local time chunk. Why was it dropped in 2016? 
+
+This is not very helpful so I'm going to not worry about the ones that were missed in the 2016 analysis. My code must have conatined some errors... 
+
+```{r}
+plots.1[[17]]
+```
+
+
+```{r}
+In2016Not2018[[17]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual)
+```
+
+```{r}
+In2018Not2016[[17]] %>% 
+  select( Message_Type, TransmissionDateTime, Date2, LocalDateTime,Residual) %>%
+  filter(Message_Type == "GPS")
+  
+```
+
+For this one, I think different ones were selected because of using the different time zones. 
+```{r}
+read.csv("data/files_Apr2018/152315_inside_DayNight_2018-04-04.csv") %>% 
+  select( Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual) %>%
+  filter(Message_Type == "GPS") %>%
+  head(., 12)
+#tmp.data.0108 <- filter(tmp.data.2018, Date2 == "2016/06/30")
+
+```
+
+
+```{r}
+read.csv("data/files_Apr2018/152315_inside_DayNight_4hrs_2018-04-04.csv") %>% 
+  select( Message_Type, TransmissionDateTime, Date2, LocalDateTime, Residual) %>%
+  filter(Message_Type == "GPS") %>%
+  head(., 12)
+#tmp.data.0108 <- filter(tmp.data.2018, Date2 == "2016/06/30")
+
+```
+
+```{r}
+read.csv("data/files_Oct2016/152315_DayNight_4hrs_inout_2016-10-03.csv") %>%
+  #filter(., Date2 == "2016/07/09") %>%
+  filter(inside == 1) %>%
+  select(Message_Type, TransmissionDateTime, Date2,  Residual) %>%
+  head(., 10)
+
+```
+
+
+Given all these consistent errors, I'm going to assume the rest are the same rather than going through one at a time from here... 
+
+
+```{r}
+plots.1[[18]]
+```
+
+
+```{r}
+In2016Not2018[[18]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+
+```{r}
+In2018Not2016[[18]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+```{r}
+plots.1[[19]]
+```
+
+
+```{r}
+In2016Not2018[[19]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+```{r}
+In2018Not2016[[19]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+```{r}
+plots.1[[20]]
+```
+
+
+```{r}
+In2016Not2018[[20]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+
+
+```{r}
+In2018Not2016[[20]] %>% select( Message_Type, TransmissionDateTime, Date2, Residual) %>%
+  summary()
+```
+(0-3, 4-7, 8-11, 12-15, 16-19, 20-23)
+
+
+
