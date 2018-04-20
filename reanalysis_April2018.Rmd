@@ -1,0 +1,302 @@
+---
+title: "New (and last) analysis of telemetry data for pre- and post-powerplant-closure home range analysis of green turtles in San Diego Bay"
+output: html_notebook
+---
+
+This document details the analysis of data filtering. All raw data files are stored in data/files_Apr2018_withNewTags, which contains three folders: pre, post, and new. Each folder contains raw data files. For each folder, files are extracted, filtered for whether or not each data point was within San Diego Bay, filtered for GPS and Argos LC code, grouped into 4-hr chunks, the best location within each chunk extracted, and day-night assigned. 
+
+Load libraries and functions:
+```{r}
+rm(list=ls())
+
+# use point.in.polygon in sp package
+library(sp)
+library(dplyr)
+library(lubridate)
+library(StreamMetabolism)
+
+source('inside_outside_fcn.R')
+source("ARGOS_filters_fcn.R")
+source('splitInto4hrs_ResFilter_fcn.R')
+
+# polygon file for SDB
+SDBay <- read.csv("data/SDBay_polygon.csv")
+
+# a couple functions:
+
+ID.names <- function(name){
+  x <- unlist(strsplit(name, '_'))[1]
+  return(x)
+}
+
+# get the beginning and end dates of each data file; this is for those files
+# with dates defined by mm-dd-yyyy
+get.dates.1 <- function(data.file){
+  data.file$Date <- as.POSIXct(strptime(data.file$TransmissionDateTime,
+                                        "%m-%d-%Y %H:%M:%S"),
+                               tz = "GMT")
+  #data.file$Date2 <- as.character(data.file$Date, format = "%Y/%m/%d")
+  date.begin <- min(data.file$Date, na.rm = T)
+  date.end <- max(data.file$Date, na.rm = T)
+  out <- list(begin = date.begin, end = date.end)
+  return(out)
+}
+
+get.dates.2 <- function(data.file){
+  data.file$Date <- as.POSIXct(strptime(data.file$TransmissionDateTime,
+                                        "%m/%d/%Y %H:%M:%S"),
+                               tz = "GMT")
+  #data.file$Date2 <- as.character(data.file$Date, format = "%Y/%m/%d")
+  date.begin <- min(data.file$Date, na.rm = T)
+  date.end <- max(data.file$Date, na.rm = T)
+  out <- list(begin = date.begin, end = date.end)
+  return(out)
+}
+
+LCs<-c("1","2","3")
+# max residual value
+res.limit <- 35.0
+
+```
+
+
+First, define inside/outside for the "pre" files:
+```{r}
+
+dname <- "data/files_Apr2018_withNewTags/pre/"
+
+# data files
+data.files <- dir(dname, pattern = ".csv")
+for (k in 1:length(data.files)){
+  dat <- inside_outside(paste0(dname, data.files[k]))
+  write.csv(dat,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          "_inout.csv"),
+            quote = F, row.names = F)
+
+  dat.inside <- dplyr::filter(dat, inside == 1)
+  write.csv(dat.inside,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          "_inside.csv"),
+            quote = F, row.names = F)
+
+}
+```
+
+Next for the "post" files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/post/"
+
+# data files
+data.files <- dir(dname, pattern = ".csv")
+for (k in 1:length(data.files)){
+  dat <- inside_outside(paste0(dname, data.files[k]))
+  write.csv(dat,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          "_inout.csv"),
+            quote = F, row.names = F)
+
+  dat.inside <- dplyr::filter(dat, inside == 1)
+  write.csv(dat.inside,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          "_inside.csv"),
+            quote = F, row.names = F)
+
+}
+
+```
+
+Finally for the "new" files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/new/"
+
+# data files
+data.files <- dir(dname, pattern = ".txt")
+for (k in 1:length(data.files)){
+  dat <- inside_outside(paste0(dname, data.files[k]))
+  write.csv(dat,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.txt'))[1],
+                          "_inout.csv"),
+            quote = F, row.names = F)
+
+  dat.inside <- dplyr::filter(dat, inside == 1)
+  write.csv(dat.inside,
+            file = paste0(dname, 
+                          unlist(strsplit(data.files[k], '.txt'))[1],
+                          "_inside.csv"),
+            quote = F, row.names = F)
+
+}
+```
+
+We then run our Argos filter to remove imprecise locations. Start with the "pre" files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/pre/"
+all.files <- as.list(list.files(dname, 
+                                pattern = "_inside.csv"))
+
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+
+dates.begin.end <- lapply(all.data, FUN = get.dates.1)
+
+filtered.rise.set <- ARGOS_filter.1(all.data)
+
+for (k in 1:length(filtered.rise.set)){
+
+  outfile <- paste0(dname, IDs[k], '_inside_DayNight_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.rise.set[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+
+```
+
+Post files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/post/"
+all.files <- as.list(list.files(dname, 
+                                pattern = "_inside.csv"))
+
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+
+dates.begin.end <- lapply(all.data, FUN = get.dates.1)
+
+filtered.rise.set <- ARGOS_filter.1(all.data)
+
+for (k in 1:length(filtered.rise.set)){
+
+  outfile <- paste0(dname, IDs[k], '_inside_DayNight_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.rise.set[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+```
+
+New files. These are the only files with transmission dates in M/d/Y format... 
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/new/"
+all.files <- as.list(list.files(dname, 
+                                pattern = "_inside.csv"))
+
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+
+dates.begin.end <- lapply(all.data, FUN = get.dates.2)
+
+filtered.rise.set <- ARGOS_filter.2(all.data)
+
+for (k in 1:length(filtered.rise.set)){
+
+  outfile <- paste0(dname, IDs[k], '_inside_DayNight_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.rise.set[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+```
+
+Lastly, we split data into 4-hr chunks. Pre files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/pre/"
+all.files <- dir(dname, "_inside_DayNight_2018-")
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+filtered.4hrs <- lapply(all.data,
+                        FUN = get4hrs)
+
+for (k in 1:length(filtered.4hrs)){
+
+  outfile <- paste0(dname, IDs[k], 
+                    '_inside_DayNight_4hrs_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.4hrs[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+
+
+```
+
+Post files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/post/"
+all.files <- dir(dname, "_inside_DayNight_2018-")
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+filtered.4hrs <- lapply(all.data,
+                        FUN = get4hrs)
+
+for (k in 1:length(filtered.4hrs)){
+
+  outfile <- paste0(dname, IDs[k], 
+                    '_inside_DayNight_4hrs_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.4hrs[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+
+```
+
+New files:
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/new/"
+all.files <- dir(dname, "_inside_DayNight_2018-")
+IDs <- unlist(lapply(all.files, FUN = ID.names))
+
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(dname, x)))
+
+filtered.4hrs <- lapply(all.data,
+                        FUN = get4hrs)
+
+for (k in 1:length(filtered.4hrs)){
+
+  outfile <- paste0(dname, IDs[k], 
+                    '_inside_DayNight_4hrs_',
+                    Sys.Date(), '.csv')
+
+  write.csv(filtered.4hrs[[k]],
+            file = outfile,
+            quote = F, row.names=F)
+}
+
+```
+
