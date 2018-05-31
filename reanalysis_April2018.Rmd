@@ -68,7 +68,7 @@ dname <- "data/files_Apr2018_withNewTags/pre/"
 # data files
 data.files <- dir(dname, pattern = ".csv")
 for (k in 1:length(data.files)){
-  dat <- inside_outside(paste0(dname, data.files[k]))
+  dat <- inside_outside(paste0(dname, data.files[k]), SDBay)
   write.csv(dat,
             file = paste0(dname, 
                           unlist(strsplit(data.files[k], '.csv'))[1],
@@ -93,7 +93,7 @@ dname <- "data/files_Apr2018_withNewTags/post/"
 # data files
 data.files <- dir(dname, pattern = ".csv")
 for (k in 1:length(data.files)){
-  dat <- inside_outside(paste0(dname, data.files[k]))
+  dat <- inside_outside(paste0(dname, data.files[k]), SDBay)
   write.csv(dat,
             file = paste0(dname, 
                           unlist(strsplit(data.files[k], '.csv'))[1],
@@ -119,7 +119,7 @@ dname <- "data/files_Apr2018_withNewTags/new/"
 # data files
 data.files <- dir(dname, pattern = ".txt")
 for (k in 1:length(data.files)){
-  dat <- inside_outside(paste0(dname, data.files[k]))
+  dat <- inside_outside(paste0(dname, data.files[k]), SDBay)
   write.csv(dat,
             file = paste0(dname, 
                           unlist(strsplit(data.files[k], '.txt'))[1],

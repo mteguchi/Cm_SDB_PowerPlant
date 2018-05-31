@@ -3,7 +3,7 @@
 
 # determine if locations are in the bay
 
-inside_outside <- function(data.file.name){
+inside_outside <- function(data.file.name, SDBay){
   dat <- read.csv(data.file.name)
   in.out <- vector(mode = "numeric", length = dim(dat)[1])
   for (k1 in 1:length(in.out)){
