@@ -18,7 +18,7 @@ get4hrs <- function(x){
   hrs <- c(0, 4, 8, 12, 16, 20)
   for (k in begin.date:end.date){
     tmp1 <- filter(x, as.Date(LocalDateTime, tz = "America/Los_Angeles") == k)
-    for (k1 in length(hrs)){
+    for (k1 in 1:length(hrs)){
       tmp2 <- tmp1[tmp1$hr >= hrs[k1] &
                      tmp1$hr < (hrs[k1]+4), ]
 
@@ -47,6 +47,7 @@ get4hrs <- function(x){
       }
     }
   }
+
   #x <- filter(x, include == 1)
   if (dim(x)[1] > 0){
     return(x)

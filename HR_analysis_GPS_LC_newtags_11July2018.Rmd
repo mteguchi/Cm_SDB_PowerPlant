@@ -1,0 +1,319 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+San Diego Bay Turtle Movement Analysis
+Original R Code, JT Froeschke, December 29, 2015
+Data modified from previous versions by SE Graham, June 2016, May 2018
+Data modified from May 2018 by T EGuchi, July 2018
+
+Filtered data utilize GPS, and Argos LC = 1,2,3
+Filtered data do not include points on land
+Filtered data only allow for 1 relocation every 4 horus
+
+Purpose of the script is to compute homerange (area) using 
+least squares cross-validation including 50% and 95% contours.
+An analysis of each turtle and an aggregate pre and post will be computed
+h values are chosen based on best judgment and gst behavior  
+
+```{r}
+rm(list = ls())
+#getwd()
+#list.files()
+
+#Section 1: Load libraries and set wd
+library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(readxl)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+
+internet <- FALSE
+```
+
+Get some base layer maps here:
+
+```{r}
+# just use the 2014 eelgrass data - there are old data files also
+SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
+
+SDBay <- read.csv("data/SDBay_polygon.csv")
+
+if (internet){
+  sdbay.all <- ggmap::get_map(location = c(lon = -117.15,
+                                    lat = 32.65),
+                       zoom = 12,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_all',
+                       force = F)
+  saveRDS(sdbay.all, file = 'RData/sdbay_all.rds')
+
+  sdbay.south <- ggmap::get_map(location = c(lon = -117.117,
+                                      lat = 32.625),
+                         zoom = 14,
+                         maptype = "satellite",
+                         color = "bw",
+                         filename = 'sdbay_south',
+                         force = F)
+  saveRDS(sdbay.south, file = 'RData/sdbay_south.rds')
+
+  sdbay.med <- ggmap::get_map(location = c(lon =  -117.117,
+                                    lat = 32.625),
+                       zoom = 13,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_med',
+                       force = F)
+  saveRDS(sdbay.med, file = 'RData/sdbay_med.rds')
+} else {
+  sdbay.all <- readRDS(file = 'RData/sdbay_all.rds')
+  sdbay.south <- readRDS(file = 'RData/sdbay_south.rds')
+  sdbay.med <- readRDS(file = 'RData/sdbay_med.rds')
+}
+
+map.sdbay.zm <- ggmap::ggmap(sdbay.all)
+
+map.sdbay.south <- ggmap::ggmap(sdbay.south)
+
+map.sdbay.med <- ggmap::ggmap(sdbay.med)
+
+# read in the SDB shape file:
+SDB.shape <- readOGR(dsn = "GISFiles", layer = "sd_bay")
+#water.shape<- readOGR(dsn = "GISFiles", layer = "water")
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+# not sure what this part is doing... 
+latlong = "+init=epsg:4326"
+```
+
+Section 2: read in data
+
+Section 2.1: Pre
+
+```{r}
+ID.names <- function(name){
+  x <- unlist(strsplit(name, '_'))[1]
+  return(x)
+}
+dname <- "data/files_Apr2018_withNewTags/pre/"
+pre.files <- dir(path = dname, 
+                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+
+pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
+
+pre.all <- do.call(rbind, 
+                   lapply(pre.files,
+                          FUN = function(x) read.csv(paste0(dname, x)))) %>%
+  filter(include == 1)
+
+
+write.csv(pre.all, paste0(dname, "Pre_GPS_LC.all.csv"), 
+          row.names=FALSE)
+
+```
+
+Do the same for post and probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
+
+
+```{r}
+dname <- "data/files_Apr2018_withNewTags/post/"
+post.files <- dir(path = dname, 
+                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+
+post.IDs <- unlist(lapply(post.files, FUN = ID.names))
+
+post.all <- do.call(rbind, 
+                   lapply(post.files,
+                          FUN = function(x) read.csv(paste0(dname, x)))) %>%
+  filter(include == 1)
+
+dname <- "data/files_Apr2018_withNewTags/new/"
+new.files <- dir(path = dname, 
+                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+
+new.IDs <- unlist(lapply(new.files, FUN = ID.names))
+
+new.all <- do.call(rbind, 
+                   lapply(new.files,
+                          FUN = function(x) read.csv(paste0(dname, x)))) %>%
+  filter(include == 1)
+
+post.all <- rbind(post.all, new.all) %>%
+  filter(Lat1 < 32.66)
+
+write.csv(post.all, paste0(dname, "Post_GPS_LC.all.csv"), 
+          row.names=FALSE)
+```
+
+
+Section 3: Compute HR models
+get coordinates as a dataframe and make a spatial object
+```{r}
+# when trying to compute HR for each individual, some don't have enough data
+# extract those with at least 100 data points:
+
+pre.all %>% count(by = ArgosID) %>%
+  filter(n > 99) %>%
+  dplyr::select(by) %>%
+  rename(ArgosID = by) -> ID.pre.100
+
+pre.selected <- right_join(pre.all, ID.pre.100, by = "ArgosID")
+
+# treat all individuals as a group without ID - use all of them
+pre.all.coords <- data.frame(x=pre.selected$Lon, 
+                             y=pre.selected$Lat)
+
+coordinates(pre.all.coords) <- ~ x + y
+proj4string(pre.all.coords) <- CRS(latlong)
+pre.all.utm <- spTransform(pre.all.coords, tagproj)
+
+#class(pre.all.coords)
+#plot(pre.all.coords, axes=TRUE) ## sanity check
+
+# use those with at least 100:
+# treat all individuals as a group without ID - use all of them
+pre.selected.coords <- data.frame(x=pre.selected$Lon, 
+                                  y=pre.selected$Lat,
+                                  ID = pre.selected$ArgosID)
+
+coordinates(pre.selected.coords) <- ~ x + y
+proj4string(pre.selected.coords) <- CRS(latlong)
+pre.selected.utm <- spTransform(pre.selected.coords, tagproj)
+```
+
+Do the same with post dataset - choose those with at least 100 data points. 
+
+```{r}
+post.all %>% count(by = ArgosID) %>%
+  filter(n > 99) %>%
+  dplyr::select(by) %>%
+  rename(ArgosID = by) -> ID.post.100
+
+# because there are more post tracks than pre tracks, 5 vs. 11(?), it may make sense to 
+# randomly draw 5 at a time and look at how computed home range changes. You'd think 
+# more turtles means larger home range? 
+
+
+post.selected <- right_join(post.all, ID.post.100, by = "ArgosID")
+
+# remove individuals with small sample size:
+post.all.coords <- data.frame(x=post.selected$Lon, 
+                              y=post.selected$Lat)
+coordinates(post.all.coords) <- ~ x + y
+proj4string(post.all.coords) <- CRS(latlong)
+post.all.utm <- spTransform(post.all.coords, tagproj)
+#plot(post.all.utm, axes=TRUE) ## sanity check
+
+post.selected.coords <- data.frame(x=post.selected$Lon, 
+                                   y=post.selected$Lat,
+                                   ID = as.factor(post.selected$ArgosID))
+coordinates(post.selected.coords) <- ~ x + y
+proj4string(post.selected.coords) <- CRS(latlong)
+post.selected.utm <- spTransform(post.selected.coords, tagproj)
+
+```
+
+Then the home range analysis starts here:
+
+```{r}
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+
+pre.all.kd <- kernelUD(pre.all.utm, 
+                       h = 100,  
+                       hlim = c(0.03, 1.5), 
+                       grid = 300,
+                       extent = 1,
+                       kern = "bivnorm")
+
+plotLSCV(pre.all.kd)
+pre.Area.all <- kernel.area(pre.all.kd, 
+                            percent = c(50, 95),
+                            unin = c("m"),
+                            unout = c("km2"), 
+                            standardize = FALSE)
+pre.Area.all
+
+pre.selected.kd <- kernelUD(pre.selected.utm, 
+                            h = "LSCV",  
+                            hlim = c(0.03, 1.5), 
+                            grid = 300,
+                            extent = 1,
+                            kern = "bivnorm")
+
+plotLSCV(pre.selected.kd)
+pre.Area.selected <- kernel.area(pre.selected.kd, 
+                                 percent = c(50, 95),
+                                 unin = c("m"),
+                                 unout = c("km2"), 
+                                 standardize = FALSE)
+pre.Area.selected
+
+pre.bw <- pre.all.kd@h$h ##bandwidth estimate
+pre.Area.50 <- round(pre.Area.all["50"],2)
+pre.Area.95 <- round(pre.Area.all["95"],2)
+
+pre.ver.50 <- getverticeshr(pre.all.kd, 50)
+pre.ver.95 <- getverticeshr(pre.all.kd, 95)
+
+plot(pre.ver.50, axes = TRUE)
+plot(pre.ver.95, axes = TRUE)
+#points(pre.all.utm, col="blue")
+```
+
+
+```{r}
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+
+post.all.kd <- kernelUD(post.all.utm, 
+                        h = 100,  
+                        hlim = c(0.01, 1.5), 
+                        grid = 300,
+                        extent = 1,
+                        kern = "bivnorm")
+
+#plotLSCV(post.all.kd)
+post.Area.all <- kernel.area(post.all.kd, 
+                             percent = c(50, 95),
+                             unin = c("m"),
+                             unout = c("km2"), 
+                             standardize = FALSE)
+post.Area.all
+
+post.selected.kd <- kernelUD(post.selected.utm, 
+                             h = "LSCV",  
+                             hlim = c(0.03, 1.5), 
+                             grid = 300,
+                             extent = 1,
+                             kern = "bivnorm")
+
+plotLSCV(post.selected.kd)
+post.Area.selected <- kernel.area(post.selected.kd, 
+                                  percent = c(50, 95),
+                                  unin = c("m"),
+                                  unout = c("km2"), 
+                                  standardize = FALSE)
+post.Area.selected
+
+post.bw <- post.all.kd@h$h ##bandwidth estimate
+post.Area.50 <- round(post.Area.all["50"],2)
+post.Area.95 <- round(post.Area.all["95"],2)
+
+post.ver.50 <- getverticeshr(post.all.kd, 50)
+post.ver.95 <- getverticeshr(post.all.kd, 95)
+
+plot(post.ver.50, axes = TRUE)
+plot(post.ver.95, axes = TRUE)
+#points(pre.all.utm, col="blue")
+```
