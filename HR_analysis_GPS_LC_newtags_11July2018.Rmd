@@ -32,6 +32,8 @@ library(leaflet)
 library(ggplot2)
 
 internet <- FALSE
+# Minimum number of relocations per individual to be included in HR analysis
+min_n <- 50
 ```
 
 Get some base layer maps here:
@@ -44,11 +46,15 @@ SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
                                CRS("+proj=longlat +datum=WGS84"))
 SDBay.eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
 
-SDBay <- read.csv("data/SDBay_polygon.csv")
+SDBay.eelg.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2008",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
 
 if (internet){
   sdbay.all <- ggmap::get_map(location = c(lon = -117.15,
-                                    lat = 32.65),
+                                           lat = 32.65),
                        zoom = 12,
                        maptype = "satellite",
                        color = "bw",
@@ -57,7 +63,7 @@ if (internet){
   saveRDS(sdbay.all, file = 'RData/sdbay_all.rds')
 
   sdbay.south <- ggmap::get_map(location = c(lon = -117.117,
-                                      lat = 32.625),
+                                             lat = 32.625),
                          zoom = 14,
                          maptype = "satellite",
                          color = "bw",
@@ -66,7 +72,7 @@ if (internet){
   saveRDS(sdbay.south, file = 'RData/sdbay_south.rds')
 
   sdbay.med <- ggmap::get_map(location = c(lon =  -117.117,
-                                    lat = 32.625),
+                                           lat = 32.625),
                        zoom = 13,
                        maptype = "satellite",
                        color = "bw",
@@ -87,7 +93,19 @@ map.sdbay.med <- ggmap::ggmap(sdbay.med)
 
 # read in the SDB shape file:
 SDB.shape <- readOGR(dsn = "GISFiles", layer = "sd_bay")
-#water.shape<- readOGR(dsn = "GISFiles", layer = "water")
+SDBay <- spTransform(readOGR(dsn = "GISfiles",
+                             layer = "sd_bay",
+                             verbose = F),
+                     CRS("+proj=longlat +datum=WGS84"))
+SDBay.df <- broom::tidy(SDBay)
+
+water <- spTransform(readOGR(dsn = "GISFiles", 
+                             layer = "water",
+                             verbose = F),
+                     CRS("+proj=longlat +datum=WGS84"))
+water.df <- broom::tidy(water) %>%
+  filter(lat < 32.75 & lat > 32.58 & long > -117.25)
+
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
@@ -114,16 +132,51 @@ pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
 pre.all <- do.call(rbind, 
                    lapply(pre.files,
                           FUN = function(x) read.csv(paste0(dname, x)))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
   filter(include == 1)
 
 
-write.csv(pre.all, paste0(dname, "Pre_GPS_LC.all.csv"), 
+write.csv(pre.all, paste0(dname, "Pre_GPS_LC_all.csv"), 
           row.names=FALSE)
 
 ```
 
-Do the same for post and probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
+Plot the data points to see what they look like:
 
+```{r}
+map.pre <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_point(data = pre.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(legend.title = element_text(size = 10, hjust = 0.5),
+        legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+plot(map.pre)
+```
+
+
+
+Do the same for post 
 
 ```{r}
 dname <- "data/files_Apr2018_withNewTags/post/"
@@ -135,8 +188,35 @@ post.IDs <- unlist(lapply(post.files, FUN = ID.names))
 post.all <- do.call(rbind, 
                    lapply(post.files,
                           FUN = function(x) read.csv(paste0(dname, x)))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
   filter(include == 1)
 
+map.post <- map.sdbay.zm + 
+   geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",
+               #alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.6) +
+  geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        #legend.position = c(0.2, 0.5),
+        legend.position = "none")
+
+plot(map.post)
+```
+
+And probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
+```{r}
 dname <- "data/files_Apr2018_withNewTags/new/"
 new.files <- dir(path = dname, 
                  pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
@@ -146,32 +226,57 @@ new.IDs <- unlist(lapply(new.files, FUN = ID.names))
 new.all <- do.call(rbind, 
                    lapply(new.files,
                           FUN = function(x) read.csv(paste0(dname, x)))) %>%
-  filter(include == 1)
+   mutate(ID.f = as.factor(ArgosID)) %>%
+ filter(include == 1)
 
 post.all <- rbind(post.all, new.all) %>%
   filter(Lat1 < 32.66)
 
-write.csv(post.all, paste0(dname, "Post_GPS_LC.all.csv"), 
+write.csv(post.all, paste0(dname, "Post_GPS_LC_all.csv"), 
           row.names=FALSE)
+
+map.post <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) + 
+               #fill = "blue",
+               #alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.6) +geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        #legend.position = c(0.2, 0.5),
+    legend.position = "none")
+
+plot(map.post)
 ```
 
+We have a lot more individuals from the post period than the pre, so we need to do something about that... especially for computing HRs. 
 
-Section 3: Compute HR models
-get coordinates as a dataframe and make a spatial object
+
+Section 3: Compute HRs
+Get coordinates as a dataframe and make a spatial object
 ```{r}
 # when trying to compute HR for each individual, some don't have enough data
 # extract those with at least 100 data points:
 
 pre.all %>% count(by = ArgosID) %>%
-  filter(n > 99) %>%
-  dplyr::select(by) %>%
-  rename(ArgosID = by) -> ID.pre.100
+  filter(n > (min_n - 1)) %>%
+  #dplyr::select(by) %>%
+  rename(ArgosID = by) -> ID.pre.min_n
 
-pre.selected <- right_join(pre.all, ID.pre.100, by = "ArgosID")
+pre.selected <- right_join(pre.all, ID.pre.min_n, by = "ArgosID")
 
-# treat all individuals as a group without ID - use all of them
-pre.all.coords <- data.frame(x=pre.selected$Lon, 
-                             y=pre.selected$Lat)
+# treat all individuals as a group without ID - use all of them to make one HR
+pre.all.coords <- data.frame(x=pre.selected$Lon1, 
+                             y=pre.selected$Lat1)
 
 coordinates(pre.all.coords) <- ~ x + y
 proj4string(pre.all.coords) <- CRS(latlong)
@@ -182,44 +287,43 @@ pre.all.utm <- spTransform(pre.all.coords, tagproj)
 
 # use those with at least 100:
 # treat all individuals as a group without ID - use all of them
-pre.selected.coords <- data.frame(x=pre.selected$Lon, 
-                                  y=pre.selected$Lat,
-                                  ID = pre.selected$ArgosID)
+pre.byID.coords <- data.frame(x = pre.selected$Lon1, 
+                              y = pre.selected$Lat1,
+                              ID = as.factor(pre.selected$ArgosID))
 
-coordinates(pre.selected.coords) <- ~ x + y
-proj4string(pre.selected.coords) <- CRS(latlong)
-pre.selected.utm <- spTransform(pre.selected.coords, tagproj)
+coordinates(pre.byID.coords) <- ~ x + y
+proj4string(pre.byID.coords) <- CRS(latlong)
+pre.byID.utm <- spTransform(pre.byID.coords, tagproj)
 ```
 
-Do the same with post dataset - choose those with at least 100 data points. 
+Do the same with post dataset - choose those with at least min_n data points. 
 
 ```{r}
 post.all %>% count(by = ArgosID) %>%
-  filter(n > 99) %>%
-  dplyr::select(by) %>%
-  rename(ArgosID = by) -> ID.post.100
+  filter(n > (min_n - 1)) %>%
+  #dplyr::select(by) %>%
+  rename(ArgosID = by) -> ID.post.min_n
 
 # because there are more post tracks than pre tracks, 5 vs. 11(?), it may make sense to 
 # randomly draw 5 at a time and look at how computed home range changes. You'd think 
 # more turtles means larger home range? 
 
-
-post.selected <- right_join(post.all, ID.post.100, by = "ArgosID")
+post.selected <- right_join(post.all, ID.post.min_n, by = "ArgosID")
 
 # remove individuals with small sample size:
-post.all.coords <- data.frame(x=post.selected$Lon, 
-                              y=post.selected$Lat)
+post.all.coords <- data.frame(x=post.selected$Lon1, 
+                              y=post.selected$Lat1)
 coordinates(post.all.coords) <- ~ x + y
 proj4string(post.all.coords) <- CRS(latlong)
 post.all.utm <- spTransform(post.all.coords, tagproj)
 #plot(post.all.utm, axes=TRUE) ## sanity check
 
-post.selected.coords <- data.frame(x=post.selected$Lon, 
-                                   y=post.selected$Lat,
+post.byID.coords <- data.frame(x=post.selected$Lon1, 
+                                   y=post.selected$Lat1,
                                    ID = as.factor(post.selected$ArgosID))
-coordinates(post.selected.coords) <- ~ x + y
-proj4string(post.selected.coords) <- CRS(latlong)
-post.selected.utm <- spTransform(post.selected.coords, tagproj)
+coordinates(post.byID.coords) <- ~ x + y
+proj4string(post.byID.coords) <- CRS(latlong)
+post.byID.utm <- spTransform(post.byID.coords, tagproj)
 
 ```
 
@@ -228,36 +332,41 @@ Then the home range analysis starts here:
 ```{r}
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
+# grid values from 50 to 300 don't change the outcome;
+# extent values from 1 to 200 don't change the outcome either
 
+#LSCV estimated band width is too small and home range becomes fragmented
+# so, I increased it to 100
+h <- 100
 pre.all.kd <- kernelUD(pre.all.utm, 
-                       h = 100,  
+                       h = h,  
                        hlim = c(0.03, 1.5), 
                        grid = 300,
                        extent = 1,
                        kern = "bivnorm")
 
-plotLSCV(pre.all.kd)
+#plotLSCV(pre.all.kd)
 pre.Area.all <- kernel.area(pre.all.kd, 
                             percent = c(50, 95),
                             unin = c("m"),
                             unout = c("km2"), 
                             standardize = FALSE)
-pre.Area.all
-
-pre.selected.kd <- kernelUD(pre.selected.utm, 
-                            h = "LSCV",  
+#pre.Area.all
+# we should probably use the same bandwidth as the whole?
+pre.byID.kd <- kernelUD(pre.byID.utm, 
+                            h = pre.all.kd@h$h ,  
                             hlim = c(0.03, 1.5), 
                             grid = 300,
                             extent = 1,
                             kern = "bivnorm")
 
-plotLSCV(pre.selected.kd)
-pre.Area.selected <- kernel.area(pre.selected.kd, 
-                                 percent = c(50, 95),
-                                 unin = c("m"),
-                                 unout = c("km2"), 
-                                 standardize = FALSE)
-pre.Area.selected
+#plotLSCV(pre.byID.kd)
+pre.Area.byID <- kernel.area(pre.byID.kd, 
+                             percent = c(50, 95),
+                             unin = c("m"),
+                             unout = c("km2"), 
+                             standardize = FALSE)
+#pre.Area.selected
 
 pre.bw <- pre.all.kd@h$h ##bandwidth estimate
 pre.Area.50 <- round(pre.Area.all["50"],2)
@@ -269,7 +378,57 @@ pre.ver.95 <- getverticeshr(pre.all.kd, 95)
 plot(pre.ver.50, axes = TRUE)
 plot(pre.ver.95, axes = TRUE)
 #points(pre.all.utm, col="blue")
+
 ```
+Make a plot:
+```{r}
+
+pre.ver.50.df <- broom::tidy(spTransform(pre.ver.50, CRS("+proj=longlat")))
+pre.ver.95.df <- broom::tidy(spTransform(pre.ver.95, CRS("+proj=longlat")))
+
+map.pre.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  geom_point(data = pre.all,
+             aes(x = Lon1, y = Lat1),
+             alpha = 0.5,
+             size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+#plot(map.pre.HR)
+```
+
+Do the same for the post data - here we need to look at subsampling individuals. 
 
 
 ```{r}
@@ -277,7 +436,7 @@ plot(pre.ver.95, axes = TRUE)
 ##Visually optimized hlim = c(0.565,1.5), grid=300
 
 post.all.kd <- kernelUD(post.all.utm, 
-                        h = 100,  
+                        h = h,  
                         hlim = c(0.01, 1.5), 
                         grid = 300,
                         extent = 1,
@@ -291,20 +450,20 @@ post.Area.all <- kernel.area(post.all.kd,
                              standardize = FALSE)
 post.Area.all
 
-post.selected.kd <- kernelUD(post.selected.utm, 
-                             h = "LSCV",  
-                             hlim = c(0.03, 1.5), 
-                             grid = 300,
-                             extent = 1,
-                             kern = "bivnorm")
+post.byID.kd <- kernelUD(post.byID.utm, 
+                         h = h,  
+                         hlim = c(0.03, 1.5), 
+                         grid = 300,
+                         extent = 1,
+                         kern = "bivnorm")
 
-plotLSCV(post.selected.kd)
-post.Area.selected <- kernel.area(post.selected.kd, 
-                                  percent = c(50, 95),
-                                  unin = c("m"),
-                                  unout = c("km2"), 
-                                  standardize = FALSE)
-post.Area.selected
+#plotLSCV(post.selected.kd)
+post.Area.byID <- kernel.area(post.byID.kd, 
+                              percent = c(50, 95),
+                              unin = c("m"),
+                              unout = c("km2"), 
+                              standardize = FALSE)
+post.Area.byID
 
 post.bw <- post.all.kd@h$h ##bandwidth estimate
 post.Area.50 <- round(post.Area.all["50"],2)
@@ -316,4 +475,61 @@ post.ver.95 <- getverticeshr(post.all.kd, 95)
 plot(post.ver.50, axes = TRUE)
 plot(post.ver.95, axes = TRUE)
 #points(pre.all.utm, col="blue")
+```
+
+
+Make a plot:
+```{r}
+
+post.ver.50.df <- broom::tidy(spTransform(post.ver.50, CRS("+proj=longlat")))
+post.ver.95.df <- broom::tidy(spTransform(post.ver.95, CRS("+proj=longlat")))
+
+map.post.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1),
+             alpha = 0.5,
+             size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+ggsave(filename = paste0("figures/HR_pre_h100_", Sys.Date(), ".png"),
+       plot = map.pre.HR,
+       dpi = 600,
+       device = "png")
+
+ggsave(filename = paste0("figures/HR_post_h100_", Sys.Date(), ".png"),
+       plot = map.post.HR,
+       dpi = 600,
+       device = "png")
+#plot(map.post.HR)
 ```
