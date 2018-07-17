@@ -534,52 +534,55 @@ post.ver.95 <- getverticeshr(post.HR$all.kd, 95)
 Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because of the sample size decreases, I use h.pre for this.
 
 ```{r}
-combos <- combn(1:dim(ID.post.min_n)[1], dim(ID.pre.min_n)[1]) 
-combos <- combos[, sample(1:ncol(combos), size = 1000)]
-IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
-area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
+# combos <- combn(1:dim(ID.post.min_n)[1], dim(ID.pre.min_n)[1]) 
+# combos <- combos[, sample(1:ncol(combos), size = 1000)]
+# IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
+# area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
+# 
+# #p.list <- list()
+# for (k in 1:ncol(combos)){
+#   
+#   ID.post.tmp <- ID.post.min_n[combos[,k], ]
+#   tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
+#   
+#   tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
+#                           byID.utm = tmp.list$byID.utm,
+#                           h = h.pre,
+#                           hlim=c(0.03, 1.5),
+#                           grid=300, extent = 1)
+#   
+#   ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95), 
+#                                CRS("+proj=longlat"))) 
+#                    
+#   pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
+#                            lat = tmp.list$all.coords@coords[,2])
+#   
+#   # p.list[[k]] <- ggplot() + 
+#   #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
+#   #   geom_point(data = pts.df, aes(x = lon, y = lat),
+#   #              color = "green") + coord_map()
+# 
+#   area.50[k] <- tmp.HR$area.all["50"]
+#   area.95[k] <- tmp.HR$area.all["95"]
+# 
+#   IDs[[k]] <- ID.post.tmp[,1]
+# }
+# 
+# areas.combos <- list(area95 = area.95,
+#                      area50 = area.50,
+#                      ID = IDs,
+#                      polygon = ver.95.df.list,
+#                      points = pts.df.list)
+# 
+# saveRDS(areas.combos, file = "RData/areas_combos.rds")
 
-#p.list <- list()
-for (k in 1:ncol(combos)){
-  
-  ID.post.tmp <- ID.post.min_n[combos[,k], ]
-  tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
-  
-  tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
-                          byID.utm = tmp.list$byID.utm,
-                          h = h.pre,
-                          hlim=c(0.03, 1.5),
-                          grid=300, extent = 1)
-  
-  ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95), 
-                               CRS("+proj=longlat"))) 
-                   
-  pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
-                           lat = tmp.list$all.coords@coords[,2])
-  
-  # p.list[[k]] <- ggplot() + 
-  #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
-  #   geom_point(data = pts.df, aes(x = lon, y = lat),
-  #              color = "green") + coord_map()
+readRDS(file = "RData/areas_combos.rds")
 
-  area.50[k] <- tmp.HR$area.all["50"]
-  area.95[k] <- tmp.HR$area.all["95"]
-
-  IDs[[k]] <- ID.post.tmp[,1]
-}
-
-areas.combos <- list(area95 = area.95,
-                     area50 = area.50,
-                     ID = IDs,
-                     polygon = ver.95.df.list,
-                     points = pts.df.list)
-
-saveRDS(areas.combos, file = "RData/areas_combos.rds")
-
-#readRDS(file = "RData/areas_combos.rds")
-
+hist(areas.combos$area95)
+quantile(areas.combos$area95, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
 ```
 
+The 95 percentiles of UDs ranged from 5.95 km2 to 7.89 when using six turtles at a time. The computed 95% UD for the pre dataset was 6.31, which was about 10 percentile of UDs for the post dataset. This indicated the UDs increased from the pre to post periods. 
 
 Make a plot for pre:
 ```{r}
@@ -626,7 +629,7 @@ map.pre.HR <- map.sdbay.zm +
         legend.position = "none")
 
 
-#plot(map.pre.HR)
+plot(map.pre.HR)
 ```
 
 Make a plot for post using all data:
@@ -673,12 +676,12 @@ map.post.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
-ggsave(filename = paste0("figures/HR_pre_h100_", Sys.Date(), ".png"),
+ggsave(filename = paste0("figures/HR_pre_h", h.pre, "_", Sys.Date(), ".png"),
        plot = map.pre.HR,
        dpi = 600,
        device = "png")
 
-ggsave(filename = paste0("figures/HR_post_h100_", Sys.Date(), ".png"),
+ggsave(filename = paste0("figures/HR_post_h", h.post, "_", Sys.Date(), ".png"),
        plot = map.post.HR,
        dpi = 600,
        device = "png")
