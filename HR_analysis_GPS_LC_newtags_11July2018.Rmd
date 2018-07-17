@@ -32,6 +32,8 @@ library(leaflet)
 library(ggplot2)
 
 internet <- FALSE
+save.figure <- F
+
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
 
@@ -107,6 +109,96 @@ HR.bvnorm.fcn <- function(all.utm,
               byID.kd = byID.kd,
               area.all = Area.all,
               area.byID = Area.byID))
+}
+
+HR.analysis.step1 <- function(min_n, data.df, tagproj, grid=300){
+  data.df %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> ID.min_n_day
+  
+  list.data <- make.HR.dataset(data.df, ID.min_n_day, tagproj)
+
+  kd.href <- kernelUD(list.data$all.utm, 
+                      h="href",  
+                      grid=grid,
+                      kern = "bivnorm")
+  
+  kd.LSCV <- kernelUD(list.data$all.utm, 
+                      h="LSCV",  
+                      hlim = c(0.03, 1.5), 
+                      grid=300,
+                      kern = "bivnorm")
+  return(list(kd.href = kd.href,
+              kd.LSCV = kd.LSCV,
+              IDs = ID.min_n_day,
+              list.data = list.data))
+}
+
+HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
+  h.adhoc <- h.multiplier * kd.href@h$h
+
+  kd.adhoc <- vector(mode = "list", length = length(h.adhoc))
+  for (k in 1:length(h.adhoc)){
+    kd.adhoc[[k]] <- kernelUD(data.list$all.utm, 
+                              h = h.adhoc[k],  
+                              grid = grid,
+                              kern = "bivnorm")
+    
+  }
+
+  # make dataframes of vertices:
+  ver.95.adhoc <- lapply(kd.adhoc, 
+                         FUN = getverticeshr, 
+                         percent = 95)
+
+  ver.95.adhoc.tmp <- lapply(ver.95.adhoc, 
+                             FUN = spTransform, 
+                             CRS = CRS("+proj=longlat"))
+
+  ver.95.adhoc.list <- lapply(ver.95.adhoc.tmp,
+                              FUN = broom::tidy)
+
+  for (k in 1:length(ver.95.adhoc.list)){
+    ver.95.adhoc.list[[k]] <- ver.95.adhoc.list[[k]] %>% 
+      mutate(h = h.adhoc[k]) %>%
+      mutate(h.fac = as.factor(round(h, digits = 2))) %>%
+      mutate(h.multip = h.multiplier[k])
+  }
+
+  # rbind all:
+  ver.95.adhoc.df <- do.call("rbind", ver.95.adhoc.list)
+
+  p.h.adhoc <- ggplot(data = ver.95.adhoc.df,
+                      aes(x = long, y = lat,
+                          group = group)) + 
+    geom_polygon() + 
+    coord_map() + facet_grid(. ~ h.multip) +
+    facet_wrap( ~ h.multip, nrow = 3) + 
+    labs(x = "", y = "")+ 
+    theme(axis.text.x = element_text(angle = 90)) +
+    scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                       limits = c(-117.15, -117.09))+
+    scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                       limits = c(32.60, 32.66))
+
+  return(list(figure = p.h.adhoc,
+              ver.95 = ver.95.adhoc.df,
+              h = h.adhoc))
+}
+
+compute.area <- function(h, list.data, grid=300){
+  HR <- HR.bvnorm.fcn(list.data$all.utm, 
+                      list.data$byID.utm, 
+                      h = h, 
+                      hlim=c(0.03, 1.5), 
+                      grid=grid, extent = 1)
+  bw <- HR$all.kd@h$h ##bandwidth estimate
+
+  return(list(area.50 = HR$area.all["50"],
+              area.95 = HR$area.all["95"],
+              ver.50 = getverticeshr(HR$all.kd, 50),
+              ver.95 = getverticeshr(HR$all.kd, 95)))
 }
 
 ```
@@ -247,6 +339,7 @@ map.pre <- map.sdbay.zm +
         legend.position = "none")
 
 plot(map.pre)
+
 ```
 
 
@@ -337,98 +430,44 @@ We have a lot more individuals from the post period than the pre, so we need to 
 
 
 Section 3: Compute HRs
-Get coordinates as a dataframe and make a spatial object
+
 ```{r}
 # when trying to compute HR for each individual, some don't have enough data
 # extract those with at least 100 data points:
 
-pre.all %>% count(by = ArgosID) %>%
-  filter(n > (min_n - 1)) %>%
-  #dplyr::select(by) %>%
-  rename(ArgosID = by) -> ID.pre.min_n
-
-pre.list <- make.HR.dataset(pre.all, ID.pre.min_n, tagproj)
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = 300)
 ```
 
 Do the same with post dataset - choose those with at least min_n data points. 
 
 ```{r}
-post.all %>% count(by = ArgosID) %>%
-  filter(n > (min_n - 1)) %>%
-  #dplyr::select(by) %>%
-  rename(ArgosID = by) -> ID.post.min_n
-
-post.list <- make.HR.dataset(post.all, ID.post.min_n, tagproj)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
 
 ```
 
 Then the home range analysis starts here. First we need to figure out the smoothing parameter (bandwidth, h). There seem to be different methods and recommendations...
 
-First, tru least-squares cross validation on the pre data:
+First, least-squares cross validation on the pre data:
 ```{r}
-pre.kd.href <- kernelUD(pre.list$all.utm, 
-                   h="href",  
-                   grid=300,
-                   kern = "bivnorm")
-
-pre.kd.LSCV <- kernelUD(pre.list$all.utm, 
-                        h="LSCV",  
-                        hlim = c(0.03, 1.5), 
-                        grid=300,
-                        kern = "bivnorm")
-
-plotLSCV(pre.kd.LSCV)
+plotLSCV(pre.kd$kd.LSCV)
 
 ```
 
 Referecne or optimum bandwidth is ~248 (see pre.kd.href), whereas the LSCV comes back with h = 25.9 (Pre.kd@h$h). According to Kie (2013), we should decrease href in increments of 0.10 and the best value is the smallest increment of href that 1. resulted in a contiguous rather than disjoint 95% kernel home-range polygon, and 2. contained no lacuna within the home range. 
 ```{r}
-h.adhoc <- seq(from = 0.1, to = 0.9, by = 0.1) * pre.kd.href@h$h
+h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
 
-pre.kd.adhoc <- vector(mode = "list", length = length(h.adhoc))
-for (k in 1:length(h.adhoc)){
-  pre.kd.adhoc[[k]] <- kernelUD(pre.list$all.utm, 
-                                h = h.adhoc[k],  
-                                grid = 300,
-                                kern = "bivnorm")
+h.adhoc.pre <- HR.analysis(h.multiplier, 
+                           pre.kd$kd.href, 
+                           pre.kd$list.data, 
+                           grid = 300)
   
-}
+plot(h.adhoc.pre$figure)
 
-# make dataframes of vertices:
-pre.ver.95.adhoc <- lapply(pre.kd.adhoc, FUN = getverticeshr, percent = 95)
 
-pre.ver.95.adhoc.tmp <- lapply(pre.ver.95.adhoc, 
-                              FUN = spTransform, CRS = CRS("+proj=longlat"))
-
-pre.ver.95.adhoc.list <- lapply(pre.ver.95.adhoc.tmp,
-                               FUN = broom::tidy)
-
-for (k in 1:length(pre.ver.95.adhoc.list)){
-  pre.ver.95.adhoc.list[[k]] <- pre.ver.95.adhoc.list[[k]] %>% 
-    mutate(h = h.adhoc[k]) %>%
-    mutate(h.fac = as.factor(round(h, digits = 2)))
-}
-
-# rbind all:
-pre.ver.95.adhoc.df <- do.call("rbind", pre.ver.95.adhoc.list)
-
-p.h.adhoc.pre <- ggplot(data = pre.ver.95.adhoc.df,
-                    aes(x = long, y = lat,
-                        group = group)) + 
-  geom_polygon() + 
-  coord_map() + facet_grid(. ~ h.fac) +
-  facet_wrap( ~ h.fac, ncol = 3) + 
-  labs(x = "", y = "")
-
-plot(p.h.adhoc.pre)
-
-ggsave(filename = paste0("figures/HR_pre_h_comp_", Sys.Date(), ".png"),
-       plot = p.h.adhoc.pre,
-       dpi = 600,
-       device = "png")
 ```
 
-Looking at these plots, h = 125 may be okay for the pre dataset? 
+Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is equivalent of h = 148.96 ~ 145.  
 
 ```{r}
 ## Section 3.1.2
@@ -436,23 +475,20 @@ Looking at these plots, h = 125 may be okay for the pre dataset?
 # grid values from 50 to 300 don't change the outcome;
 # extent values from 1 to 200 don't change the outcome either
 
-#LSCV estimated band width is too small and home range becomes fragmented
-# so, I increased it to 100
-h.pre <- 125
+h.pre <- 145
 
-pre.HR <- HR.bvnorm.fcn(pre.list$all.utm, 
-                        pre.list$byID.utm, 
-                        h = h.pre, 
-                        hlim=c(0.03, 1.5), 
-                        grid=300, extent = 1)
-pre.bw <- pre.HR$all.kd@h$h ##bandwidth estimate
+pre.HR <- compute.area(h.pre, pre.kd$list.data, grid = 300)
+writeOGR(obj = pre.HR$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_50.shp",
+         layer="Pre.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
 
-pre.Area.50 <- pre.HR$area.all["50"]
-pre.Area.95 <- pre.HR$area.all["95"]
-
-pre.ver.50 <- getverticeshr(pre.HR$all.kd, 50)
-pre.ver.95 <- getverticeshr(pre.HR$all.kd, 95)
-
+writeOGR(obj = pre.HR$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_95.shp",
+         layer="Pre.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
 # plot(pre.ver.50, axes = TRUE)
 # plot(pre.ver.95, axes = TRUE)
 #points(pre.all.utm, col="blue")
@@ -462,69 +498,42 @@ pre.ver.95 <- getverticeshr(pre.HR$all.kd, 95)
 
 Do the same for the post data - here we need to look at subsampling individuals. First, use all data.
 
+First, least-squares cross validation on the pre data:
 ```{r}
-post.kd.adhoc <- vector(mode = "list", length = length(h.adhoc))
-for (k in 1:length(h.adhoc)){
-  post.kd.adhoc[[k]] <- kernelUD(post.list$all.utm, 
-                                h = h.adhoc[k],  
-                                grid = 300,
-                                kern = "bivnorm")
-  
-}
+plotLSCV(post.kd$kd.LSCV)
 
-# make dataframes of vertices:
-post.ver.95.adhoc <- lapply(post.kd.adhoc, FUN = getverticeshr, percent = 95)
-
-post.ver.95.adhoc.tmp <- lapply(post.ver.95.adhoc, 
-                              FUN = spTransform, CRS = CRS("+proj=longlat"))
-
-post.ver.95.adhoc.list <- lapply(post.ver.95.adhoc.tmp,
-                               FUN = broom::tidy)
-
-for (k in 1:length(post.ver.95.adhoc.list)){
-  post.ver.95.adhoc.list[[k]] <- post.ver.95.adhoc.list[[k]] %>% 
-    mutate(h = h.adhoc[k]) %>%
-    mutate(h.fac = as.factor(round(h, digits = 2)))
-}
-
-# rbind all:
-post.ver.95.adhoc.df <- do.call("rbind", post.ver.95.adhoc.list)
-
-p.h.adhoc.post <- ggplot(data = post.ver.95.adhoc.df,
-                    aes(x = long, y = lat,
-                        group = group)) + 
-  geom_polygon() + 
-  coord_map() + facet_grid(. ~ h.fac) +
-  facet_wrap( ~ h.fac, ncol = 3) + 
-  labs(x = "", y = "")
-
-plot(p.h.adhoc.post)
-
-ggsave(filename = paste0("figures/HR_post_h_comp_", Sys.Date(), ".png"),
-       plot = p.h.adhoc.post,
-       dpi = 600,
-       device = "png")
 ```
 
-For post data, h = 100 may be okay?
+```{r}
+
+h.adhoc.post <- HR.analysis(h.multiplier, 
+                            post.kd$kd.href, 
+                            post.kd$list.data, 
+                            grid = 300)
+  
+plot(h.adhoc.post$figure)
+
+```
+
+For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% UD.  This is equivalent of h = 97.16. So, h = 100 may be okay?
 
 
 ```{r}
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
-h.post <- 150
-post.HR <- HR.bvnorm.fcn(all.utm = post.list$all.utm, 
-                         byID.utm = post.list$byID.utm, 
-                         h = h.post, 
-                         hlim=c(0.03, 1.5), 
-                         grid=300, extent = 1)
-post.bw <- post.HR$all.kd@h$h ##bandwidth estimate
+h.post <- 100
+post.HR <- compute.area(h.post, post.kd$list.data, grid = 300)
+writeOGR(obj = post.HR$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_50.shp",
+         layer="Post.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
 
-post.Area.50 <- post.HR$area.all["50"]
-post.Area.95 <- post.HR$area.all["95"]
-
-post.ver.50 <- getverticeshr(post.HR$all.kd, 50)
-post.ver.95 <- getverticeshr(post.HR$all.kd, 95)
+writeOGR(obj = post.HR$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_95.shp",
+         layer="Post.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
 
 # plot(post.ver.50, axes = TRUE)
 # plot(post.ver.95, axes = TRUE)
@@ -533,62 +542,252 @@ post.ver.95 <- getverticeshr(post.HR$all.kd, 95)
 
 Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because of the sample size decreases, I use h.pre for this.
 
-```{r}
-# combos <- combn(1:dim(ID.post.min_n)[1], dim(ID.pre.min_n)[1]) 
-# combos <- combos[, sample(1:ncol(combos), size = 1000)]
-# IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
-# area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
-# 
-# #p.list <- list()
-# for (k in 1:ncol(combos)){
-#   
-#   ID.post.tmp <- ID.post.min_n[combos[,k], ]
-#   tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
-#   
-#   tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
-#                           byID.utm = tmp.list$byID.utm,
-#                           h = h.pre,
-#                           hlim=c(0.03, 1.5),
-#                           grid=300, extent = 1)
-#   
-#   ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95), 
-#                                CRS("+proj=longlat"))) 
-#                    
-#   pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
-#                            lat = tmp.list$all.coords@coords[,2])
-#   
-#   # p.list[[k]] <- ggplot() + 
-#   #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
-#   #   geom_point(data = pts.df, aes(x = lon, y = lat),
-#   #              color = "green") + coord_map()
-# 
-#   area.50[k] <- tmp.HR$area.all["50"]
-#   area.95[k] <- tmp.HR$area.all["95"]
-# 
-#   IDs[[k]] <- ID.post.tmp[,1]
-# }
-# 
-# areas.combos <- list(area95 = area.95,
-#                      area50 = area.50,
-#                      ID = IDs,
-#                      polygon = ver.95.df.list,
-#                      points = pts.df.list)
-# 
-# saveRDS(areas.combos, file = "RData/areas_combos.rds")
+```{r echo=FALSE, results="hide"}
+run.date <- "2018-07-17"
+if (!file.exists(paste0("RData/areas_combos_", run.date, ".rds"))){
+  combos <- combn(1:dim(ID.post.min_n)[1], 
+                  dim(ID.pre.min_n)[1])
+  combos <- combos[, sample(1:ncol(combos), 
+                            size = 1000)]
+  IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
+  area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
+  
+  #p.list <- list()
+  for (k in 1:ncol(combos)){
+    
+    ID.post.tmp <- ID.post.min_n[combos[,k], ]
+    tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
+    
+    tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
+                            byID.utm = tmp.list$byID.utm,
+                            h = h.pre,
+                            hlim=c(0.03, 1.5),
+                            grid=300, extent = 1)
+    
+    ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95),
+                                              CRS("+proj=longlat")))
+    
+    pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
+                              lat = tmp.list$all.coords@coords[,2])
+    
+    # p.list[[k]] <- ggplot() +
+    #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
+    #   geom_point(data = pts.df, aes(x = lon, y = lat),
+    #              color = "green") + coord_map()
+    
+    area.50[k] <- tmp.HR$area.all["50"]
+    area.95[k] <- tmp.HR$area.all["95"]
+    
+    IDs[[k]] <- ID.post.tmp[,1]
+  }
+  
+  areas.combos <- list(area95 = area.95,
+                       area50 = area.50,
+                       ID = IDs,
+                       polygon = ver.95.df.list,
+                       points = pts.df.list)
+  
+  saveRDS(areas.combos,
+          file = paste0("RData/areas_combos_", Sys.Date(), ".rds"))
+  
+} else {
+  areas.combos <- readRDS(file = paste0("RData/areas_combos_", 
+                                        run.date, ".rds"))
+}
 
-readRDS(file = "RData/areas_combos.rds")
-
-hist(areas.combos$area95)
-quantile(areas.combos$area95, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
 ```
+
+Compare the randomized areas and the pre area.
+```{r}
+dif.50.df <- data.frame(dif = areas.combos$area50 - pre.HR$area.50)
+dif.95.df <- data.frame(dif = areas.combos$area95 - pre.HR$area.95)
+
+hist.dif.50 <- ggplot(data = dif.50.df) + 
+  geom_histogram(aes(x = dif), binwidth = 0.1) +
+  labs(x = "Difference in area", y = "Count")
+
+#plot(hist.dif.50)
+
+hist.dif.95 <- ggplot(data = dif.95.df) + 
+  geom_histogram(aes(x = dif), binwidth = 0.15) +
+  labs(x = "Difference in area", y = "Count")
+
+#plot(hist.dif.95)
+
+quantile(dif.50.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
+quantile(dif.95.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
+
+dif.50.df %>% count(dif>0)
+
+dif.95.df %>% count(dif > 0)
+
+
+```
+
 
 The 95 percentiles of UDs ranged from 5.95 km2 to 7.89 when using six turtles at a time. The computed 95% UD for the pre dataset was 6.31, which was about 10 percentile of UDs for the post dataset. This indicated the UDs increased from the pre to post periods. 
 
-Make a plot for pre:
+Compare between night and day and pre and post:
+```{r}
+# pre day vs pre night:
+pre.all %>% filter(day1night2 == 1) -> pre.day
+
+pre.kd.day <- HR.analysis.step1(min_n, pre.day, tagproj, grid = 300)
+
+plotLSCV(pre.kd.day$kd.LSCV)
+```
+
+```{r}
+h.adhoc.pre.day <- HR.analysis(h.multiplier, 
+                               pre.kd.day$kd.href, 
+                               pre.kd.day$list.data, 
+                               grid = 300)
+plot(h.adhoc.pre.day$figure)
+
+```
+
+multiplier = 0.7 may be good. 
+
+```{r}
+h.pre.day <- pre.kd.day$kd.href@h$h * 0.7
+# or use the same value as before
+
+pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = 300)
+writeOGR(obj = pre.HR.day$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_day_50.shp",
+         layer="Pre.day.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = pre.HR.day$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_day_95.shp",
+         layer="Pre.day.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+```
+
+For night:
+```{r}
+pre.all %>% filter(day1night2 == 2) -> pre.night
+pre.kd.night <- HR.analysis.step1(min_n, pre.night, tagproj, grid = 300)
+plotLSCV(pre.kd.night$kd.LSCV)
+
+```
+
+```{r}
+h.adhoc.pre.night <- HR.analysis(h.multiplier, 
+                                 pre.kd.night$kd.href, 
+                                 pre.kd.night$list.data, 
+                                 grid = 300)
+plot(h.adhoc.pre.night$figure)
+
+```
+
+multiplier = 0.5 may be good. 
+
+```{r}
+h.pre.night <- pre.kd.night$kd.href@h$h * 0.5
+# or use the same value as before
+
+pre.HR.night <- compute.area(h.pre.night, pre.kd.night$list.data, grid = 300)
+writeOGR(obj = pre.HR.night$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_night_50.shp",
+         layer="Pre.night.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = pre.HR.night$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_night_95.shp",
+         layer="Pre.night.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+```
+
+Do the same with the post period
+```{r}
+# pre day vs pre night:
+post.all %>% filter(day1night2 == 1) -> post.day
+
+post.kd.day <- HR.analysis.step1(min_n, post.day, tagproj, grid = 300)
+
+plotLSCV(post.kd.day$kd.LSCV)
+```
+
+```{r}
+h.adhoc.post.day <- HR.analysis(h.multiplier, 
+                               post.kd.day$kd.href, 
+                               post.kd.day$list.data, 
+                               grid = 300)
+plot(h.adhoc.post.day$figure)
+
+```
+
+multiplier = 0.4 may be good. 
+
+```{r}
+h.post.day <- round(post.kd.day$kd.href@h$h * 0.4)
+# or use the same value as before
+
+post.HR.day <- compute.area(h.post.day, post.kd.day$list.data, grid = 300)
+writeOGR(obj = post.HR.day$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_day_50.shp",
+         layer="Post.day.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = post.HR.day$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_day_95.shp",
+         layer="Post.day.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+```
+
+For night:
+```{r}
+post.all %>% filter(day1night2 == 2) -> post.night
+post.kd.night <- HR.analysis.step1(min_n, post.night, tagproj, grid = 300)
+plotLSCV(post.kd.night$kd.LSCV)
+
+```
+
+```{r}
+h.adhoc.post.night <- HR.analysis(h.multiplier, 
+                                 post.kd.night$kd.href, 
+                                 post.kd.night$list.data, 
+                                 grid = 300)
+plot(h.adhoc.post.night$figure)
+
+```
+
+multiplier = 0.45 may be good. 
+
+```{r}
+h.post.night <- round(post.kd.night$kd.href@h$h * 0.45)
+# or use the same value as before
+
+post.HR.night <- compute.area(h.post.night, post.kd.night$list.data, grid = 300)
+
+writeOGR(obj = post.HR.night$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_night_50.shp",
+         layer="Post.night.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = post.HR.night$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_night_95.shp",
+         layer="Post.night.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+```
+
+
+Make a plot for pre using all data:
 ```{r}
 
-pre.ver.50.df <- broom::tidy(spTransform(pre.ver.50, CRS("+proj=longlat")))
-pre.ver.95.df <- broom::tidy(spTransform(pre.ver.95, CRS("+proj=longlat")))
+pre.ver.50.df <- broom::tidy(spTransform(pre.HR$ver.50, CRS("+proj=longlat")))
+pre.ver.95.df <- broom::tidy(spTransform(pre.HR$ver.95, CRS("+proj=longlat")))
 
 map.pre.HR <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
@@ -629,14 +828,110 @@ map.pre.HR <- map.sdbay.zm +
         legend.position = "none")
 
 
-plot(map.pre.HR)
+#plot(map.pre.HR)
+```
+
+Make a plot for pre day:
+```{r}
+
+pre.day.ver.50.df <- broom::tidy(spTransform(pre.HR.day$ver.50, CRS("+proj=longlat")))
+pre.day.ver.95.df <- broom::tidy(spTransform(pre.HR.day$ver.95, CRS("+proj=longlat")))
+
+map.pre.day.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.day.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.day.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = pre.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+#plot(map.pre.day.HR)
+```
+
+Make a plot for pre night:
+```{r}
+
+pre.night.ver.50.df <- broom::tidy(spTransform(pre.HR.night$ver.50, CRS("+proj=longlat")))
+pre.night.ver.95.df <- broom::tidy(spTransform(pre.HR.night$ver.95, CRS("+proj=longlat")))
+
+map.pre.night.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.night.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.night.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = pre.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+#plot(map.pre.night.HR)
 ```
 
 Make a plot for post using all data:
 ```{r}
 
-post.ver.50.df <- broom::tidy(spTransform(post.ver.50, CRS("+proj=longlat")))
-post.ver.95.df <- broom::tidy(spTransform(post.ver.95, CRS("+proj=longlat")))
+post.ver.50.df <- broom::tidy(spTransform(post.HR$ver.50, CRS("+proj=longlat")))
+post.ver.95.df <- broom::tidy(spTransform(post.HR$ver.95, CRS("+proj=longlat")))
 
 map.post.HR <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
@@ -675,15 +970,180 @@ map.post.HR <- map.sdbay.zm +
   theme(#legend.title = element_text(size = 10, hjust = 0.5),
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
+#plot(map.post.HR)
+```
 
-ggsave(filename = paste0("figures/HR_pre_h", h.pre, "_", Sys.Date(), ".png"),
-       plot = map.pre.HR,
+Make a plot for post day:
+```{r}
+
+post.day.ver.50.df <- broom::tidy(spTransform(post.HR.day$ver.50, CRS("+proj=longlat")))
+post.day.ver.95.df <- broom::tidy(spTransform(post.HR.day$ver.95, CRS("+proj=longlat")))
+
+map.post.day.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.day.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.day.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = post.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+#plot(map.post.day.HR)
+```
+
+
+Make a plot for post night:
+```{r}
+
+post.night.ver.50.df <- broom::tidy(spTransform(post.HR.night$ver.50,
+                                                CRS("+proj=longlat")))
+post.night.ver.95.df <- broom::tidy(spTransform(post.HR.night$ver.95,
+                                                CRS("+proj=longlat")))
+
+map.post.night.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.night.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.night.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = post.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+#plot(map.post.night.HR)
+```
+
+
+```{r}
+if (save.figure){
+  ggsave(filename = paste0("figures/HR_pre_h_comp_", Sys.Date(), ".png"),
+       plot = h.adhoc.pre$figure,
        dpi = 600,
        device = "png")
+  ggsave(filename = paste0("figures/HR_post_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_day_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.pre.day$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_night_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.pre.night$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_post_day_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post.day$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_post_night_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post.night$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_h", round(h.pre), "_", Sys.Date(), ".png"),
+         plot = map.pre.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_h", round(h.post), "_", Sys.Date(), ".png"),
+         plot = map.post.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_pre_day_h", 
+                           round(h.pre.day), "_", Sys.Date(), ".png"),
+         plot = map.pre.day.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_day_h", 
+                           round(h.post.day), "_", Sys.Date(), ".png"),
+         plot = map.post.day.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_pre_night_h", 
+                           round(h.pre.night), "_", Sys.Date(), ".png"),
+         plot = map.pre.night.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_night_h", 
+                           round(h.post.night), "_", Sys.Date(), ".png"),
+         plot = map.post.night.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR95_difference_", 
+                           Sys.Date(), ".png"),
+         plot = hist.dif.95,
+         dpi = 600,
+         device = "png")
 
-ggsave(filename = paste0("figures/HR_post_h", h.post, "_", Sys.Date(), ".png"),
-       plot = map.post.HR,
-       dpi = 600,
-       device = "png")
+  ggsave(filename = paste0("figures/HR50_difference_", 
+                           Sys.Date(), ".png"),
+         plot = hist.dif.50,
+         dpi = 600,
+         device = "png")
+}
+
+
 #plot(map.post.HR)
 ```
