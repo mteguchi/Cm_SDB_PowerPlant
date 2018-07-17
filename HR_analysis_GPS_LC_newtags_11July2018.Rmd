@@ -536,7 +536,7 @@ Select all possible combinations of 6 (ID.pre.min_n) individuals from the post d
 ```{r}
 combos <- combn(1:dim(ID.post.min_n)[1], dim(ID.pre.min_n)[1]) 
 combos <- combos[, sample(1:ncol(combos), size = 1000)]
-IDs <- vector(mode = "list", length = ncol(combos))
+IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
 area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
 
 #p.list <- list()
@@ -547,15 +547,15 @@ for (k in 1:ncol(combos)){
   
   tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
                           byID.utm = tmp.list$byID.utm,
-                          h = h.post,
+                          h = h.pre,
                           hlim=c(0.03, 1.5),
                           grid=300, extent = 1)
   
-  tmp.df <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95), 
+  ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95), 
                                CRS("+proj=longlat"))) 
                    
-  pts.df <- data.frame(lon = tmp.list$all.coords@coords[,1],
-                       lat = tmp.list$all.coords@coords[,2])
+  pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
+                           lat = tmp.list$all.coords@coords[,2])
   
   # p.list[[k]] <- ggplot() + 
   #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
@@ -570,7 +570,9 @@ for (k in 1:ncol(combos)){
 
 areas.combos <- list(area95 = area.95,
                      area50 = area.50,
-                     ID = IDs)
+                     ID = IDs,
+                     polygon = ver.95.df.list,
+                     points = pts.df.list)
 
 saveRDS(areas.combos, file = "RData/areas_combos.rds")
 
