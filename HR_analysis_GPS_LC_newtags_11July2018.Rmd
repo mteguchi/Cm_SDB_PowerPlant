@@ -33,7 +33,7 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 
-internet <- TRUE
+internet <- F #TRUE
 save.figure <- TRUE
 
 # Minimum number of relocations per individual to be included in HR analysis
@@ -61,10 +61,30 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
   coordinates(byID.coords) <- ~ x + y
   proj4string(byID.coords) <- CRS(latlong)
   byID.utm <- spTransform(byID.coords, tagproj)
+  
+  eachID.utm <- eachID.coords <- list()
+  
+  unique.ID <- unique(selected$ArgosID)
+  for (k in 1:length(unique.ID)){
+    tmp.data <- filter(selected, ArgosID == unique.ID[k])
+    tmp1 <- data.frame(x = tmp.data$Lon1,
+                       y = tmp.data$Lat1)
+    
+    coordinates(tmp1) <- ~ x + y
+    proj4string(tmp1) <- CRS(latlong)
+    tmp2 <- spTransform(tmp1, tagproj)
+    
+    eachID.coords[[k]] <- tmp1
+    eachID.utm[[k]] <- tmp2
+  }
+  
   return(list(all.coords = all.coords,
               all.utm = all.utm,
               byID.coords = byID.coords,
-              byID.utm = byID.utm))
+              byID.utm = byID.utm,
+              eachID.coords = eachID.coords,
+              eachID.utm = eachID.utm,
+              unique.ID = unique.ID))
 }
 
 # A function to compute UDs using all data and for each individual. Returns a list 
@@ -217,7 +237,33 @@ compute.area <- function(h, list.data, grid=300){
   return(list(area.50 = HR$area.all["50"],
               area.95 = HR$area.all["95"],
               ver.50 = getverticeshr(HR$all.kd, 50),
-              ver.95 = getverticeshr(HR$all.kd, 95)))
+              ver.95 = getverticeshr(HR$all.kd, 95),
+              area.byID.50 = HR$area.byID["50",],
+              area.byID.95 = HR$area.byID["95",],
+              ver.byID.50 = getverticeshr(HR$byID.kd, 50),
+              ver.byID.95 = getverticeshr(HR$byID.kd, 95)))
+}
+
+# This funciton finds a bandwidth value that makes 95% UD contiguous
+find.h.adhoc <- function(utm.data, grid = 300, hlim = c(0.03, 1.5), extent = 1){
+  tmp.href <- kernelUD(utm.data, h = "href", kern = "bivnorm", grid = grid)
+  h1 <- tmp.href@h$h
+  h.multip <- 0.05
+  n.seg <- 2
+  k <- 1
+  while (n.seg > 1){
+    h <- h1 * h.multip
+    tmp.UD <- kernelUD(utm.data, h = h, 
+                       kern = "bivnorm", grid = grid)
+    tmp.V <- getverticeshr(tmp.UD, 95)
+    n.seg <- length(tmp.V@polygons[[1]]@Polygons)
+    h.multip <- h.multip + 0.05
+  }
+  return(list(v.95 = tmp.V,
+              UD.95 = tmp.UD,
+              h = h,
+              href = h1,
+              h.multip = h.multip))
 }
 
 ```
@@ -646,14 +692,19 @@ plot(h.adhoc.pre$figure)
 Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is equivalent of h = 148.96.  Rounded to 149. 
 
 ```{r}
+
+h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
 # grid values from 50 to 300 don't change the outcome;
 # extent values from 1 to 200 don't change the outcome either
 
-h.pre <- round(pre.kd$kd.href@h$h * 0.6)
+h.pre <- round(h.pre.1$h)
 
-pre.HR <- compute.area(h.pre, pre.kd$list.data, grid = 300)
+pre.HR <- compute.area(h.pre, 
+                       pre.kd$list.data, 
+                       grid = 300)
+
 writeOGR(obj = pre.HR$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_50.shp",
          layer="Pre.50", 
@@ -696,7 +747,9 @@ For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% 
 ```{r}
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
-h.post <- round(post.kd$kd.href@h$h * 0.4)
+h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
+
+h.post <- round(h.post.1$h) #round(post.kd$kd.href@h$h * 0.4)
 post.HR <- compute.area(h.post, post.kd$list.data, grid = 300)
 writeOGR(obj = post.HR$ver.50, 
          dsn = "shapefiles_July2018/post_HR_50.shp",
@@ -824,7 +877,9 @@ plot(h.adhoc.pre.day$figure)
 multiplier = 0.7 may be good. 
 
 ```{r}
-h.pre.day <- round(pre.kd.day$kd.href@h$h * 0.7)
+h.pre.day.1 <- find.h.adhoc(pre.kd.day$list.data$all.utm)
+
+h.pre.day <- round(h.pre.day.1$h) #round(pre.kd.day$kd.href@h$h * 0.7)
 # or use the same value as before
 
 pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = 300)
@@ -861,10 +916,15 @@ plot(h.adhoc.pre.night$figure)
 multiplier = 0.5 may be good. 
 
 ```{r}
-h.pre.night <- round(pre.kd.night$kd.href@h$h * 0.5)
+h.pre.night.1 <- find.h.adhoc(pre.kd.night$list.data$all.utm)
+
+h.pre.night <- round(h.pre.night.1$h) #round(pre.kd.night$kd.href@h$h * 0.5)
 # or use the same value as before
 
-pre.HR.night <- compute.area(h.pre.night, pre.kd.night$list.data, grid = 300)
+pre.HR.night <- compute.area(h.pre.night, 
+                             pre.kd.night$list.data, 
+                             grid = 300)
+
 writeOGR(obj = pre.HR.night$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_night_50.shp",
          layer="Pre.night.50", 
@@ -956,6 +1016,39 @@ writeOGR(obj = post.HR.night$ver.95,
          overwrite_layer=TRUE)
 
 ```
+
+Compute UDs for each individual. 
+```{r}
+h.pre.eachID <- h.multip.pre.eachID <- vector()
+UD.95.pre.eachID <- UD.50.pre.eachID <- list()
+# first find appropriate bandwidth for each individual:
+for (k in 1:length(pre.kd$list.data$eachID.utm)){
+  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.eachID[k] <- round(best.h$h)
+  h.multip.pre.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
+                 kern = "bivnorm", grid = 300)
+  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+h.post.eachID <- h.multip.post.eachID <- vector()
+UD.95.post.eachID <- UD.50.post.eachID <- list()
+# first find appropriate bandwidth for each individual:
+for (k in 1:length(post.kd$list.data$eachID.utm)){
+  dat.utm <- post.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.eachID[k] <- round(best.h$h)
+  h.multip.post.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.eachID[k], 
+                 kern = "bivnorm", 
+                 grid = 300)
+  UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
+}
+```
+
 
 
 Make a plot for pre using all data:
@@ -1224,19 +1317,6 @@ map.post.night.HR <- map.sdbay.zm +
                    group = group),
                fill = "red3",
                alpha = 0.6) + 
-  # geom_point(data = post.all,
-  #            aes(x = Lon1, y = Lat1),
-  #            alpha = 0.5,
-  #            size = 0.2)+ 
-  # # geom_polygon(data = water.df,
-  #              aes(x = long,
-  #                  y = lat,
-  #                  group = group),
-  #              fill = "blue",
-  #              alpha = 0.2) +
-
-  #coord_map() + 
-  #labs(color = 'ARGOS ID') + 
   xlab('Longitude') + ylab('Latitude') + 
   theme(#legend.title = element_text(size = 10, hjust = 0.5),
         #legend.text = element_text(size = 8, vjust = 0),
@@ -1299,6 +1379,84 @@ plot(map.post.day.night)
 ```
 
 
+UDs for individual turtles:
+```{r}
+
+tmp.pre.95 <- lapply(UD.95.pre.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.50 <- lapply(UD.50.pre.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+for (k in 1:length(tmp.pre.95)){
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], ID = pre.kd$list.data$unique.ID[k])
+}
+
+pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
+pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
+
+p.h.pre.eachID <- ggplot() + 
+  geom_polygon(data = pre.eachID.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "aquamarine4",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.eachID.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.h.pre.eachID)
+```
+
+```{r}
+
+tmp.post.95 <- lapply(UD.95.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.50 <- lapply(UD.50.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+for (k in 1:length(tmp.post.95)){
+  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+}
+
+post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
+post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
+
+p.h.post.eachID <- ggplot() + 
+  geom_polygon(data = post.eachID.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "aquamarine4",
+               alpha = 0.6) + 
+  geom_polygon(data = post.eachID.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  coord_map() + facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.08),
+                     limits = c(-117.15, -117.07)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.66))
+plot(p.h.post.eachID)
+```
+
 Bring in the body size information. This was done in deployment_table.R script. 
 ```{r}
 dat.table <- read.csv(paste0("data/all_sample_summary_size_",
@@ -1336,36 +1494,36 @@ if (save.figure){
          plot = h.adhoc.post.night$figure,
          dpi = 600,
          device = "png")
-  ggsave(filename = paste0("figures/HR_pre_h", round(h.pre), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_pre_h_", h.pre, "_", Sys.Date(), ".png"),
          plot = map.pre.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_post_h", round(h.post), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_post_h_", h.post, "_", Sys.Date(), ".png"),
          plot = map.post.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_pre_day_h", 
-                           round(h.pre.day), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_pre_day_h_", 
+                           h.pre.day, "_", Sys.Date(), ".png"),
          plot = map.pre.day.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_post_day_h", 
-                           round(h.post.day), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_post_day_h_", 
+                           h.post.day, "_", Sys.Date(), ".png"),
          plot = map.post.day.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_pre_night_h", 
-                           round(h.pre.night), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_pre_night_h_", 
+                           h.pre.night, "_", Sys.Date(), ".png"),
          plot = map.pre.night.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_post_night_h", 
-                           round(h.post.night), "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_post_night_h_", 
+                           h.post.night, "_", Sys.Date(), ".png"),
          plot = map.post.night.HR,
          dpi = 600,
          device = "png")
@@ -1379,6 +1537,17 @@ if (save.figure){
   ggsave(filename = paste0("figures/HR50_difference_", 
                            Sys.Date(), ".png"),
          plot = hist.dif.50,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HRbyID_pre_",
+                           Sys.Date(), ".png"),
+         plot = p.h.pre.eachID,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HRbyID_post_",
+                           Sys.Date(), ".png"),
+         plot = p.h.post.eachID,
          dpi = 600,
          device = "png")
 }
