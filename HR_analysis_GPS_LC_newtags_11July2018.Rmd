@@ -266,6 +266,7 @@ find.h.adhoc <- function(utm.data, grid = 300, hlim = c(0.03, 1.5), extent = 1){
               h.multip = h.multip))
 }
 
+
 ```
 
 Get some base layer maps here:
@@ -1017,7 +1018,7 @@ writeOGR(obj = post.HR.night$ver.95,
 
 ```
 
-Compute UDs for each individual. 
+Compute UDs for each individual. Starting with pre:
 ```{r}
 h.pre.eachID <- h.multip.pre.eachID <- vector()
 UD.95.pre.eachID <- UD.50.pre.eachID <- list()
@@ -1033,6 +1034,22 @@ for (k in 1:length(pre.kd$list.data$eachID.utm)){
   UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
 }
 
+tmp.pre.95 <- lapply(UD.95.pre.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.50 <- lapply(UD.50.pre.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+for (k in 1:length(tmp.pre.95)){
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], ID = pre.kd$list.data$unique.ID[k])
+}
+
+pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
+pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
+```
+
+Now for post:
+```{r}
 h.post.eachID <- h.multip.post.eachID <- vector()
 UD.95.post.eachID <- UD.50.post.eachID <- list()
 # first find appropriate bandwidth for each individual:
@@ -1047,10 +1064,67 @@ for (k in 1:length(post.kd$list.data$eachID.utm)){
   UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
 }
+
+
+tmp.post.95 <- lapply(UD.95.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.50 <- lapply(UD.50.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+for (k in 1:length(tmp.post.95)){
+  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+}
+
+post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
+post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
+
+
+
+```
+
+Bring in the body size information. This was done in deployment_table.R script. 
+```{r}
+dat.table <- read.csv(paste0("data/all_sample_summary_size_",
+                   file.date, ".csv"))
+
+pre.areas.95 <- unlist(lapply(lapply(UD.95.pre.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.areas.50 <- unlist(lapply(lapply(UD.50.pre.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+pre.areas.df <- data.frame(ID.f = pre.kd$list.data$unique.ID,
+                           area.50 = pre.areas.50/1000000,
+                           area.95 = pre.areas.95/1000000)
+
+post.areas.95 <- unlist(lapply(lapply(UD.95.post.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.areas.50 <- unlist(lapply(lapply(UD.50.post.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.areas.df <- data.frame(ID.f = post.kd$list.data$unique.ID,
+                           area.50 = post.areas.50/1000000,
+                           area.95 = post.areas.95/1000000)
+
+areas.df <- rbind(pre.areas.df, post.areas.df)
+
+dat.table <- left_join(dat.table, areas.df, by = "ID.f")
+
+ggplot(data = dat.table) +
+  geom_point(aes(x = Mass_kg, 
+                 y = area.50/1000000,
+                 color = period)) 
 ```
 
 
 
+
+Plotting starts here:
 Make a plot for pre using all data:
 ```{r}
 
@@ -1382,19 +1456,6 @@ plot(map.post.day.night)
 UDs for individual turtles:
 ```{r}
 
-tmp.pre.95 <- lapply(UD.95.pre.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.pre.50 <- lapply(UD.50.pre.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-for (k in 1:length(tmp.pre.95)){
-  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], ID = pre.kd$list.data$unique.ID[k])
-  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], ID = pre.kd$list.data$unique.ID[k])
-}
-
-pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
-pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
-
 p.h.pre.eachID <- ggplot() + 
   geom_polygon(data = pre.eachID.ver.95.df,
                aes(x = long, y = lat,
@@ -1420,21 +1481,6 @@ plot(p.h.pre.eachID)
 
 ```{r}
 
-tmp.post.95 <- lapply(UD.95.post.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.post.50 <- lapply(UD.50.post.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-for (k in 1:length(tmp.post.95)){
-  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
-                             ID = post.kd$list.data$unique.ID[k])
-  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
-                             ID = post.kd$list.data$unique.ID[k])
-}
-
-post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
-post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
-
 p.h.post.eachID <- ggplot() + 
   geom_polygon(data = post.eachID.ver.95.df,
                aes(x = long, y = lat,
@@ -1450,19 +1496,11 @@ p.h.post.eachID <- ggplot() +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.08),
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10, -117.08),
                      limits = c(-117.15, -117.07)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
                      limits = c(32.59, 32.66))
 plot(p.h.post.eachID)
-```
-
-Bring in the body size information. This was done in deployment_table.R script. 
-```{r}
-dat.table <- read.csv(paste0("data/all_sample_summary_size_",
-                   file.date, ".csv"))
-
-
 ```
 
 
