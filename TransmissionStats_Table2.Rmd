@@ -1,0 +1,89 @@
+---
+title: "Creating Table 2 - transmission statistics"
+output: html_notebook
+---
+
+```{r}
+rm(list = ls())
+library(dplyr)
+library(tidyverse)
+```
+
+
+First read in the data files with inside/outside information
+
+```{r}
+summary.argos <- function(dname){
+  col_def <- cols(ID = col_integer(),
+                  ArgosID = col_integer(),
+                  Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                  TransmissionDateTime = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                  EffectiveDate = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                  LC = col_character(),
+                  Residual = col_double(),
+                  IQ = col_integer(),
+                  Lat1 = col_double(),
+                  Lon1 = col_double(),
+                  Lat2 = col_double(),
+                  Lon2 = col_double(),
+                  NbMes = col_integer(),
+                  NbMes120dB = col_integer(),
+                  BestLevel = col_character(),
+                  PassDuration = col_character(),
+                  NOPC = col_character(),
+                  CalculFreq = col_character(),
+                  Altitude = col_character(),
+                  X = col_character(),
+                  Comment = col_character(),
+                  EditDate = col_character(),
+                  EditUser = col_character(),
+                  RecordCreationDate = col_character(),
+                  inside = col_integer())
+  
+  #dname <- "data/files_Apr2018_withNewTags/pre/"
+  pre.files <- dir(path = dname, 
+                   pattern = "_inout.csv")
+  
+  #pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
+  
+  pre.raw <- do.call(rbind, 
+                     lapply(pre.files,
+                            FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                              col_types = col_def))) %>%
+    mutate(ID.f = as.factor(ArgosID)) %>% 
+    dplyr::select(c(ArgosID, Message_Type, TransmissionDateTime, LC, Residual,
+                    Lat1, Lon1, inside, ID.f))
+  
+  pre.raw.summary <- pre.raw %>% 
+    filter(Message_Type == "DIAG" | Message_Type == "GPS") %>%
+    mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+           LC1 = ifelse(LC == "1", 1, 0),
+           LC2 = ifelse(LC == "2", 1, 0),
+           LC3 = ifelse(LC == "3", 1, 0),
+           LC.other = ifelse(LC != "1" & LC != "2" & LC != "3", 1, 0),
+           GPS = ifelse(Message_Type == "GPS", 1, 0)) %>%
+    group_by(ID.f) %>%
+    summarise(total = sum(DIAG),
+              LC1 = sum(LC1, na.rm = T),
+              LC2 = sum(LC2, na.rm = T),
+              LC3 = sum(LC3, na.rm = T),
+              LC.reject = sum(LC.other, na.rm = T),
+              GPS = sum(GPS, na.rm = T),
+              inside = sum(inside))
+  
+  return(list(raw.data = pre.raw,
+              summary.data = pre.raw.summary))
+}
+
+pre.dname <- "data/files_Apr2018_withNewTags/pre/"
+post.dname <- "data/files_Apr2018_withNewTags/post/"
+new.dname <- "data/files_Apr2018_withNewTags/new/"
+
+pre.summary <- summary.argos(pre.dname)
+
+# post and new don't work because the column formats are different. 
+post.summary <- summary.argos(post.dname)
+new.summary <- summary.argos(new.dname)
+
+```
+

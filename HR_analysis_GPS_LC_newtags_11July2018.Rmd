@@ -23,18 +23,21 @@ rm(list = ls())
 #list.files()
 
 #Section 1: Load libraries and set wd
-library(readxl)
+#library(readxl)
 library(dplyr)
 library(adehabitatHR)
-library(readxl)
 library(rgdal)
 library(leaflet) 
 library(ggplot2)
 library(lubridate)
 library(tidyverse)
 
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
 internet <- F #TRUE
-save.figure <- TRUE
+save.figure <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -44,9 +47,9 @@ min_n <- 50
 # four. tagproj is the projection definition, which is defined at the end of next chunk
 
 make.HR.dataset <- function(data.all, ID.min_n, tagproj){
-  selected <- dplyr::right_join(data.all, 
-                                ID.min_n, 
-                                by = "ArgosID")
+  selected <- right_join(data.all, 
+                         ID.min_n, 
+                         by = "ArgosID")
   
   all.coords <- data.frame(x=selected$Lon1, 
                            y=selected$Lat1)
@@ -382,11 +385,13 @@ col_def <- cols(ID = col_integer(),
                 include = col_integer(),
                 hr = col_integer())
 
-pre.all <- do.call(rbind, 
+pre.raw <- do.call(rbind, 
                    lapply(pre.files,
                           FUN = function(x) readr::read_csv(file = paste0(dname, x),
                                                             col_types = col_def))) %>%
-  mutate(ID.f = as.factor(ArgosID)) %>%
+  mutate(ID.f = as.factor(ArgosID)) 
+
+pre.all <- pre.raw %>%
   filter(include == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
@@ -1085,10 +1090,9 @@ post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
 
 ```
 
-Bring in the body size information. This was done in deployment_table.R script. 
+Bring in the body size information. This was done in deployment_table.R script and manually modified for missing data - some measurements were not collected when the tags were deployed so data from the closest captures were used.  Data were entered manually for three turtles in the Excel file: 52675 (all measurements) from 2007-01-23, 44366 (SCL and CCL) from 2009-02-26, and 126065 (Mass) from 2011-03-08).   
 ```{r}
-dat.table <- read.csv(paste0("data/all_sample_summary_size_",
-                   file.date, ".csv"))
+dat.table <- read.csv("data/all_sample_summary_size_2018-07-24.csv")
 
 pre.areas.95 <- unlist(lapply(lapply(UD.95.pre.eachID, 
                                       FUN = extract.areas),
@@ -1471,7 +1475,7 @@ p.h.pre.eachID <- ggplot() +
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
                      limits = c(-117.15, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
@@ -1495,7 +1499,7 @@ p.h.post.eachID <- ggplot() +
   coord_map() + facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10, -117.08),
                      limits = c(-117.15, -117.07)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),

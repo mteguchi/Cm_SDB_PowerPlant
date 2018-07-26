@@ -66,19 +66,19 @@ First, define inside/outside for the "pre" files:
 dname <- "data/files_Apr2018_withNewTags/pre/"
 
 # data files
-data.files <- dir(dname, pattern = ".csv")
+data.files <- dir(dname, pattern = ".txt")
 for (k in 1:length(data.files)){
   dat <- inside_outside(paste0(dname, data.files[k]), SDBay)
   write.csv(dat,
             file = paste0(dname, 
-                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          unlist(strsplit(data.files[k], '.txt'))[1],
                           "_inout.csv"),
             quote = F, row.names = F)
 
   dat.inside <- dplyr::filter(dat, inside == 1)
   write.csv(dat.inside,
             file = paste0(dname, 
-                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          unlist(strsplit(data.files[k], '.txt'))[1],
                           "_inside.csv"),
             quote = F, row.names = F)
 
@@ -91,19 +91,19 @@ Next for the "post" files:
 dname <- "data/files_Apr2018_withNewTags/post/"
 
 # data files
-data.files <- dir(dname, pattern = ".csv")
+data.files <- dir(dname, pattern = ".txt")
 for (k in 1:length(data.files)){
   dat <- inside_outside(paste0(dname, data.files[k]), SDBay)
   write.csv(dat,
             file = paste0(dname, 
-                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          unlist(strsplit(data.files[k], '.txt'))[1],
                           "_inout.csv"),
             quote = F, row.names = F)
 
   dat.inside <- dplyr::filter(dat, inside == 1)
   write.csv(dat.inside,
             file = paste0(dname, 
-                          unlist(strsplit(data.files[k], '.csv'))[1],
+                          unlist(strsplit(data.files[k], '.txt'))[1],
                           "_inside.csv"),
             quote = F, row.names = F)
 
