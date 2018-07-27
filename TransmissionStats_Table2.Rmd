@@ -14,65 +14,122 @@ First read in the data files with inside/outside information
 
 ```{r}
 summary.argos <- function(dname){
-  col_def <- cols(ID = col_integer(),
-                  ArgosID = col_integer(),
-                  Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
-                  TransmissionDateTime = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
-                  EffectiveDate = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
-                  LC = col_character(),
-                  Residual = col_double(),
-                  IQ = col_integer(),
-                  Lat1 = col_double(),
-                  Lon1 = col_double(),
-                  Lat2 = col_double(),
-                  Lon2 = col_double(),
-                  NbMes = col_integer(),
-                  NbMes120dB = col_integer(),
-                  BestLevel = col_character(),
-                  PassDuration = col_character(),
-                  NOPC = col_character(),
-                  CalculFreq = col_character(),
-                  Altitude = col_character(),
-                  X = col_character(),
-                  Comment = col_character(),
-                  EditDate = col_character(),
-                  EditUser = col_character(),
-                  RecordCreationDate = col_character(),
-                  inside = col_integer())
   
   #dname <- "data/files_Apr2018_withNewTags/pre/"
-  pre.files <- dir(path = dname, 
-                   pattern = "_inout.csv")
+  files <- dir(path = dname, 
+               pattern = "_inout.csv")
   
   #pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
+  if (length(grep("data/files_Apr2018_withNewTags/pre/", dname)) > 0){
+    col_def <- cols(ID = col_integer(),
+                    ArgosID = col_integer(),
+                    Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                    TransmissionDateTime = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                    EffectiveDate = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                    LC = col_character(),
+                    Residual = col_double(),
+                    IQ = col_integer(),
+                    Lat1 = col_double(),
+                    Lon1 = col_double(),
+                    Lat2 = col_double(),
+                    Lon2 = col_double(),
+                    NbMes = col_integer(),
+                    NbMes120dB = col_integer(),
+                    BestLevel = col_character(),
+                    PassDuration = col_character(),
+                    NOPC = col_character(),
+                    CalculFreq = col_character(),
+                    Altitude = col_character(),
+                    X = col_character(),
+                    Comment = col_character(),
+                    EditDate = col_character(),
+                    EditUser = col_character(),
+                    RecordCreationDate = col_character(),
+                    inside = col_integer())
+    
+  } else {
+    if (length(grep("data/files_Apr2018_withNewTags/post/", dname)) == 1){
+      date.format <- "%m-%d-%Y %H:%M:%S"
+      
+    }else{
+      date.format = "%m/%d/%Y %H:%M:%S"
+      
+    }
+    
+    col_def <- cols(ID = col_integer(),
+                    Source = col_character(),
+                    ArgosID = col_integer(),
+                    Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                    TransmissionDateTime = col_datetime(format = date.format),
+                    EffectiveDate = col_datetime(format = date.format),
+                    LC = col_character(),
+                    Residual = col_double(),
+                    IQ = col_integer(),
+                    Lat1 = col_double(),
+                    Lat1Places = col_character(),
+                    Lon1 = col_double(),
+                    Lon1Places = col_character(),
+                    Lat2 = col_double(),
+                    Lat2Places = col_character(),
+                    Lon2 = col_double(),
+                    Lon2Places = col_character(),
+                    NbMes = col_integer(),
+                    NbMes120dB = col_integer(),
+                    BestLevel = col_character(),
+                    PassDuration = col_character(),
+                    NOPC = col_character(),
+                    CalculFreq = col_character(),
+                    Altitude = col_character(),
+                    Data = col_character(),
+                    Comment = col_character(),
+                    EditDate = col_character(),
+                    EditUser = col_character(),
+                    RecordCreationDate = col_character(),
+                    inside = col_integer())
+    
+  }
   
-  pre.raw <- do.call(rbind, 
-                     lapply(pre.files,
-                            FUN = function(x) readr::read_csv(file = paste0(dname, x),
-                                                              col_types = col_def))) %>%
+  raw <- do.call(rbind, 
+                 lapply(files,
+                        FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                          col_types = col_def))) %>%
     mutate(ID.f = as.factor(ArgosID)) %>% 
     dplyr::select(c(ArgosID, Message_Type, TransmissionDateTime, LC, Residual,
                     Lat1, Lon1, inside, ID.f))
   
-  pre.raw.summary <- pre.raw %>% 
-    filter(Message_Type == "DIAG" | Message_Type == "GPS") %>%
+  raw.summary <- raw %>% 
+    #filter(Message_Type == "DIAG" | Message_Type == "GPS") %>%
     mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+           DS = ifelse(Message_Type == "DS", 1, 0),
            LC1 = ifelse(LC == "1", 1, 0),
            LC2 = ifelse(LC == "2", 1, 0),
            LC3 = ifelse(LC == "3", 1, 0),
            LC.other = ifelse(LC != "1" & LC != "2" & LC != "3", 1, 0),
-           GPS = ifelse(Message_Type == "GPS", 1, 0)) %>%
+           ARGOS.outside = ifelse(Message_Type == "DIAG" & 
+                                     (LC == "1" | LC == "2" | LC == "3") & 
+                                     inside == 0, 1, 0),
+           GPS = ifelse(Message_Type == "GPS", 1, 0),
+           GPS.reject = ifelse(Message_Type == "GPS" & Residual > 35.0, 1, 0),
+           GPS.outside = ifelse(Message_Type == "GPS" 
+                                & Residual <= 35.0 & 
+                                  inside == 0, 1, 0)) %>%
     group_by(ID.f) %>%
-    summarise(total = sum(DIAG),
+    summarise(Date = min(TransmissionDateTime, na.rm = T),
+              total.DIAG = sum(DIAG),
+              total.DS = sum(DS),
               LC1 = sum(LC1, na.rm = T),
               LC2 = sum(LC2, na.rm = T),
               LC3 = sum(LC3, na.rm = T),
               LC.reject = sum(LC.other, na.rm = T),
+              ARGOS.outside = sum(ARGOS.outside, na.rm = T),
               GPS = sum(GPS, na.rm = T),
-              inside = sum(inside))
+              GPS.reject = sum(GPS.reject, na.rm = T),
+              GPS.outside = sum(GPS.outside, na.rm = T),
+              inside = sum(inside)) %>%
+    arrange(Date)
   
-  return(list(raw.data = pre.raw,
-              summary.data = pre.raw.summary))
+  return(list(raw.data = raw,
+              summary.data = raw.summary))
 }
 
 pre.dname <- "data/files_Apr2018_withNewTags/pre/"
@@ -84,6 +141,23 @@ pre.summary <- summary.argos(pre.dname)
 # post and new don't work because the column formats are different. 
 post.summary <- summary.argos(post.dname)
 new.summary <- summary.argos(new.dname)
+
+all.summary <- rbind(pre.summary$summary.data,
+                     post.summary$summary.data,
+                     new.summary$summary.data) %>%
+  mutate(LC123 = LC1 + LC2 + LC3,
+         ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
+         GPS.accept = GPS - GPS.reject - GPS.outside,
+         n.data = ARGOS.accept + GPS.accept)
+
+save.summary <- all.summary[, c("ID.f", "Date", "total.DIAG", "total.DS", 
+                               "LC123", "ARGOS.outside", "ARGOS.accept", 
+                               "GPS", "GPS.outside", "GPS.accept",
+                               "n.data")]
+
+write.csv(save.summary,
+          file = paste0("data/transmissionSummary_", Sys.Date(), ".csv"),
+          row.names = FALSE)
 
 ```
 

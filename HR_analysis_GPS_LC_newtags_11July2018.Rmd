@@ -355,14 +355,14 @@ Section 2: read in data
 Section 2.1: Pre
 
 ```{r}
-file.date <- "2018-07-18"
+file.date <- "2018-07-26"
 ID.names <- function(name){
   x <- unlist(strsplit(name, '_'))[1]
   return(x)
 }
-dname <- "data/files_Apr2018_withNewTags/pre/"
+dname <- "data/files_Jul2018_withNewTags/pre/"
 pre.files <- dir(path = dname, 
-                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
 
 pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
 
@@ -405,14 +405,39 @@ pre.all.01 <- do.call(rbind,
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
-pre.all.01 %>% group_by(ID.f) %>%
-  mutate(day1 = ifelse(day1night2 == 1, 1, 0)) %>%
-  mutate(night1 = ifelse(day1night2 == 2, 1, 0)) %>%
-  mutate(day1a = ifelse(day1night2 == 1 & include == 1, 1, 0)) %>%
-  mutate(night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
+pre.all.01 %>% 
+  mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+         DS = ifelse(Message_Type == "DS", 1, 0),
+         LC1 = ifelse(LC == "1", 1, 0),
+         LC2 = ifelse(LC == "2", 1, 0),
+         LC3 = ifelse(LC == "3", 1, 0),
+         ARGOS.outside = ifelse(Message_Type == "DIAG" & 
+                                  (LC == "1" | LC == "2" | LC == "3") & 
+                                  inside == 0, 1, 0),
+         GPS = ifelse(Message_Type == "GPS", 1, 0),
+         GPS.reject = ifelse(Message_Type == "GPS" & 
+                               Residual > 35.0, 1, 0),
+         GPS.outside = ifelse(Message_Type == "GPS" 
+                              & Residual <= 35.0 & 
+                                inside == 0, 1, 0)) %>%
+  group_by(ID.f) %>%
+  mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+         night1 = ifelse(day1night2 == 2, 1, 0), 
+         day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
+         night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
   summarise(Date1 = min(LocalDateTime), 
             n.days = max(DaysSinceFirst),
             n.relocations.all = n(),
+            total.DIAG = sum(DIAG),
+            total.DS = sum(DS),
+            LC1 = sum(LC1, na.rm = T),
+            LC2 = sum(LC2, na.rm = T),
+            LC3 = sum(LC3, na.rm = T),
+            ARGOS.outside = sum(ARGOS.outside, na.rm = T),
+            GPS = sum(GPS, na.rm = T),
+            GPS.reject = sum(GPS.reject, na.rm = T),
+            GPS.outside = sum(GPS.outside, na.rm = T),
+            inside = sum(inside),
             n.day.all = sum(day1),
             n.night.all = sum(night1),
             n.day = sum(day1a),
@@ -503,9 +528,9 @@ Examining the plots by eye, seems to have just one reading per 4-hr period withi
 Read in the post datasets. 
 
 ```{r}
-dname <- "data/files_Apr2018_withNewTags/post/"
+dname <- "data/files_Jul2018_withNewTags/post/"
 post.files <- dir(path = dname, 
-                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
 
 post.IDs <- unlist(lapply(post.files, FUN = ID.names))
 
@@ -553,9 +578,9 @@ plot(map.post)
 
 And probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
 ```{r}
-dname <- "data/files_Apr2018_withNewTags/new/"
+dname <- "data/files_Jul2018_withNewTags/new/"
 new.files <- dir(path = dname, 
-                 pattern = "_inside_DayNight_4hrs_2018-07-11.csv")
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
 
 new.IDs <- unlist(lapply(new.files, FUN = ID.names))
 
@@ -600,14 +625,40 @@ post.all <- rbind(post.all, new.all) %>%
 post.all.01 <- rbind(post.all.01, new.all.01) %>%
   filter(Lat1 < 32.66)
 
-post.all.01 %>% group_by(ID.f) %>%
-  mutate(day1 = ifelse(day1night2 == 1, 1, 0)) %>%
-  mutate(night1 = ifelse(day1night2 == 2, 1, 0)) %>%
-  mutate(day1a = ifelse(day1night2 == 1 & include == 1, 1, 0)) %>%
-  mutate(night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
+post.all.01 %>%   
+  mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+         DS = ifelse(Message_Type == "DS", 1, 0),
+         LC1 = ifelse(LC == "1", 1, 0),
+         LC2 = ifelse(LC == "2", 1, 0),
+         LC3 = ifelse(LC == "3", 1, 0),
+         ARGOS.outside = ifelse(Message_Type == "DIAG" & 
+                                  (LC == "1" | LC == "2" | LC == "3") & 
+                                  inside == 0, 1, 0),
+         GPS = ifelse(Message_Type == "GPS", 1, 0),
+         GPS.reject = ifelse(Message_Type == "GPS" & 
+                               Residual > 35.0, 1, 0),
+         GPS.outside = ifelse(Message_Type == "GPS" 
+                              & Residual <= 35.0 & 
+                                inside == 0, 1, 0)) %>%
+  group_by(ID.f) %>%
+  mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+         night1 = ifelse(day1night2 == 2, 1, 0), 
+         day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
+         night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
   summarise(Date1 = min(LocalDateTime), 
             n.days = max(DaysSinceFirst),
             n.relocations.all = n(),
+            total.DIAG = sum(DIAG),
+            total.DS = sum(DS),
+            LC1 = sum(LC1, na.rm = T),
+            LC2 = sum(LC2, na.rm = T),
+            LC3 = sum(LC3, na.rm = T),
+            LC.reject = sum(LC.other, na.rm = T),
+            ARGOS.outside = sum(ARGOS.outside, na.rm = T),
+            GPS = sum(GPS, na.rm = T),
+            GPS.reject = sum(GPS.reject, na.rm = T),
+            GPS.outside = sum(GPS.outside, na.rm = T),
+            inside = sum(inside),
             n.day.all = sum(day1),
             n.night.all = sum(night1),
             n.day = sum(day1a),
