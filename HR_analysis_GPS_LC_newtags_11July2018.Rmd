@@ -216,7 +216,7 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
     coord_map() + facet_grid(. ~ h.multip) +
     facet_wrap( ~ h.multip, nrow = 3) + 
     labs(x = "", y = "")+ 
-    theme(axis.text.x = element_text(angle = 90)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
     scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
                        limits = c(-117.15, -117.09))+
     scale_y_continuous(breaks = c(32.62, 32.64, 32.66, 32.68),
