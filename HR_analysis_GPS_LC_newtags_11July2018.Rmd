@@ -328,14 +328,14 @@ map.sdbay.south <- ggmap::ggmap(sdbay.south)
 map.sdbay.med <- ggmap::ggmap(sdbay.med)
 
 # read in the SDB shape file:
-SDB.shape <- readOGR(dsn = "GISFiles", layer = "sd_bay")
+SDB.shape <- readOGR(dsn = "GISfiles", layer = "sd_bay")
 SDBay <- spTransform(readOGR(dsn = "GISfiles",
                              layer = "sd_bay",
                              verbose = F),
                      CRS("+proj=longlat +datum=WGS84"))
 SDBay.df <- broom::tidy(SDBay)
 
-water <- spTransform(readOGR(dsn = "GISFiles", 
+water <- spTransform(readOGR(dsn = "GISfiles", 
                              layer = "water",
                              verbose = F),
                      CRS("+proj=longlat +datum=WGS84"))
@@ -393,6 +393,7 @@ pre.raw <- do.call(rbind,
 
 pre.all <- pre.raw %>%
   filter(include == 1) %>%
+  filter(inside == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
@@ -420,7 +421,7 @@ pre.all.01 %>%
          GPS.outside = ifelse(Message_Type == "GPS" 
                               & Residual <= 35.0 & 
                                 inside == 0, 1, 0)) %>%
-  group_by(ID.f) %>%
+  group_by(ArgosID) %>%
   mutate(day1 = ifelse(day1night2 == 1, 1, 0),
          night1 = ifelse(day1night2 == 2, 1, 0), 
          day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
@@ -442,7 +443,11 @@ pre.all.01 %>%
             n.night.all = sum(night1),
             n.day = sum(day1a),
             n.night = sum(night1a),
-            n.relocations = sum(include)) -> pre.summary
+            n.relocations = sum(include)) %>%
+  arrange(Date1) -> pre.summary
+
+ID.pre.min_n <- filter(pre.summary,
+                       n.relocations > (min_n - 1))
 
 if (!file.exists(paste0("data/pre_sample_summary_", 
                         file.date, ".csv")))
@@ -540,6 +545,7 @@ post.all <- do.call(rbind,
                                                             col_types = col_def))) %>%
   mutate(ID.f = as.factor(ArgosID)) %>%
   filter(include == 1) %>%
+  filter(inside == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
@@ -608,6 +614,7 @@ new.all <- do.call(rbind,
                                                             col_types = col_def))) %>%
   mutate(ID.f = as.factor(ArgosID)) %>%
   filter(include == 1) %>%
+  filter(inside == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
@@ -640,7 +647,7 @@ post.all.01 %>%
          GPS.outside = ifelse(Message_Type == "GPS" 
                               & Residual <= 35.0 & 
                                 inside == 0, 1, 0)) %>%
-  group_by(ID.f) %>%
+  group_by(ArgosID) %>%
   mutate(day1 = ifelse(day1night2 == 1, 1, 0),
          night1 = ifelse(day1night2 == 2, 1, 0), 
          day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
@@ -653,7 +660,6 @@ post.all.01 %>%
             LC1 = sum(LC1, na.rm = T),
             LC2 = sum(LC2, na.rm = T),
             LC3 = sum(LC3, na.rm = T),
-            LC.reject = sum(LC.other, na.rm = T),
             ARGOS.outside = sum(ARGOS.outside, na.rm = T),
             GPS = sum(GPS, na.rm = T),
             GPS.reject = sum(GPS.reject, na.rm = T),
@@ -663,8 +669,11 @@ post.all.01 %>%
             n.night.all = sum(night1),
             n.day = sum(day1a),
             n.night = sum(night1a),
-            n.relocations = sum(include)) -> post.summary
+            n.relocations = sum(include)) %>%
+  arrange(Date1) -> post.summary
 
+ID.post.min_n <- filter(post.summary,
+                       n.relocations > (min_n - 1))
 
 if (!file.exists(paste0("data/post_sample_summary_", 
                         file.date, ".csv")))
@@ -834,8 +843,10 @@ if (!file.exists(paste0("RData/areas_combos_", run.date, ".rds"))){
                   dim(ID.pre.min_n)[1])
   combos <- combos[, sample(1:ncol(combos), 
                             size = 1000)]
-  IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", length = ncol(combos))
-  area.95 <- area.50 <- vector(mode = "numeric", length = ncol(combos))
+  IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", 
+                                                 length = ncol(combos))
+  area.95 <- area.50 <- vector(mode = "numeric", 
+                               length = ncol(combos))
   
   #p.list <- list()
   for (k in 1:ncol(combos)){
@@ -1017,7 +1028,9 @@ plot(h.adhoc.post.day$figure)
 multiplier = 0.4 may be good. 
 
 ```{r}
-h.post.day <- round(post.kd.day$kd.href@h$h * 0.4)
+h.post.day.1 <- find.h.adhoc(post.kd.day$list.data$all.utm)
+
+h.post.day <- round(h.post.day.1$h)
 # or use the same value as before
 
 post.HR.day <- compute.area(h.post.day, post.kd.day$list.data, grid = 300)
@@ -1055,7 +1068,10 @@ plot(h.adhoc.post.night$figure)
 multiplier = 0.45 may be good. 
 
 ```{r}
-h.post.night <- round(post.kd.night$kd.href@h$h * 0.45)
+h.post.night.1 <- find.h.adhoc(post.kd.night$list.data$all.utm)
+
+h.post.night <- round(h.post.night.1$h)
+
 # or use the same value as before
 
 post.HR.night <- compute.area(h.post.night, post.kd.night$list.data, grid = 300)
