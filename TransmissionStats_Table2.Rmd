@@ -13,14 +13,14 @@ library(tidyverse)
 First read in the data files with inside/outside information
 
 ```{r}
-summary.argos <- function(dname){
+summary.argos <- function(dname, N.end = 32.69){
   
   #dname <- "data/files_Apr2018_withNewTags/pre/"
   files <- dir(path = dname, 
                pattern = "_inout.csv")
   
   #pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
-  if (length(grep("data/files_Apr2018_withNewTags/pre/", dname)) > 0){
+  if (length(grep("data/files_Jul2018_withNewTags/pre/", dname)) > 0){
     col_def <- cols(ID = col_integer(),
                     ArgosID = col_integer(),
                     Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
@@ -48,7 +48,7 @@ summary.argos <- function(dname){
                     inside = col_integer())
     
   } else {
-    if (length(grep("data/files_Apr2018_withNewTags/post/", dname)) == 1){
+    if (length(grep("data/files_Jul2018_withNewTags/post/", dname)) == 1){
       date.format <- "%m-%d-%Y %H:%M:%S"
       
     }else{
@@ -94,10 +94,14 @@ summary.argos <- function(dname){
                         FUN = function(x) readr::read_csv(file = paste0(dname, x),
                                                           col_types = col_def))) %>%
     mutate(ID.f = as.factor(ArgosID)) %>% 
-    dplyr::select(c(ArgosID, Message_Type, TransmissionDateTime, LC, Residual,
+    filter(!is.na(Lat1)) %>%
+    dplyr::select(c(ArgosID, Message_Type, 
+                    TransmissionDateTime, LC, Residual,
                     Lat1, Lon1, inside, ID.f))
   
-  raw.summary <- raw %>% 
+  # some GPS records have no Lat/Lon and they are NAs. So, they need to be removed:
+  raw.summary <- raw %>%
+    filter(Lat1 < N.end) %>%
     #filter(Message_Type == "DIAG" | Message_Type == "GPS") %>%
     mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
            DS = ifelse(Message_Type == "DS", 1, 0),
@@ -120,11 +124,14 @@ summary.argos <- function(dname){
               LC1 = sum(LC1, na.rm = T),
               LC2 = sum(LC2, na.rm = T),
               LC3 = sum(LC3, na.rm = T),
+              
               LC.reject = sum(LC.other, na.rm = T),
               ARGOS.outside = sum(ARGOS.outside, na.rm = T),
+              
               GPS = sum(GPS, na.rm = T),
               GPS.reject = sum(GPS.reject, na.rm = T),
               GPS.outside = sum(GPS.outside, na.rm = T),
+              
               inside = sum(inside)) %>%
     arrange(Date)
   
@@ -132,9 +139,9 @@ summary.argos <- function(dname){
               summary.data = raw.summary))
 }
 
-pre.dname <- "data/files_Apr2018_withNewTags/pre/"
-post.dname <- "data/files_Apr2018_withNewTags/post/"
-new.dname <- "data/files_Apr2018_withNewTags/new/"
+pre.dname <- "data/files_Jul2018_withNewTags/pre/"
+post.dname <- "data/files_Jul2018_withNewTags/post/"
+new.dname <- "data/files_Jul2018_withNewTags/new/"
 
 pre.summary <- summary.argos(pre.dname)
 

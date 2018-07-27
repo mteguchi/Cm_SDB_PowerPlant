@@ -41,6 +41,7 @@ save.figure <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
+N.end <- 32.69   # approx Coronado bridge
 
 # a function to create a data frame with minimum number of data points per individual
 # then convert geographic coordinates so HR can be computed. Creates a list of length
@@ -218,8 +219,8 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
     theme(axis.text.x = element_text(angle = 90)) +
     scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
                        limits = c(-117.15, -117.09))+
-    scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                       limits = c(32.60, 32.66))
+    scale_y_continuous(breaks = c(32.62, 32.64, 32.66, 32.68),
+                       limits = c(32.60, 32.70))
 
   return(list(figure = p.h.adhoc,
               ver.95 = ver.95.adhoc.df,
@@ -389,24 +390,17 @@ pre.raw <- do.call(rbind,
                    lapply(pre.files,
                           FUN = function(x) readr::read_csv(file = paste0(dname, x),
                                                             col_types = col_def))) %>%
-  mutate(ID.f = as.factor(ArgosID)) 
-
-pre.all <- pre.raw %>%
-  filter(include == 1) %>%
-  filter(inside == 1) %>%
-  group_by(ID.f) %>%
-  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
-
-# This one contains all data.
-pre.all.01 <- do.call(rbind, 
-                      lapply(pre.files,
-                             FUN = function(x) readr::read_csv(file = paste0(dname, x),
-                                                               col_types = col_def))) %>%
   mutate(ID.f = as.factor(ArgosID)) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
-pre.all.01 %>% 
+pre.raw %>%
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> pre.all
+
+# This one contains all data.
+pre.raw  %>%
+  filter(Lat1 < N.end) %>% 
   mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
          DS = ifelse(Message_Type == "DS", 1, 0),
          LC1 = ifelse(LC == "1", 1, 0),
@@ -445,6 +439,12 @@ pre.all.01 %>%
             n.night = sum(night1a),
             n.relocations = sum(include)) %>%
   arrange(Date1) -> pre.summary
+
+pre.summary %>%
+  mutate(LC123 = LC1 + LC2 + LC3,
+         ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
+         GPS.accept = GPS - GPS.reject - GPS.outside,
+         n.data = ARGOS.accept + GPS.accept) -> pre.summary
 
 ID.pre.min_n <- filter(pre.summary,
                        n.relocations > (min_n - 1))
@@ -496,7 +496,7 @@ To check for errors in data screening, I make a few plots. Each individual has o
 p1 <- list()
 k <- 1
 for (k in 1:length(pre.IDs)){
-  pre.all.01 %>% filter(ArgosID == pre.IDs[k]) -> dat.01
+  pre.raw %>% filter(ArgosID == pre.IDs[k]) -> dat.01
   pre.all %>% filter(ArgosID == pre.IDs[k]) -> dat.1
   p1[[k]] <-ggplot() + 
     geom_point(data = dat.01,
@@ -539,24 +539,16 @@ post.files <- dir(path = dname,
 
 post.IDs <- unlist(lapply(post.files, FUN = ID.names))
 
-post.all <- do.call(rbind, 
+post.raw <- do.call(rbind, 
                    lapply(post.files,
                           FUN = function(x) readr::read_csv(file = paste0(dname, x),
                                                             col_types = col_def))) %>%
   mutate(ID.f = as.factor(ArgosID)) %>%
-  filter(include == 1) %>%
-  filter(inside == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
-# This one contains all data:
-post.all.01 <- do.call(rbind, 
-                       lapply(post.files,
-                              FUN = function(x) readr::read_csv(file = paste0(dname, x),
-                                                                col_types = col_def))) %>%
-  mutate(ID.f = as.factor(ArgosID)) %>%
-  group_by(ID.f) %>%
-  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+post.raw %>%
+  filter(include == 1 & inside == 1) -> post.all
 
 map.post <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
@@ -608,31 +600,25 @@ col_def <- cols(ID = col_integer(),
                 row = col_integer(),
                 include = col_integer(),
                 hr = col_integer())
-new.all <- do.call(rbind, 
+
+new.raw <- do.call(rbind, 
                    lapply(new.files,
                           FUN = function(x) readr::read_csv(file = paste0(dname, x),
                                                             col_types = col_def))) %>%
   mutate(ID.f = as.factor(ArgosID)) %>%
-  filter(include == 1) %>%
-  filter(inside == 1) %>%
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
-new.all.01 <- do.call(rbind, 
-                      lapply(new.files,
-                             FUN = function(x) readr::read_csv(file = paste0(dname, x),
-                                                               col_types = col_def))) %>%
-  mutate(ID.f = as.factor(ArgosID)) %>%
-  group_by(ID.f) %>%
-  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+new.raw %>% 
+  filter(include == 1 & inside == 1) -> new.all
+
+post.raw <- rbind(post.raw, new.raw) 
 
 post.all <- rbind(post.all, new.all) %>%
-  filter(Lat1 < 32.66)
+  filter(Lat1 < N.end)
 
-post.all.01 <- rbind(post.all.01, new.all.01) %>%
-  filter(Lat1 < 32.66)
-
-post.all.01 %>%   
+post.raw %>%
+  filter(Lat1 < N.end) %>%   
   mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
          DS = ifelse(Message_Type == "DS", 1, 0),
          LC1 = ifelse(LC == "1", 1, 0),
@@ -671,6 +657,12 @@ post.all.01 %>%
             n.night = sum(night1a),
             n.relocations = sum(include)) %>%
   arrange(Date1) -> post.summary
+
+post.summary %>%
+  mutate(LC123 = LC1 + LC2 + LC3,
+         ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
+         GPS.accept = GPS - GPS.reject - GPS.outside,
+         n.data = ARGOS.accept + GPS.accept) -> post.summary
 
 ID.post.min_n <- filter(post.summary,
                        n.relocations > (min_n - 1))
@@ -837,7 +829,7 @@ writeOGR(obj = post.HR$ver.95,
 Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because the sample size decreases, I use h.pre for this.
 
 ```{r echo=FALSE, results="hide"}
-run.date <- "2018-07-17"
+run.date <- "2018-07-26"
 if (!file.exists(paste0("RData/areas_combos_", run.date, ".rds"))){
   combos <- combn(1:dim(ID.post.min_n)[1], 
                   dim(ID.pre.min_n)[1])
@@ -1185,6 +1177,8 @@ post.areas.df <- data.frame(ID.f = post.kd$list.data$unique.ID,
 areas.df <- rbind(pre.areas.df, post.areas.df)
 
 dat.table <- left_join(dat.table, areas.df, by = "ID.f")
+
+write.csv(dat.table, file = "data/IDvsUDs.csv", quote = F, row.names = F)
 
 ggplot(data = dat.table) +
   geom_point(aes(x = Mass_kg, 
@@ -1569,8 +1563,8 @@ p.h.post.eachID <- ggplot() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10, -117.08),
                      limits = c(-117.15, -117.07)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66, 32.68),
+                     limits = c(32.59, 32.70))
 plot(p.h.post.eachID)
 ```
 

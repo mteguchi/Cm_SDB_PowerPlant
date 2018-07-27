@@ -1,6 +1,6 @@
 
 
-get4hrs <- function(x){
+get4hrs <- function(x, res.limit = 35.0){
   #fileout <- paste0(data, '/', id[1], "_DayNight_4hrs",
   #                  format(Sys.Date(), "_%Y-%m-%d"), ".csv")
   begin.date <- as.Date(min(as.POSIXct(strptime(x$LocalDateTime,
@@ -29,7 +29,7 @@ get4hrs <- function(x){
           tmp2.1 <- filter(tmp2, Message_Type == "GPS") %>%
             filter(Residual == min(Residual)) %>%
             filter(Residual <= res.limit)
-          # if no good gps data, i.e. residual >= res.llimit.
+          # if no good gps data, i.e. residual > res.llimit.
           if (nrow(tmp2.1) == 0){
             tmp2.1 <- filter(tmp2, Message_Type != "GPS")
             # and if there is at least one Argos data
