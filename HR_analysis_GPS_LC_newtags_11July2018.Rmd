@@ -37,7 +37,7 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/R/tools/TomosFunctions.R'))
 
 internet <- F #TRUE
-save.figure <- F
+save.figure <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -487,6 +487,11 @@ map.pre <- map.sdbay.zm +
         legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/map_pre_raw.png",
+         plot = map.pre,
+         device = "png",
+         dpi = 600)
 plot(map.pre)
 
 ```
@@ -570,6 +575,12 @@ map.post <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         #legend.position = c(0.2, 0.5),
         legend.position = "none")
+
+if (save.figure)
+  ggsave(filename = "figures/map_post_raw.png",
+         plot = map.post,
+         device = "png",
+         dpi = 600)
 
 plot(map.post)
 ```
@@ -703,6 +714,12 @@ map.post <- map.sdbay.zm +
         #legend.position = c(0.2, 0.5),
     legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/map_post_raw_2.png",
+         plot = map.post,
+         device = "png",
+         dpi = 600)
+
 plot(map.post)
 ```
 
@@ -744,6 +761,11 @@ h.adhoc.pre <- HR.analysis(h.multiplier,
   
 plot(h.adhoc.pre$figure)
 
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc.png",
+         plot = h.adhoc.pre$figure,
+         device = "png",
+         dpi = 600)
 
 ```
 
@@ -797,6 +819,12 @@ h.adhoc.post <- HR.analysis(h.multiplier,
                             grid = 300)
   
 plot(h.adhoc.post$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc.png",
+         plot = h.adhoc.post$figure,
+         device = "png",
+         dpi = 600)
 
 ```
 
@@ -932,6 +960,12 @@ h.adhoc.pre.day <- HR.analysis(h.multiplier,
                                grid = 300)
 plot(h.adhoc.pre.day$figure)
 
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc_day.png",
+         plot = h.adhoc.pre.day$figure,
+         device = "png",
+         dpi = 600)
+
 ```
 
 multiplier = 0.7 may be good. 
@@ -970,7 +1004,11 @@ h.adhoc.pre.night <- HR.analysis(h.multiplier,
                                  pre.kd.night$list.data, 
                                  grid = 300)
 plot(h.adhoc.pre.night$figure)
-
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc_night.png",
+         plot = h.adhoc.pre.night$figure,
+         device = "png",
+         dpi = 600)
 ```
 
 multiplier = 0.5 may be good. 
@@ -1014,7 +1052,11 @@ h.adhoc.post.day <- HR.analysis(h.multiplier,
                                 post.kd.day$list.data, 
                                 grid = 300)
 plot(h.adhoc.post.day$figure)
-
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc_day.png",
+         plot = h.adhoc.post.day$figure,
+         device = "png",
+         dpi = 600)
 ```
 
 multiplier = 0.4 may be good. 
@@ -1054,7 +1096,11 @@ h.adhoc.post.night <- HR.analysis(h.multiplier,
                                   post.kd.night$list.data, 
                                   grid = 300)
 plot(h.adhoc.post.night$figure)
-
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc_night.png",
+         plot = h.adhoc.post.night$figure,
+         device = "png",
+         dpi = 600)
 ```
 
 multiplier = 0.45 may be good. 
