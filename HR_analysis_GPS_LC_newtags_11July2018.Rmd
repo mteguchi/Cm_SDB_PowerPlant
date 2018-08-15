@@ -37,7 +37,7 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/R/tools/TomosFunctions.R'))
 
 internet <- F #TRUE
-save.figure <- T
+save.figure <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -62,6 +62,7 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
   byID.coords <- data.frame(x=selected$Lon1, 
                             y=selected$Lat1,
                             ID = as.factor(selected$ArgosID))
+  
   coordinates(byID.coords) <- ~ x + y
   proj4string(byID.coords) <- CRS(latlong)
   byID.utm <- spTransform(byID.coords, tagproj)
@@ -769,7 +770,7 @@ if (save.figure)
 
 ```
 
-Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is equivalent of h = 148.96.  Rounded to 149. 
+Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is found in h.pre.1 below. 
 
 ```{r}
 
@@ -828,7 +829,7 @@ if (save.figure)
 
 ```
 
-For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% UD.  This is equivalent of h = 97.16. 
+For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% UD.  This is found in h.post.1 below. 
 
 ```{r}
 ## Section 3.1.2
@@ -968,7 +969,7 @@ if (save.figure)
 
 ```
 
-multiplier = 0.7 may be good. 
+multiplier = 0.7 or 0.75 may be good. See h.pre.day.1.
 
 ```{r}
 h.pre.day.1 <- find.h.adhoc(pre.kd.day$list.data$all.utm)
@@ -976,6 +977,7 @@ h.pre.day.1 <- find.h.adhoc(pre.kd.day$list.data$all.utm)
 h.pre.day <- round(h.pre.day.1$h) #round(pre.kd.day$kd.href@h$h * 0.7)
 # or use the same value as before
 
+# this computes HR for day, all animals combined and for individuals
 pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = 300)
 writeOGR(obj = pre.HR.day$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_day_50.shp",
@@ -1011,7 +1013,7 @@ if (save.figure)
          dpi = 600)
 ```
 
-multiplier = 0.5 may be good. 
+multiplier = 0.55 may be good. See h.pre.night.1.
 
 ```{r}
 h.pre.night.1 <- find.h.adhoc(pre.kd.night$list.data$all.utm)
@@ -1059,7 +1061,7 @@ if (save.figure)
          dpi = 600)
 ```
 
-multiplier = 0.4 may be good. 
+multiplier = 0.45 may be good. See h.post.day.1. 
 
 ```{r}
 h.post.day.1 <- find.h.adhoc(post.kd.day$list.data$all.utm)
@@ -1103,7 +1105,7 @@ if (save.figure)
          dpi = 600)
 ```
 
-multiplier = 0.45 may be good. 
+multiplier = 0.6 may be good. See h.post.night.1. 
 
 ```{r}
 h.post.night.1 <- find.h.adhoc(post.kd.night$list.data$all.utm)
@@ -1128,40 +1130,96 @@ writeOGR(obj = post.HR.night$ver.95,
 
 ```
 
-Compute UDs for each individual. Starting with pre:
+Extract UDs for each individual. Starting with pre:
 ```{r}
-h.pre.eachID <- h.multip.pre.eachID <- vector()
-UD.95.pre.eachID <- UD.50.pre.eachID <- list()
-# first find appropriate bandwidth for each individual:
-for (k in 1:length(pre.kd$list.data$eachID.utm)){
-  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
+pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
+                          Area.50 = t(as.matrix(pre.HR$area.byID.50)),
+                          ARea.95 = t(as.matrix(pre.HR$area.byID.95))) 
+
+
+for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
+  # day:
+  dat.utm <- pre.kd.day$list.data$eachID.utm[[k]]
   best.h <- find.h.adhoc(dat.utm)
-  h.pre.eachID[k] <- round(best.h$h)
-  h.multip.pre.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
+  h.pre.day.eachID[k] <- round(best.h$h)
+  h.multip.pre.day.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.day.eachID[k], 
                  kern = "bivnorm", grid = 300)
-  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+  UD.95.pre.day.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.day.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
+  # night:
+  dat.utm <- pre.kd.night$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.night.eachID[k] <- round(best.h$h)
+  h.multip.pre.night.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.night.eachID[k], 
+                 kern = "bivnorm", grid = 300)
+  UD.95.pre.night.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.night.eachID[[k]] <- getverticeshr(UD, 50)
+  
 }
 
 tmp.pre.95 <- lapply(UD.95.pre.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 tmp.pre.50 <- lapply(UD.50.pre.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.day.95 <- lapply(UD.95.pre.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.day.50 <- lapply(UD.50.pre.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.night.95 <- lapply(UD.95.pre.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.night.50 <- lapply(UD.50.pre.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 
 for (k in 1:length(tmp.pre.95)){
-  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], ID = pre.kd$list.data$unique.ID[k])
-  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
 }
 
 pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
 pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
+
+for (k in 1:length(tmp.pre.day.95)){
+  tmp.pre.day.50[[k]] <- mutate(tmp.pre.day.50[[k]], 
+                            ID = pre.kd.day$list.data$unique.ID[k])
+  tmp.pre.day.95[[k]] <- mutate(tmp.pre.day.95[[k]], 
+                            ID = pre.kd.day$list.data$unique.ID[k])
+}
+
+pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
+pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
+
+for (k in 1:length(tmp.pre.night.95)){
+  tmp.pre.night.50[[k]] <- mutate(tmp.pre.night.50[[k]], 
+                            ID = pre.kd.night$list.data$unique.ID[k])
+  tmp.pre.night.95[[k]] <- mutate(tmp.pre.night.95[[k]], 
+                            ID = pre.kd.night$list.data$unique.ID[k])
+}
+
+pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
+pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
+
 ```
 
 Now for post:
 ```{r}
 h.post.eachID <- h.multip.post.eachID <- vector()
 UD.95.post.eachID <- UD.50.post.eachID <- list()
+
+h.post.night.eachID <- h.multip.post.night.eachID <- vector()
+UD.95.post.night.eachID <- UD.50.post.night.eachID <- list()
+
+h.post.day.eachID <- h.multip.post.day.eachID <- vector()
+UD.95.post.day.eachID <- UD.50.post.day.eachID <- list()
+
 # first find appropriate bandwidth for each individual:
 for (k in 1:length(post.kd$list.data$eachID.utm)){
   dat.utm <- post.kd$list.data$eachID.utm[[k]]
@@ -1175,11 +1233,46 @@ for (k in 1:length(post.kd$list.data$eachID.utm)){
   UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
 }
 
+for (k in 1:length(post.kd.day$list.data$eachID.utm)){
+  # day:
+  dat.utm <- post.kd.day$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.day.eachID[k] <- round(best.h$h)
+  h.multip.post.day.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.day.eachID[k], 
+                 kern = "bivnorm", grid = 300)
+  UD.95.post.day.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.day.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+for (k in 1:length(post.kd.night$list.data$eachID.utm)){
+  # night:
+  dat.utm <- post.kd.night$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.night.eachID[k] <- round(best.h$h)
+  h.multip.post.night.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.night.eachID[k], 
+                 kern = "bivnorm", grid = 300)
+  UD.95.post.night.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.night.eachID[[k]] <- getverticeshr(UD, 50)
+  
+}
 
 tmp.post.95 <- lapply(UD.95.post.eachID, 
                  FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 tmp.post.50 <- lapply(UD.50.post.eachID, 
                  FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.day.95 <- lapply(UD.95.post.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.day.50 <- lapply(UD.50.post.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.night.95 <- lapply(UD.95.post.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.night.50 <- lapply(UD.50.post.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
 
 for (k in 1:length(tmp.post.95)){
   tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
@@ -1191,7 +1284,25 @@ for (k in 1:length(tmp.post.95)){
 post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
 post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
 
+for (k in 1:length(tmp.post.day.95)){
+  tmp.post.day.50[[k]] <- mutate(tmp.post.day.50[[k]], 
+                            ID = post.kd.day$list.data$unique.ID[k])
+  tmp.post.day.95[[k]] <- mutate(tmp.post.day.95[[k]], 
+                            ID = post.kd.day$list.data$unique.ID[k])
+}
 
+post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
+post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
+
+for (k in 1:length(tmp.post.night.95)){
+  tmp.post.night.50[[k]] <- mutate(tmp.post.night.50[[k]], 
+                            ID = post.kd.night$list.data$unique.ID[k])
+  tmp.post.night.95[[k]] <- mutate(tmp.post.night.95[[k]], 
+                            ID = post.kd.night$list.data$unique.ID[k])
+}
+
+post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
+post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
 
 ```
 
@@ -1206,9 +1317,31 @@ pre.areas.50 <- unlist(lapply(lapply(UD.50.pre.eachID,
                                       FUN = extract.areas),
                                FUN = function(x) x$total.area))
 
+pre.day.areas.95 <- unlist(lapply(lapply(UD.95.pre.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.day.areas.50 <- unlist(lapply(lapply(UD.50.pre.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+pre.night.areas.95 <- unlist(lapply(lapply(UD.95.pre.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.night.areas.50 <- unlist(lapply(lapply(UD.50.pre.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
 pre.areas.df <- data.frame(ID.f = pre.kd$list.data$unique.ID,
                            area.50 = pre.areas.50/1000000,
                            area.95 = pre.areas.95/1000000)
+
+pre.day.areas.df <- data.frame(ID.f = pre.kd.day$list.data$unique.ID,
+                               area.day.50 = pre.day.areas.50/1000000,
+                               area.day.95 = pre.day.areas.95/1000000)
+
+pre.night.areas.df <- data.frame(ID.f = pre.kd.night$list.data$unique.ID,
+                           area.night.50 = pre.night.areas.50/1000000,
+                           area.night.95 = pre.night.areas.95/1000000)
 
 post.areas.95 <- unlist(lapply(lapply(UD.95.post.eachID, 
                                       FUN = extract.areas),
@@ -1216,13 +1349,40 @@ post.areas.95 <- unlist(lapply(lapply(UD.95.post.eachID,
 post.areas.50 <- unlist(lapply(lapply(UD.50.post.eachID, 
                                       FUN = extract.areas),
                                FUN = function(x) x$total.area))
+
+post.day.areas.95 <- unlist(lapply(lapply(UD.95.post.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.day.areas.50 <- unlist(lapply(lapply(UD.50.post.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+post.night.areas.95 <- unlist(lapply(lapply(UD.95.post.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.night.areas.50 <- unlist(lapply(lapply(UD.50.post.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
 post.areas.df <- data.frame(ID.f = post.kd$list.data$unique.ID,
                            area.50 = post.areas.50/1000000,
                            area.95 = post.areas.95/1000000)
 
-areas.df <- rbind(pre.areas.df, post.areas.df)
+post.day.areas.df <- data.frame(ID.f = post.kd.day$list.data$unique.ID,
+                           area.day.50 = post.day.areas.50/1000000,
+                           area.day.95 = post.day.areas.95/1000000)
 
-dat.table <- left_join(dat.table, areas.df, by = "ID.f")
+post.night.areas.df <- data.frame(ID.f = post.kd.night$list.data$unique.ID,
+                           area.night.50 = post.night.areas.50/1000000,
+                           area.night.95 = post.night.areas.95/1000000)
+
+areas.df <- rbind(pre.areas.df, post.areas.df)
+areas.night.df <- rbind(pre.night.areas.df, post.night.areas.df)
+areas.day.df <- rbind(pre.day.areas.df, post.day.areas.df)
+
+dat.table <- left_join(dat.table, areas.df, by = "ID.f") %>%
+  left_join(., areas.night.df, by = "ID.f") %>%
+  left_join(., areas.day.df, by = "ID.f")
 
 write.csv(dat.table, file = "data/IDvsUDs.csv", quote = F, row.names = F)
 
@@ -1231,9 +1391,6 @@ ggplot(data = dat.table) +
                  y = area.50/1000000,
                  color = period)) 
 ```
-
-
-
 
 Plotting starts here:
 Make a plot for pre using all data:
