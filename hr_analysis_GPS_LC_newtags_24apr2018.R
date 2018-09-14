@@ -6,10 +6,10 @@
 ## Filtered data do not include points on land
 ## Filtered data only allow for 1 relocation every 4 horus
 
-## Purpose of the script is to compute homerange (area) using 
+## Purpose of the script is to compute homerange (area) using
 ## least squares cross-validation including 50% and 95% contours.
 ## An analysis of each turtle and an aggregate pre and post will be computed
-## h values are chosen based on best judgment and gst behavior  
+## h values are chosen based on best judgment and gst behavior
 rm(list = ls())
 #getwd()
 #list.files()
@@ -20,7 +20,7 @@ library(dplyr)
 library(adehabitatHR)
 library(readxl)
 library(rgdal)
-library(leaflet) 
+library(leaflet)
 
 #note: development version in use
 
@@ -28,13 +28,14 @@ library(leaflet)
 
 ## Section 2.1: Pre
 
-tag37616 <-read.csv("pre/37616_inside_DayNight_4hrs_2018-04-20.csv")
-tag37623 <-read.csv("pre/37623_inside_DayNight_4hrs_2018-04-20.csv")
-tag44366 <-read.csv("pre/44366_inside_DayNight_4hrs_2018-04-20.csv")
-tag52674 <-read.csv("pre/52674_inside_DayNight_4hrs_2018-04-20.csv")
-tag52675 <-read.csv("pre/52675_inside_DayNight_4hrs_2018-04-20.csv")
-tag78500 <-read.csv("pre/78500_inside_DayNight_4hrs_2018-04-20.csv")
-tag79786 <-read.csv("pre/79786_inside_DayNight_4hrs_2018-04-20.csv")
+d <- "data/files_Apr2018_withNewTags/"
+tag37616 <-read.csv(paste0(d, "pre/37616_inside_DayNight_4hrs_2018-04-20.csv"))
+tag37623 <-read.csv(paste0(d, "pre/37623_inside_DayNight_4hrs_2018-04-20.csv"))
+tag44366 <-read.csv(paste0(d, "pre/44366_inside_DayNight_4hrs_2018-04-20.csv"))
+tag52674 <-read.csv(paste0(d, "pre/52674_inside_DayNight_4hrs_2018-04-20.csv"))
+tag52675 <-read.csv(paste0(d, "pre/52675_inside_DayNight_4hrs_2018-04-20.csv"))
+tag78500 <-read.csv(paste0(d, "pre/78500_inside_DayNight_4hrs_2018-04-20.csv"))
+tag79786 <-read.csv(paste0(d, "pre/79786_inside_DayNight_4hrs_2018-04-20.csv"))
 
 
 ##Section 2.2, r
@@ -55,36 +56,36 @@ write.csv(Pre.all, "outputs2/Pre_GPS_LC.all.csv", row.names=FALSE)
 
 ## Section 2.2: Post
 
-tag12607106 <-read.csv("post/12607106_inside_DayNight_4hrs_2018-04-20.csv")
-tag12607107 <-read.csv("post/12607107_inside_DayNight_4hrs_2018-04-20.csv")
-tag126070 <-read.csv("post/126070_inside_DayNight_4hrs_2018-04-20.csv")
-tag12606905 <-read.csv("post/12606905_inside_DayNight_4hrs_2018-04-20.csv")
-tag12606907 <-read.csv("post/12606907_inside_DayNight_4hrs_2018-04-20.csv")
-tag126068 <-read.csv("post/126068_inside_DayNight_4hrs_2018-04-20.csv")
-tag126067 <-read.csv("post/126067_inside_DayNight_4hrs_2018-04-20.csv")
-tag126066 <-read.csv("post/126066_inside_DayNight_4hrs_2018-04-20.csv")
-tag126065 <-read.csv("post/126065_inside_DayNight_4hrs_2018-04-20.csv")
-tag126064 <-read.csv("post/126064_inside_DayNight_4hrs_2018-04-20.csv")
-tag44359 <-read.csv("post/44359_inside_DayNight_4hrs_2018-04-20.csv")
-tag151375 <-read.csv("new/151375_inside_DayNight_4hrs_2018-04-20.csv")
-tag151377 <-read.csv("new/151377_inside_DayNight_4hrs_2018-04-20.csv")
-tag151378 <-read.csv("new/151378_inside_DayNight_4hrs_2018-04-20.csv")
-tag151380 <-read.csv("new/151380_inside_DayNight_4hrs_2018-04-20.csv")
-tag151381 <-read.csv("new/151381_inside_DayNight_4hrs_2018-04-20.csv")
-tag151384 <-read.csv("new/151384_inside_DayNight_4hrs_2018-04-20.csv")
-tag152313 <-read.csv("new/152313_inside_DayNight_4hrs_2018-04-20.csv")
-tag152314 <-read.csv("new/152314_inside_DayNight_4hrs_2018-04-20.csv")
-tag152315 <-read.csv("new/152315_inside_DayNight_4hrs_2018-04-20.csv")
-tag152319 <-read.csv("new/152319_inside_DayNight_4hrs_2018-04-20.csv")
-tag152322 <-read.csv("new/152322_inside_DayNight_4hrs_2018-04-20.csv")
-tag152323 <-read.csv("new/152323_inside_DayNight_4hrs_2018-04-20.csv")
+tag12607106 <-read.csv(paste0(d, "post/12607106_inside_DayNight_4hrs_2018-04-20.csv"))
+tag12607107 <-read.csv(paste0(d, "post/12607107_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126070 <-read.csv(paste0(d, "post/126070_inside_DayNight_4hrs_2018-04-20.csv"))
+tag12606905 <-read.csv(paste0(d, "post/12606905_inside_DayNight_4hrs_2018-04-20.csv"))
+tag12606907 <-read.csv(paste0(d, "post/12606907_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126068 <-read.csv(paste0(d, "post/126068_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126067 <-read.csv(paste0(d, "post/126067_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126066 <-read.csv(paste0(d, "post/126066_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126065 <-read.csv(paste0(d, "post/126065_inside_DayNight_4hrs_2018-04-20.csv"))
+tag126064 <-read.csv(paste0(d, "post/126064_inside_DayNight_4hrs_2018-04-20.csv"))
+tag44359 <-read.csv(paste0(d, "post/44359_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151375 <-read.csv(paste0(d, "new/151375_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151377 <-read.csv(paste0(d, "new/151377_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151378 <-read.csv(paste0(d, "new/151378_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151380 <-read.csv(paste0(d, "new/151380_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151381 <-read.csv(paste0(d, "new/151381_inside_DayNight_4hrs_2018-04-20.csv"))
+tag151384 <-read.csv(paste0(d, "new/151384_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152313 <-read.csv(paste0(d, "new/152313_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152314 <-read.csv(paste0(d, "new/152314_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152315 <-read.csv(paste0(d, "new/152315_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152319 <-read.csv(paste0(d, "new/152319_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152322 <-read.csv(paste0(d, "new/152322_inside_DayNight_4hrs_2018-04-20.csv"))
+tag152323 <-read.csv(paste0(d, "new/152323_inside_DayNight_4hrs_2018-04-20.csv"))
 
 
 Post.all <- rbind(tag12607106,
                   tag12607107,
-                  tag126070, 
-                  tag12606905, 
-                  tag12606907, 
+                  tag126070,
+                  tag12606905,
+                  tag12606907,
                   tag126068,
                   tag126067,
                   tag126066,
@@ -129,7 +130,9 @@ plot(Post.all.coords, axes=TRUE) ## sanity check
 ## http://www.maths.lancs.ac.uk/~rowlings/Teaching/UseR2012/cheatsheet.html
 ## use spTransform to convert new data to tag example projection
 library(rgdal)
-tagprj <- readOGR("/Users/sgraham/R/gst_hr_analysis2018/Tag_065_UTMzone11n", "tag_065_project")
+
+#tagprj <- readOGR("/Users/sgraham/R/gst_hr_analysis2018/Tag_065_UTMzone11n", "tag_065_project")
+tagprj <- readOGR("Tag_065_UTMzone11n", "tag_065_project")
 
 plot(tagprj, axes=TRUE)
 saveproj <- proj4string(tagprj)
@@ -148,7 +151,7 @@ plot(Post.all.utm, axes=TRUE) ## sanity check
 
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
-Pre.kd <- kernelUD(Pre.all.utm, h="LSCV",  hlim = c(0.03, 1.5), grid=300) 
+Pre.kd <- kernelUD(Pre.all.utm, h="LSCV",  hlim = c(0.03, 1.5), grid=300)
 plotLSCV(Pre.kd)
 Pre.Area <- kernel.area(Pre.kd, percent = seq(20, 95, by = 5),
                         unin = c("m"),
@@ -176,7 +179,7 @@ plot(getverticeshr(Pre.kd, 95), add=TRUE, lwd=2)
 plot(Pre.all.utm, add=TRUE, col="blue")
 dev.off()
 
-##Write shapefile 
+##Write shapefile
 #Empty shapefile folder
 writeOGR(Pre.ver.50, "shapefiles2/Pre.ver.50.shp",layer="Pre.ver.50", driver="ESRI Shapefile", overwrite_layer=TRUE)
 writeOGR(Pre.ver.95, "shapefiles2/Pre.ver.95.shp",layer="Pre.ver.95", driver="ESRI Shapefile", overwrite_layer=TRUE)
@@ -195,7 +198,7 @@ proj4string(Pre.ver.95) <- proj4string(Pre.all.utm)
 Pre.leafver.95 <-spTransform(Pre.ver.95,CRS("+proj=longlat"))
 library(leaflet)
 m <- leaflet() %>% setView(lng = -117.1, lat = 32.65, zoom = 11)
-m %>% 
+m %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
            options = providerTileOptions(noWrap = TRUE)) %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/Mapserver/tile/{z}/{y}/{x}',
@@ -216,7 +219,7 @@ write.csv(Pre.outputs, "outputs2/PreOutputs.csv", row.names=FALSE)
 
 
 ############Post
-## Section 3.2.2 
+## Section 3.2.2
 #hlim and grid visually optimized = 0.525/375 m
 Post.kd <- kernelUD(Post.all.utm, h="LSCV",  hlim = c(.35, 1.5), grid=175) #set grid=100
 plotLSCV(Post.kd)
@@ -267,7 +270,7 @@ proj4string(Post.ver.95) <- proj4string(Post.all.utm)
 Post.leafver.95 <-spTransform(Post.ver.95,CRS("+proj=longlat"))
 library(leaflet)
 m <- leaflet() %>% setView(lng = -117.1, lat = 32.65, zoom = 11)
-m %>% 
+m %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
            options = providerTileOptions(noWrap = TRUE)) %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/Mapserver/tile/{z}/{y}/{x}',
@@ -278,7 +281,7 @@ m %>%
   addLayersControl(
     overlayGroups = c("Home range 95%", "Home range 50%", "Location data"),
     options = layersControlOptions(collapsed = FALSE)
-  ) 
+  )
 
 
 
@@ -319,14 +322,14 @@ Pre.ind.outputs <- c() #to hold results
 for(i in 1:length(Pre.unique)){
   Pre.tmp <- subset(Pre.some, ArgosID==Pre.unique[i])
   print(i)
-  
-  
+
+
   Pre.tmp.coords <- data.frame(x=Pre.tmp$Lon, y=Pre.tmp$Lat)
   coordinates(Pre.tmp.coords) <- ~ x + y
   class(Pre.tmp.coords)
   #plot(Pre.tmp.coords, axes=TRUE) ## sanity check
-  
-  
+
+
   # library(rgdal)
   # tagprj <- readOGR("C:/Users/Costco/Documents/Dropbox/John Business/Business/sdbay/homerange/shps/Tag_065.shp",
   #                   layer="Tag_065")
@@ -337,8 +340,8 @@ for(i in 1:length(Pre.unique)){
   proj4string(Pre.tmp.proj) = CRS(latlong)
   Pre.tmp.utm <- spTransform(Pre.tmp.proj, saveproj)
   #plot(Pre.tmp.utm, axes=TRUE) ## sanity check
-  
-  
+
+
   ## Section 4.1.2
   Pre.tmp.kd <- kernelUD(Pre.tmp.utm, h="LSCV",  hlim = c(0.565, 1.5), grid=125) #set values from pre.all
   #plotLSCV(Pre.kd)
@@ -350,22 +353,22 @@ for(i in 1:length(Pre.unique)){
   Pre.tmp.bw <- Pre.tmp.kd@h[[3]] ##bandwidth estimate
   Pre.tmp.Area.50 <- round(Pre.tmp.Area[7],2)
   Pre.tmp.Area.95 <- round(Pre.tmp.Area[16],2)
-  
+
   Pre.ver.tmp.50 <- getverticeshr(Pre.tmp.kd, 50)
   Pre.ver.tmp.95 <- getverticeshr(Pre.tmp.kd, 95)
-  
-  
+
+
   filename50 <- paste("shapefiles2/", "tag",Pre.unique[i],"percent50th", ".shp", sep="")
   filename95 <- paste("shapefiles2/", "tag",Pre.unique[i],"percent95th", ".shp", sep="")
   ##Write shapefile
   writeOGR(Pre.ver.tmp.50, filename50,layer="Pre.ver.tmp.50", driver="ESRI Shapefile", overwrite_layer=TRUE)
   writeOGR(Pre.ver.tmp.95, filename95,layer="Pre.ver.tmp.95", driver="ESRI Shapefile", overwrite_layer=TRUE)
-  
-  
+
+
   pre.tmp.outputs <- data.frame(Period="Pre", Source=Pre.unique[i], Method="LSCV",
                                 Bandwidth=Pre.tmp.bw,
                                 A50=Pre.tmp.Area.50, A95=Pre.tmp.Area.95)
-  
+
   Pre.ind.outputs <- rbind(Pre.ind.outputs, pre.tmp.outputs)
 }
 
@@ -384,14 +387,14 @@ Post.ind.outputs <- c() #to hold results
 for(i in 1:length(Post.unique)){
   Post.tmp <- subset(Post.all, ArgosID==Post.unique[i])
   print(i)
-  
-  
+
+
   Post.tmp.coords <- data.frame(x=Post.tmp$Lon, y=Post.tmp$Lat)
   coordinates(Post.tmp.coords) <- ~ x + y
   class(Post.tmp.coords)
   #plot(Post.tmp.coords, axes=TRUE) ## sanity check
-  
-  
+
+
   # library(rgdal)
   # tagprj <- readOGR("C:/Users/Costco/Documents/Dropbox/John Business/Business/sdbay/homerange/shps/Tag_065.shp",
   #                   layer="Tag_065")
@@ -402,7 +405,7 @@ for(i in 1:length(Post.unique)){
   proj4string(Post.tmp.proj) = CRS(latlong)
   Post.tmp.utm <- spTransform(Post.tmp.proj, saveproj)
   #plot(Post.tmp.utm, axes=TRUE) ## sanity check
-  
+
   ## Section 4.1.2
   Post.tmp.kd <- kernelUD(Post.tmp.utm, h="LSCV",  hlim = c(0.525, 1.5), grid=375) #set grid=300
   #plotLSCV(Post.kd)
@@ -414,22 +417,22 @@ for(i in 1:length(Post.unique)){
   Post.tmp.bw <- Post.tmp.kd@h[[3]] ##bandwidth estimate
   Post.tmp.Area.50 <- round(Post.tmp.Area[7],2)
   Post.tmp.Area.95 <- round(Post.tmp.Area[16],2)
-  
+
   Post.ver.tmp.50 <- getverticeshr(Post.tmp.kd, 50)
   Post.ver.tmp.95 <- getverticeshr(Post.tmp.kd, 95)
-  
-  
+
+
   filename50 <- paste("shapefiles2/", "tag",Post.unique[i],"percent50th", ".shp", sep="")
   filename95 <- paste("shapefiles2/", "tag",Post.unique[i],"percent95th", ".shp", sep="")
   ##Write shapefile
   writeOGR(Post.ver.tmp.50, filename50,layer="Post.ver.tmp.50", driver="ESRI Shapefile", overwrite_layer=TRUE)
   writeOGR(Post.ver.tmp.95, filename95,layer="Post.ver.tmp.95", driver="ESRI Shapefile", overwrite_layer=TRUE)
-  
-  
+
+
   Post.tmp.outputs <- data.frame(Period="Post", Source=Post.unique[i], Method="LSCV",
                                  Bandwidth=Post.tmp.bw,
                                  A50=Post.tmp.Area.50, A95=Post.tmp.Area.95)
-  
+
   Post.ind.outputs <- rbind(Post.ind.outputs, Post.tmp.outputs)
 }
 
@@ -443,7 +446,7 @@ write.csv(Post.ind.outputs , "outputs/Post.ind.outputs .csv", row.names=FALSE)
 
 ##combine data
 ## dt table
-## leaflet 
+## leaflet
 Pre.outputs2 <- Pre.outputs
 Pre.outputs2$Source <- factor(Pre.outputs2$Source)
 Pre.ind.outputs2 <- Pre.ind.outputs
@@ -456,7 +459,7 @@ Post.ind.outputs2$Source <- factor(Post.ind.outputs2$Source)
 
 
 
-summary.all <- rbind(Pre.outputs2,Pre.ind.outputs2, Post.outputs2, Post.ind.outputs2) 
+summary.all <- rbind(Pre.outputs2,Pre.ind.outputs2, Post.outputs2, Post.ind.outputs2)
 
 write.csv(summary.all , "outputs2/summaryall.csv", row.names=FALSE)
 
@@ -469,7 +472,7 @@ setwd("/Users/sgraham/R/gst_hr_analysis2016")
 #load("homerange5.RData")
 library(leaflet)
 m <- leaflet() %>% setView(lng = -117.1, lat = 32.65, zoom = 11)
-m %>% 
+m %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
            options = providerTileOptions(noWrap = TRUE)) %>%
   addTiles('http://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/Mapserver/tile/{z}/{y}/{x}',

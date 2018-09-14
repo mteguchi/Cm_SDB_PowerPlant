@@ -1136,7 +1136,33 @@ pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
                           Area.50 = t(as.matrix(pre.HR$area.byID.50)),
                           ARea.95 = t(as.matrix(pre.HR$area.byID.95))) 
 
+h.multip.pre.eachID <- h.pre.eachID <- vector(mode = "numeric", 
+                                              length = length(pre.kd$list.data$eachID.utm))
 
+UD.95.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
+                                               length = length(pre.kd$list.data$eachID.utm))
+for (k in 1:length(pre.kd$list.data$eachID.utm)){
+  
+  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.eachID[k] <- round(best.h$h)
+  h.multip.pre.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
+                 kern = "bivnorm", grid = 300)
+  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+# day data
+pre.day.HR.byID <- data.frame(ID = pre.kd.day$list.data$unique.ID,
+                              Area.50 = t(as.matrix(pre.HR.day$area.byID.50)),
+                              ARea.95 = t(as.matrix(pre.HR.day$area.byID.95))) 
+
+h.multip.pre.day.eachID <- h.pre.day.eachID <- vector(mode = "numeric", 
+                           length = length(pre.kd.day$list.data$eachID.utm))
+
+UD.95.pre.day.eachID <- UD.50.pre.day.eachID <- vector(mode = "list", 
+                           length = length(pre.kd.day$list.data$eachID.utm))
 for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
   # day:
   dat.utm <- pre.kd.day$list.data$eachID.utm[[k]]
@@ -1148,6 +1174,13 @@ for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
   UD.95.pre.day.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.pre.day.eachID[[k]] <- getverticeshr(UD, 50)
 }
+
+# night data
+h.multip.pre.night.eachID <- h.pre.night.eachID <- vector(mode = "numeric", 
+                           length = length(pre.kd.night$list.data$eachID.utm))
+
+UD.95.pre.night.eachID <- UD.50.pre.night.eachID <- vector(mode = "list", 
+                           length = length(pre.kd.night$list.data$eachID.utm))
 
 for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
   # night:
@@ -1164,6 +1197,7 @@ for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
 
 tmp.pre.95 <- lapply(UD.95.pre.eachID, 
                      FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
 tmp.pre.50 <- lapply(UD.50.pre.eachID, 
                      FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 
@@ -1384,7 +1418,9 @@ dat.table <- left_join(dat.table, areas.df, by = "ID.f") %>%
   left_join(., areas.night.df, by = "ID.f") %>%
   left_join(., areas.day.df, by = "ID.f")
 
-write.csv(dat.table, file = "data/IDvsUDs.csv", quote = F, row.names = F)
+write.csv(dat.table, file = paste0("data/IDvsUDs_",
+                                   Sys.Date(), ".csv"), 
+          quote = F, row.names = F)
 
 ggplot(data = dat.table) +
   geom_point(aes(x = Mass_kg, 
