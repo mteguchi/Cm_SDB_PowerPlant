@@ -1474,7 +1474,7 @@ map.pre.HR <- map.sdbay.zm +
         legend.position = "none")
 
 
-#plot(map.pre.HR)
+plot(map.pre.HR)
 ```
 
 Make a plot for pre day:
@@ -1522,14 +1522,17 @@ map.pre.day.HR <- map.sdbay.zm +
         legend.position = "none")
 
 
-#plot(map.pre.day.HR)
+plot(map.pre.day.HR)
 ```
 
 Make a plot for pre night:
 ```{r}
 
-pre.night.ver.50.df <- broom::tidy(spTransform(pre.HR.night$ver.50, CRS("+proj=longlat")))
-pre.night.ver.95.df <- broom::tidy(spTransform(pre.HR.night$ver.95, CRS("+proj=longlat")))
+pre.night.ver.50.df <- broom::tidy(spTransform(pre.HR.night$ver.50, 
+                                               CRS("+proj=longlat")))
+
+pre.night.ver.95.df <- broom::tidy(spTransform(pre.HR.night$ver.95, 
+                                               CRS("+proj=longlat")))
 
 map.pre.night.HR <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
@@ -1570,7 +1573,7 @@ map.pre.night.HR <- map.sdbay.zm +
         legend.position = "none")
 
 
-#plot(map.pre.night.HR)
+plot(map.pre.night.HR)
 ```
 
 Make a plot for post using all data:
@@ -1616,7 +1619,7 @@ map.post.HR <- map.sdbay.zm +
   theme(#legend.title = element_text(size = 10, hjust = 0.5),
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
-#plot(map.post.HR)
+plot(map.post.HR)
 ```
 
 Make a plot for post day:
@@ -1663,7 +1666,7 @@ map.post.day.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
-#plot(map.post.day.HR)
+plot(map.post.day.HR)
 ```
 
 
@@ -1700,7 +1703,7 @@ map.post.night.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
-#plot(map.post.night.HR)
+plot(map.post.night.HR)
 ```
 
 Simple plots with day/night for the pre:
@@ -1799,11 +1802,11 @@ p.h.post.eachID <- ggplot() +
   coord_map() + facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10, -117.08),
-                     limits = c(-117.15, -117.07)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66, 32.68),
-                     limits = c(32.59, 32.70))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) #+
+  #scale_x_continuous(breaks = seq(from = -117.18, to = -117.08, by = 0.02),
+  #                   limits = c(-117.20, -117.06)) +
+  #scale_y_continuous(breaks = seq(from = 32.57, to = 32.67, by = 0.02),
+  #                   limits = c(32.56, 32.68))
 plot(p.h.post.eachID)
 ```
 
