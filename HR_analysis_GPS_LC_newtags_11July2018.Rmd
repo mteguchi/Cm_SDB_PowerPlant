@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Home range analysis for green turtles in San Diego Bay"
 output: html_notebook
 ---
 
@@ -37,240 +37,14 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/R/tools/TomosFunctions.R'))
 
 internet <- F #TRUE
-save.figure <- F
+save.figure <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
-N.end <- 32.69   # approx Coronado bridge
+#N.end <- 32.69   # approx Coronado bridge
+N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
 
-# a function to create a data frame with minimum number of data points per individual
-# then convert geographic coordinates so HR can be computed. Creates a list of length
-# four. tagproj is the projection definition, which is defined at the end of next chunk
-
-make.HR.dataset <- function(data.all, ID.min_n, tagproj){
-  selected <- right_join(data.all, 
-                         ID.min_n, 
-                         by = "ArgosID")
-  
-  all.coords <- data.frame(x=selected$Lon1, 
-                           y=selected$Lat1)
-  
-  coordinates(all.coords) <- ~ x + y
-  proj4string(all.coords) <- CRS(latlong)
-  all.utm <- spTransform(all.coords, tagproj)
-
-  byID.coords <- data.frame(x=selected$Lon1, 
-                            y=selected$Lat1,
-                            ID = as.factor(selected$ArgosID))
-  
-  coordinates(byID.coords) <- ~ x + y
-  proj4string(byID.coords) <- CRS(latlong)
-  byID.utm <- spTransform(byID.coords, tagproj)
-  
-  eachID.utm <- eachID.coords <- list()
-  
-  unique.ID <- unique(selected$ArgosID)
-  for (k in 1:length(unique.ID)){
-    tmp.data <- filter(selected, ArgosID == unique.ID[k])
-    tmp1 <- data.frame(x = tmp.data$Lon1,
-                       y = tmp.data$Lat1)
-    
-    coordinates(tmp1) <- ~ x + y
-    proj4string(tmp1) <- CRS(latlong)
-    tmp2 <- spTransform(tmp1, tagproj)
-    
-    eachID.coords[[k]] <- tmp1
-    eachID.utm[[k]] <- tmp2
-  }
-  
-  return(list(all.coords = all.coords,
-              all.utm = all.utm,
-              byID.coords = byID.coords,
-              byID.utm = byID.utm,
-              eachID.coords = eachID.coords,
-              eachID.utm = eachID.utm,
-              unique.ID = unique.ID))
-}
-
-# A function to compute UDs using all data and for each individual. Returns a list 
-# of estimated bandwidth, kernel density estimates as well as areas
-# for 50 and 95% UDs
-HR.bvnorm.fcn <- function(all.utm, 
-                          byID.utm, 
-                          h="href", 
-                          hlim=c(0.03, 1.5), 
-                          grid=300, extent = 1){
-  
-  all.kd <- kernelUD(all.utm, 
-                     h = h,  
-                     hlim = hlim, 
-                     grid = grid,
-                     extent = extent,
-                     kern = "bivnorm")
-  
-  Area.all <- kernel.area(all.kd, 
-                          percent = c(50, 95),
-                          unin = c("m"),
-                          unout = c("km2"), 
-                          standardize = FALSE)
-
-  byID.kd <- kernelUD(byID.utm, 
-                      h = all.kd@h$h ,  
-                      hlim = hlim, 
-                      grid = grid,
-                      extent = extent,
-                      kern = "bivnorm")
-  
-  Area.byID <- kernel.area(byID.kd, 
-                           percent = c(50, 95),
-                           unin = c("m"),
-                           unout = c("km2"), 
-                           standardize = FALSE)
-
-  bw <- all.kd@h$h ##bandwidth estimate
-  #Area.50 <- Area.all["50"]
-  #Area.95 <- Area.all["95"]
-  
-  #ver.50 <- getverticeshr(all.kd, 50)
-  #ver.95 <- getverticeshr(all.kd, 95)
-  
-  return(list(bw = bw,
-              all.kd = all.kd,
-              byID.kd = byID.kd,
-              area.all = Area.all,
-              area.byID = Area.byID))
-}
-
-# A function to conduct the first step of UD analysis. It takes a full dataset
-# and select individuals with at least min_n (50) data points. Computes UD using the 
-# reference bandwidth (href) and the method of least square cross validation (LSCV).
-# UD from the LSCV method can be plotted to find the bandwidth that minimizes the
-# CV of bandwidth. 
-HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=300){
-  data.df %>% count(by = ArgosID) %>%
-    filter(n > (min_n - 1)) %>%
-    #dplyr::select(by) %>%
-    rename(ArgosID = by) -> ID.min_n_day
-  
-  list.data <- make.HR.dataset(data.df, ID.min_n_day, tagproj)
-
-  kd.href <- kernelUD(list.data$all.utm, 
-                      h="href",  
-                      grid=grid,
-                      kern = "bivnorm")
-  
-  kd.LSCV <- kernelUD(list.data$all.utm, 
-                      h="LSCV",  
-                      hlim = c(0.03, 1.5), 
-                      grid=300,
-                      kern = "bivnorm")
-  return(list(kd.href = kd.href,
-              kd.LSCV = kd.LSCV,
-              IDs = ID.min_n_day,
-              list.data = list.data))
-}
-
-# A function to conduct home range analysis for a wide range of bandwidth values.
-# INputs are multiplier values for the reference bandwidth, e.g., seq(from = 0.05, 
-# to = 0.95, by = 0.05), estimated reference bandwidth (found in the output of
-# HR.analysis.step1), an output of make.HR.dataset, and grid size (default is 300)
-# It returns a figure (faceted 95% UDs in SDB), a dataframe used to make the figure,
-# and bandwidth values that correspond to mulipliers. 
-HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
-  h.adhoc <- h.multiplier * kd.href@h$h
-
-  kd.adhoc <- vector(mode = "list", length = length(h.adhoc))
-  for (k in 1:length(h.adhoc)){
-    kd.adhoc[[k]] <- kernelUD(data.list$all.utm, 
-                              h = h.adhoc[k],  
-                              grid = grid,
-                              kern = "bivnorm")
-    
-  }
-
-  # make dataframes of vertices:
-  ver.95.adhoc <- lapply(kd.adhoc, 
-                         FUN = getverticeshr, 
-                         percent = 95)
-
-  ver.95.adhoc.tmp <- lapply(ver.95.adhoc, 
-                             FUN = spTransform, 
-                             CRS = CRS("+proj=longlat"))
-
-  ver.95.adhoc.list <- lapply(ver.95.adhoc.tmp,
-                              FUN = broom::tidy)
-
-  for (k in 1:length(ver.95.adhoc.list)){
-    ver.95.adhoc.list[[k]] <- ver.95.adhoc.list[[k]] %>% 
-      mutate(h = h.adhoc[k]) %>%
-      mutate(h.fac = as.factor(round(h, digits = 2))) %>%
-      mutate(h.multip = h.multiplier[k])
-  }
-
-  # rbind all:
-  ver.95.adhoc.df <- do.call("rbind", ver.95.adhoc.list)
-
-  p.h.adhoc <- ggplot(data = ver.95.adhoc.df,
-                      aes(x = long, y = lat,
-                          group = group)) + 
-    geom_polygon() + 
-    coord_map() + facet_grid(. ~ h.multip) +
-    facet_wrap( ~ h.multip, nrow = 3) + 
-    labs(x = "", y = "")+ 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-    scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                       limits = c(-117.15, -117.09))+
-    scale_y_continuous(breaks = c(32.62, 32.64, 32.66, 32.68),
-                       limits = c(32.60, 32.70))
-
-  return(list(figure = p.h.adhoc,
-              ver.95 = ver.95.adhoc.df,
-              h = h.adhoc))
-}
-
-# A function to compute 50 and 95% UD areas. INputs are bandwidth (h), 
-# the output from make.HR.dataset, and grid value. It uses HR.bvnorm.fcn.
-# Returns 50 and 95% areas and vertices, which are used to plot UDs. 
-compute.area <- function(h, list.data, grid=300){
-  HR <- HR.bvnorm.fcn(list.data$all.utm, 
-                      list.data$byID.utm, 
-                      h = h, 
-                      hlim=c(0.03, 1.5), 
-                      grid=grid, extent = 1)
-  bw <- HR$all.kd@h$h ##bandwidth estimate
-
-  return(list(area.50 = HR$area.all["50"],
-              area.95 = HR$area.all["95"],
-              ver.50 = getverticeshr(HR$all.kd, 50),
-              ver.95 = getverticeshr(HR$all.kd, 95),
-              area.byID.50 = HR$area.byID["50",],
-              area.byID.95 = HR$area.byID["95",],
-              ver.byID.50 = getverticeshr(HR$byID.kd, 50),
-              ver.byID.95 = getverticeshr(HR$byID.kd, 95)))
-}
-
-# This funciton finds a bandwidth value that makes 95% UD contiguous
-find.h.adhoc <- function(utm.data, grid = 300, hlim = c(0.03, 1.5), extent = 1){
-  tmp.href <- kernelUD(utm.data, h = "href", kern = "bivnorm", grid = grid)
-  h1 <- tmp.href@h$h
-  h.multip <- 0.05
-  n.seg <- 2
-  k <- 1
-  while (n.seg > 1){
-    h <- h1 * h.multip
-    tmp.UD <- kernelUD(utm.data, h = h, 
-                       kern = "bivnorm", grid = grid)
-    tmp.V <- getverticeshr(tmp.UD, 95)
-    n.seg <- length(tmp.V@polygons[[1]]@Polygons)
-    h.multip <- h.multip + 0.05
-  }
-  return(list(v.95 = tmp.V,
-              UD.95 = tmp.UD,
-              h = h,
-              href = h1,
-              h.multip = h.multip))
-}
-
+source("HR_analysis_fcns.R")
 
 ```
 
@@ -497,7 +271,7 @@ plot(map.pre)
 
 ```
 
-To check for errors in data screening, I make a few plots. Each individual has one or less data point per 4-hour period. 
+To check for errors in data screening, I make a few plots. Each individual has one or no data point per 4-hour period. 
 ```{r}
 p1 <- list()
 k <- 1
@@ -855,94 +629,7 @@ writeOGR(obj = post.HR$ver.95,
 #points(pre.all.utm, col="blue")
 ```
 
-Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because the sample size decreases, I use h.pre for this.
 
-```{r echo=FALSE, results="hide"}
-run.date <- "2018-07-26"
-if (!file.exists(paste0("RData/areas_combos_", run.date, ".rds"))){
-  combos <- combn(1:dim(ID.post.min_n)[1], 
-                  dim(ID.pre.min_n)[1])
-  combos <- combos[, sample(1:ncol(combos), 
-                            size = 1000)]
-  IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", 
-                                                 length = ncol(combos))
-  area.95 <- area.50 <- vector(mode = "numeric", 
-                               length = ncol(combos))
-  
-  #p.list <- list()
-  for (k in 1:ncol(combos)){
-    
-    ID.post.tmp <- ID.post.min_n[combos[,k], ]
-    tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
-    
-    tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
-                            byID.utm = tmp.list$byID.utm,
-                            h = h.pre,
-                            hlim=c(0.03, 1.5),
-                            grid=300, extent = 1)
-    
-    ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95),
-                                              CRS("+proj=longlat")))
-    
-    pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
-                              lat = tmp.list$all.coords@coords[,2])
-    
-    # p.list[[k]] <- ggplot() +
-    #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
-    #   geom_point(data = pts.df, aes(x = lon, y = lat),
-    #              color = "green") + coord_map()
-    
-    area.50[k] <- tmp.HR$area.all["50"]
-    area.95[k] <- tmp.HR$area.all["95"]
-    
-    IDs[[k]] <- ID.post.tmp[,1]
-  }
-  
-  areas.combos <- list(area95 = area.95,
-                       area50 = area.50,
-                       ID = IDs,
-                       polygon = ver.95.df.list,
-                       points = pts.df.list)
-  
-  saveRDS(areas.combos,
-          file = paste0("RData/areas_combos_", Sys.Date(), ".rds"))
-  
-} else {
-  areas.combos <- readRDS(file = paste0("RData/areas_combos_", 
-                                        run.date, ".rds"))
-}
-
-```
-
-Compare the randomized areas and the pre area.
-```{r}
-dif.50.df <- data.frame(dif = areas.combos$area50 - pre.HR$area.50)
-dif.95.df <- data.frame(dif = areas.combos$area95 - pre.HR$area.95)
-
-hist.dif.50 <- ggplot(data = dif.50.df) + 
-  geom_histogram(aes(x = dif), binwidth = 0.1) +
-  labs(x = "Difference in area", y = "Count")
-
-#plot(hist.dif.50)
-
-hist.dif.95 <- ggplot(data = dif.95.df) + 
-  geom_histogram(aes(x = dif), binwidth = 0.15) +
-  labs(x = "Difference in area", y = "Count")
-
-#plot(hist.dif.95)
-
-# quantile(dif.50.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
-# quantile(dif.95.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
-# 
-# dif.50.df %>% count(dif>0)
-# 
-# dif.95.df %>% count(dif > 0)
-
-
-```
-
-
-The 95 percentiles of UDs ranged from 5.95 km2 to 7.89 when using six turtles at a time. The computed 95% UD for the pre dataset was 6.31, which was about 10 percentile of UDs for the post dataset. This indicated the UDs increased from the pre to post periods. 
 
 Compare between night and day and pre and post:
 ```{r}
@@ -1134,7 +821,7 @@ Extract UDs for each individual. Starting with pre:
 ```{r}
 pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
                           Area.50 = t(as.matrix(pre.HR$area.byID.50)),
-                          ARea.95 = t(as.matrix(pre.HR$area.byID.95))) 
+                          Area.95 = t(as.matrix(pre.HR$area.byID.95))) 
 
 h.multip.pre.eachID <- h.pre.eachID <- vector(mode = "numeric", 
                                               length = length(pre.kd$list.data$eachID.utm))
@@ -1156,7 +843,7 @@ for (k in 1:length(pre.kd$list.data$eachID.utm)){
 # day data
 pre.day.HR.byID <- data.frame(ID = pre.kd.day$list.data$unique.ID,
                               Area.50 = t(as.matrix(pre.HR.day$area.byID.50)),
-                              ARea.95 = t(as.matrix(pre.HR.day$area.byID.95))) 
+                              Area.95 = t(as.matrix(pre.HR.day$area.byID.95))) 
 
 h.multip.pre.day.eachID <- h.pre.day.eachID <- vector(mode = "numeric", 
                            length = length(pre.kd.day$list.data$eachID.utm))
@@ -1223,9 +910,9 @@ pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
 
 for (k in 1:length(tmp.pre.day.95)){
   tmp.pre.day.50[[k]] <- mutate(tmp.pre.day.50[[k]], 
-                            ID = pre.kd.day$list.data$unique.ID[k])
+                                ID = pre.kd.day$list.data$unique.ID[k])
   tmp.pre.day.95[[k]] <- mutate(tmp.pre.day.95[[k]], 
-                            ID = pre.kd.day$list.data$unique.ID[k])
+                                ID = pre.kd.day$list.data$unique.ID[k])
 }
 
 pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
@@ -1233,9 +920,9 @@ pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
 
 for (k in 1:length(tmp.pre.night.95)){
   tmp.pre.night.50[[k]] <- mutate(tmp.pre.night.50[[k]], 
-                            ID = pre.kd.night$list.data$unique.ID[k])
+                                  ID = pre.kd.night$list.data$unique.ID[k])
   tmp.pre.night.95[[k]] <- mutate(tmp.pre.night.95[[k]], 
-                            ID = pre.kd.night$list.data$unique.ID[k])
+                                  ID = pre.kd.night$list.data$unique.ID[k])
 }
 
 pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
@@ -1320,9 +1007,9 @@ post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
 
 for (k in 1:length(tmp.post.day.95)){
   tmp.post.day.50[[k]] <- mutate(tmp.post.day.50[[k]], 
-                            ID = post.kd.day$list.data$unique.ID[k])
+                                 ID = post.kd.day$list.data$unique.ID[k])
   tmp.post.day.95[[k]] <- mutate(tmp.post.day.95[[k]], 
-                            ID = post.kd.day$list.data$unique.ID[k])
+                                 ID = post.kd.day$list.data$unique.ID[k])
 }
 
 post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
@@ -1330,9 +1017,9 @@ post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
 
 for (k in 1:length(tmp.post.night.95)){
   tmp.post.night.50[[k]] <- mutate(tmp.post.night.50[[k]], 
-                            ID = post.kd.night$list.data$unique.ID[k])
+                                   ID = post.kd.night$list.data$unique.ID[k])
   tmp.post.night.95[[k]] <- mutate(tmp.post.night.95[[k]], 
-                            ID = post.kd.night$list.data$unique.ID[k])
+                                   ID = post.kd.night$list.data$unique.ID[k])
 }
 
 post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
@@ -1897,6 +1584,7 @@ if (save.figure){
          device = "png")
 }
 
-
+save(list = ls(),
+     file = paste0("RData/output_HR_analysis_", Sys.Date(), ".RData"))
 #plot(map.post.HR)
 ```

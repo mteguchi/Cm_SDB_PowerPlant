@@ -1,0 +1,167 @@
+---
+title: "Compare pre vs. post periods"
+output: html_notebook
+---
+
+This file contains code to compare pre and post periods by randomly extracting the same number of individuals as the pre period from the post period without replacement and compare the calculated HR areas. It also looks at the northern most latitude of 95% and 50% UDs.
+
+```{r}
+rm(list = ls())
+
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+# internet <- F #TRUE
+# save.figure <- T
+
+# Minimum number of relocations per individual to be included in HR analysis
+min_n <- 50
+#N.end <- 32.69   # approx Coronado bridge
+N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
+
+source("HR_analysis_fcns.R")
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+```
+
+Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files contain raw data for pre and post periods.
+
+```{r}
+post.all <- read.csv("data/files_Jul2018_withNewTags/new/Post_GPS_LC_all_2018-07-26.csv")
+pre.all <- read.csv("data/files_Jul2018_withNewTags/new/Pre_GPS_LC_all_2018-07-26.csv")
+
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = 300)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
+
+h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+# grid values from 50 to 300 don't change the outcome;
+# extent values from 1 to 200 don't change the outcome either
+
+h.pre <- round(h.pre.1$h)
+
+pre.HR <- compute.area(h.pre, 
+                       pre.kd$list.data, 
+                       grid = 300)
+
+```
+
+Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because the sample size decreases, I use h.pre for this.
+
+```{r echo=FALSE, results="hide"}
+post.summary <- read.csv("data/post_sample_summary_2018-07-26.csv")
+ID.post.min_n <- filter(post.summary,
+                       n.relocations > (min_n - 1))
+
+run.date <- "2018-07-26"
+if (!file.exists(paste0("RData/areas_combos_", run.date, ".rds"))){
+  combos <- combn(1:dim(ID.post.min_n)[1], 
+                  dim(ID.pre.min_n)[1])
+  combos <- combos[, sample(1:ncol(combos), 
+                            size = 1000)]
+  IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", 
+                                                 length = ncol(combos))
+  area.95 <- area.50 <- vector(mode = "numeric", 
+                               length = ncol(combos))
+  
+  #p.list <- list()
+  for (k in 1:ncol(combos)){
+    
+    ID.post.tmp <- ID.post.min_n[combos[,k], ]
+    tmp.list <- make.HR.dataset(post.all, ID.post.tmp, tagproj)
+    
+    ###  START FROM HERE - 9/17/2018
+    tmp.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
+
+    h.tmp.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+# grid values from 50 to 300 don't change the outcome;
+# extent values from 1 to 200 don't change the outcome either
+
+h.pre <- round(h.pre.1$h)
+
+pre.HR <- compute.area(h.pre, 
+                       pre.kd$list.data, 
+                       grid = 300)
+    tmp.HR <- HR.bvnorm.fcn(all.utm = tmp.list$all.utm,
+                            byID.utm = tmp.list$byID.utm,
+                            h = h.pre,
+                            hlim=c(0.03, 1.5),
+                            grid=300, extent = 1)
+    
+    ver.95.df.list <- broom::tidy(spTransform(getverticeshr(tmp.HR$all.kd, 95),
+                                              CRS("+proj=longlat")))
+    
+    pts.df.list <- data.frame(lon = tmp.list$all.coords@coords[,1],
+                              lat = tmp.list$all.coords@coords[,2])
+    
+    # p.list[[k]] <- ggplot() +
+    #   geom_polygon(data = tmp.df, aes(x = long, y = lat, group = group)) +
+    #   geom_point(data = pts.df, aes(x = lon, y = lat),
+    #              color = "green") + coord_map()
+    
+    area.50[k] <- tmp.HR$area.all["50"]
+    area.95[k] <- tmp.HR$area.all["95"]
+    
+    IDs[[k]] <- ID.post.tmp[,1]
+  }
+  
+  areas.combos <- list(area95 = area.95,
+                       area50 = area.50,
+                       ID = IDs,
+                       polygon = ver.95.df.list,
+                       points = pts.df.list)
+  
+  saveRDS(areas.combos,
+          file = paste0("RData/areas_combos_", Sys.Date(), ".rds"))
+  
+} else {
+  areas.combos <- readRDS(file = paste0("RData/areas_combos_", 
+                                        run.date, ".rds"))
+}
+
+```
+
+Compare the randomized areas and the pre area.
+```{r}
+dif.50.df <- data.frame(dif = areas.combos$area50 - pre.HR$area.50)
+dif.95.df <- data.frame(dif = areas.combos$area95 - pre.HR$area.95)
+
+hist.dif.50 <- ggplot(data = dif.50.df) + 
+  geom_histogram(aes(x = dif), binwidth = 0.1) +
+  labs(x = "Difference in area", y = "Count")
+
+#plot(hist.dif.50)
+
+hist.dif.95 <- ggplot(data = dif.95.df) + 
+  geom_histogram(aes(x = dif), binwidth = 0.15) +
+  labs(x = "Difference in area", y = "Count")
+
+#plot(hist.dif.95)
+
+# quantile(dif.50.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
+# quantile(dif.95.df$dif, c(0.025, 0.05, 0.10, 0.15, 0.50, 0.975))
+# 
+# dif.50.df %>% count(dif>0)
+# 
+# dif.95.df %>% count(dif > 0)
+
+
+```
+
+
+The 95 percentiles of UDs ranged from 5.95 km2 to 7.89 when using six turtles at a time. The computed 95% UD for the pre dataset was 6.31, which was about 10 percentile of UDs for the post dataset. This indicated the UDs increased from the pre to post periods. 
