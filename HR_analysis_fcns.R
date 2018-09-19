@@ -5,6 +5,9 @@ library(adehabitatHR)
 library(rgdal)
 library(leaflet)
 
+# I'm not sure what this does - probably defines lat-lon coordinate system?
+latlong <- "+init=epsg:4326"
+
 # a function to create a data frame with minimum number of data points per individual
 # then convert geographic coordinates so HR can be computed. Creates a list of length
 # four. tagproj is the projection definition, which is defined at the end of next chunk
@@ -212,8 +215,10 @@ compute.area <- function(h, list.data, grid=300){
 }
 
 # This funciton finds a bandwidth value that makes 95% UD contiguous
-find.h.adhoc <- function(utm.data, grid = 300, hlim = c(0.03, 1.5), extent = 1){
-  tmp.href <- kernelUD(utm.data, h = "href", kern = "bivnorm", grid = grid)
+find.h.adhoc <- function(utm.data, grid = 300, extent = 1){
+  tmp.href <- kernelUD(utm.data, h = "href",
+                       kern = "bivnorm", grid = grid,
+                       extent = extent)
   h1 <- tmp.href@h$h
   h.multip <- 0.05
   n.seg <- 2
@@ -221,7 +226,8 @@ find.h.adhoc <- function(utm.data, grid = 300, hlim = c(0.03, 1.5), extent = 1){
   while (n.seg > 1){
     h <- h1 * h.multip
     tmp.UD <- kernelUD(utm.data, h = h,
-                       kern = "bivnorm", grid = grid)
+                       kern = "bivnorm", grid = grid,
+                       extent = extent)
     tmp.V <- getverticeshr(tmp.UD, 95)
     n.seg <- length(tmp.V@polygons[[1]]@Polygons)
     h.multip <- h.multip + 0.05

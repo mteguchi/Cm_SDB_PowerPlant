@@ -131,7 +131,7 @@ Section 2: read in data
 Section 2.1: Pre
 
 ```{r}
-file.date <- "2018-07-26"
+file.date <- "2018-09-18" #"2018-07-26"
 ID.names <- function(name){
   x <- unlist(strsplit(name, '_'))[1]
   return(x)
@@ -232,7 +232,7 @@ if (!file.exists(paste0("data/pre_sample_summary_",
             row.names = F, 
             quote = F)
 
-if (!file.exists(paste0(dname, "Pre_GPS_LC_all_", 
+if (!file.exists(paste0("data/Pre_GPS_LC_all_", 
                         file.date, ".csv")))
   write.csv(pre.all, paste0(dname, "Pre_GPS_LC_all_", 
                                    file.date, ".csv"),
@@ -461,10 +461,10 @@ if (!file.exists(paste0("data/post_sample_summary_",
             quote = F,
             row.names = F)
 
-if (!file.exists(paste0(dname, "Post_GPS_LC_all_", 
+if (!file.exists(paste0("data/Post_GPS_LC_all_", 
                         file.date, ".csv")))
   write.csv(post.all, 
-            paste0(dname, "Post_GPS_LC_all_",
+            paste0("data/Post_GPS_LC_all_",
                    file.date, ".csv"),
             quote = F,
             row.names = F)
@@ -1560,12 +1560,6 @@ if (save.figure){
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR95_difference_", 
-                           Sys.Date(), ".png"),
-         plot = hist.dif.95,
-         dpi = 600,
-         device = "png")
-
   ggsave(filename = paste0("figures/HR50_difference_", 
                            Sys.Date(), ".png"),
          plot = hist.dif.50,
