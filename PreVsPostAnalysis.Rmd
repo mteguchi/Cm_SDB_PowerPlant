@@ -71,6 +71,9 @@ ID.pre.min_n <- filter(pre.summary,
                        n.relocations > (min_n - 1))
 
 #h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
+# This loop takes a long time... It was run once already so start from 
+# where it was left off. .RData file needs to be loaded to figure out
+# how far along the first attempt was. 
 grid <- 1000
 extent <- 1
 run.date <- "2018-09-18"
