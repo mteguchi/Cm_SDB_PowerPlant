@@ -71,7 +71,7 @@ post.HR <- compute.area(h.post,
 
 ```
 
-Select all possible combinations of 5 (nrow(ID.pre.min_n) - 1) to 16 (nrow(ID.post.min_n) - 1) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. All these were ran using postUD_effects_n.Rmd. Results are saved in .rds files. 
+Select all possible combinations of 5 (nrow(ID.pre.min_n) - 1) to 16 (nrow(ID.post.min_n) - 1) individuals from the post data. There are 8008 possible combinations when min_n = 50, n = 5, and total_n = 17. It takes a bit of time, I select 1000 of them. All these were ran using postUD_effects_n.Rmd. Results are saved in .rds files. 
 
 First, we look at the change in computed areas as a function of sample sizes. 
 

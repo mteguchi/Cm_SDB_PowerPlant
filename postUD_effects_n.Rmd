@@ -62,7 +62,7 @@ pre.HR <- compute.area(h.pre,
 
 ```
 
-Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. There are 8008 possible combinations when min_n = 50. It takes a bit of time, I select 1000 of them. Because the sample size decreases, I use h.pre for this.
+Select all possible combinations of 6 (ID.pre.min_n) individuals from the post data. Only 1000 combinations are selected per number of individuals.  
 
 ```{r echo=FALSE, results="hide"}
 post.summary <- read.csv("data/post_sample_summary_2018-09-18.csv")
