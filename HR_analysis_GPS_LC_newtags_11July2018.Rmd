@@ -22,6 +22,10 @@ rm(list = ls())
 #getwd()
 #list.files()
 
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
 #Section 1: Load libraries and set wd
 #library(readxl)
 library(dplyr)
@@ -32,12 +36,9 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
 
 internet <- F #TRUE
-save.figure <- T
+save.figure <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50

@@ -8,6 +8,10 @@ This file contains code to compare pre and post periods by randomly extracting t
 ```{r}
 rm(list = ls())
 
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
 #library(readxl)
 library(dplyr)
 library(adehabitatHR)
@@ -17,10 +21,6 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 library(ggridges)
-
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
 
 run.date <- "2018-09-24"
 run.date2 <- "2018-09-24"
@@ -149,8 +149,21 @@ for (k in 1:length(file.names)){
 Make plots to see how the areas changed with sample sizes
 
 ```{r}
-area50.df <- do.call(rbind, area50.list)
-area95.df <- do.call(rbind, area95.list)
+area50.df <- do.call(rbind, area50.list) %>% 
+  mutate(f.n = as.factor(n))
+
+area50.means <- area50.df %>% 
+  group_by(f.n) %>% 
+  summarize(mean.50 = mean(area50),
+            n = first(n)) 
+
+area95.df <- do.call(rbind, area95.list) %>% 
+  mutate(f.n = as.factor(n))
+
+area95.means <- area95.df %>% 
+  group_by(f.n) %>% 
+  summarize(mean.95 = mean(area95),
+            n = first(n)) 
 
 pre.df <- data.frame(n = c(6, 6), 
                      areas = c(pre.HR$area.50, pre.HR$area.95))
@@ -161,13 +174,14 @@ post.df <- data.frame(n = c(17, 17),
 ggplot() + 
   geom_point(data = area50.df,
              aes(x = n, y = area50)) + 
-  geom_point(data = area50.df,
-             aes(x = n, y = mean(area50)),
+  geom_point(data = area50.means,
+             aes(x = n, 
+                 y = mean.50),
              size = 4.5) + 
   geom_point(data = area95.df,
              aes(x = n, y = area95)) + 
-  geom_point(data = area95.df,
-             aes(x = n, y = mean(area95)),
+  geom_point(data = area95.means,
+             aes(x = n, y = mean.95),
              size = 4.5) + 
   geom_point(data = pre.df,
              aes(x = n, y = areas),
@@ -186,5 +200,30 @@ ggplot() +
 
 ```
 
+```{r}
+
+ggplot(data = area95.df) + 
+  geom_density_ridges2(aes(x = area95, y = f.n), 
+                       scale = 2,
+                       fill = "springgreen2") + 
+  geom_vline(xintercept = post.HR$area.95,
+             size = 1.5, color = "black",
+             linetype = 2) + 
+  labs(x = "95% UD", y = "Number of individuals")
+
+```
 
 
+
+```{r}
+
+area50.df$f.n <- as.factor(area50.df$n)
+ggplot(data = area50.df) + 
+  geom_density_ridges2(aes(x = area50, y = f.n, stat = "identity"),
+                       fill = "springgreen2") + 
+    geom_vline(xintercept = post.HR$area.50,
+             size = 1.5, color = "black",
+             linetype = 2) + 
+labs(x = "50% UD", y = "Number of individuals")
+
+```
