@@ -20,8 +20,7 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 
-run.date <- "2018-09-24"
-run.date2 <- "2018-09-24"
+run.date2 <- "2018-10-31"
 
 # internet <- F #TRUE
 # save.figure <- T
