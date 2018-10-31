@@ -132,7 +132,7 @@ Section 2: read in data
 Section 2.1: Pre
 
 ```{r}
-file.date <- "2018-09-18" #"2018-07-26"
+file.date <- "2018-10-31" #"2018-09-18" #"2018-07-26"
 ID.names <- function(name){
   x <- unlist(strsplit(name, '_'))[1]
   return(x)
@@ -175,8 +175,8 @@ pre.raw %>%
   filter(Lat1 < N.end) -> pre.all
 
 # This one contains all data.
-pre.raw  %>%
-  filter(Lat1 < N.end) %>% 
+pre.all  %>%
+  #filter(Lat1 < N.end) %>% 
   mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
          DS = ifelse(Message_Type == "DS", 1, 0),
          LC1 = ifelse(LC == "1", 1, 0),
@@ -328,8 +328,9 @@ post.raw <- do.call(rbind,
   group_by(ID.f) %>%
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
-post.raw %>%
-  filter(include == 1 & inside == 1) -> post.all
+post.raw %>% 
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> post.all
 
 map.post <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
@@ -397,15 +398,15 @@ new.raw <- do.call(rbind,
   mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
 
 new.raw %>% 
-  filter(include == 1 & inside == 1) -> new.all
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> new.all
 
 post.raw <- rbind(post.raw, new.raw) 
 
-post.all <- rbind(post.all, new.all) %>%
-  filter(Lat1 < N.end)
+post.all <- rbind(post.all, new.all) 
 
-post.raw %>%
-  filter(Lat1 < N.end) %>%   
+post.all %>%
+  #filter(Lat1 < N.end) %>%   
   mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
          DS = ifelse(Message_Type == "DS", 1, 0),
          LC1 = ifelse(LC == "1", 1, 0),
@@ -629,7 +630,6 @@ writeOGR(obj = post.HR$ver.95,
 # plot(post.ver.95, axes = TRUE)
 #points(pre.all.utm, col="blue")
 ```
-
 
 
 Compare between night and day and pre and post:

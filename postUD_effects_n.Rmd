@@ -7,6 +7,9 @@ This file contains code to compare pre and post periods by randomly extracting t
 
 ```{r}
 rm(list = ls())
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
 
 #library(readxl)
 library(dplyr)
@@ -16,10 +19,6 @@ library(leaflet)
 library(ggplot2)
 library(lubridate)
 library(tidyverse)
-
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
 
 run.date <- "2018-09-24"
 run.date2 <- "2018-09-24"

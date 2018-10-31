@@ -76,11 +76,11 @@ Select all possible combinations of 5 (nrow(ID.pre.min_n) - 1) to 16 (nrow(ID.po
 First, we look at the change in computed areas as a function of sample sizes. 
 
 ```{r echo=FALSE, results="hide"}
-post.summary <- read.csv("data/post_sample_summary_2018-09-18.csv")
+post.summary <- read.csv("data/post_sample_summary_2018-10-31.csv")
 ID.post.min_n <- filter(post.summary,
                        n.relocations > (min_n - 1))
 
-pre.summary <- read.csv("data/pre_sample_summary_2018-09-18.csv")
+pre.summary <- read.csv("data/pre_sample_summary_2018-10-31.csv")
 ID.pre.min_n <- filter(pre.summary,
                        n.relocations > (min_n - 1))
 
