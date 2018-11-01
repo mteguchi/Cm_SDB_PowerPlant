@@ -80,6 +80,7 @@ extent <- 1
 max.n <- dim(ID.post.min_n)[1] - 1
 min.n <- nrow(ID.pre.min_n)
 for (k1 in min.n:max.n){
+  print(paste("k1 is ", k1, ": max is ", max.n))
   if (!file.exists(paste0("RData/areas_combos_n", k1, "_", run.date2, ".rds"))){
     combos <- combn(1:dim(ID.post.min_n)[1], k1)
     if (ncol(combos) > 1000){
