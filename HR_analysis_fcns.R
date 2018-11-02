@@ -20,6 +20,9 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
   all.coords <- data.frame(x=selected$Lon1,
                            y=selected$Lat1)
 
+  all.time <- data.frame(local = selected$LocalDateTime,
+                         UTC = selected$UTCDateTime)
+  
   coordinates(all.coords) <- ~ x + y
   proj4string(all.coords) <- CRS(latlong)
   all.utm <- spTransform(all.coords, tagproj)
@@ -28,11 +31,15 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
                             y=selected$Lat1,
                             ID = as.factor(selected$ArgosID))
 
+  byID.time <- data.frame(UTC = selected$UTCDateTime,
+                          local = selected$LocalDateTime)
+  
   coordinates(byID.coords) <- ~ x + y
   proj4string(byID.coords) <- CRS(latlong)
   byID.utm <- spTransform(byID.coords, tagproj)
 
   eachID.utm <- eachID.coords <- list()
+  eachID.time <- list()
 
   unique.ID <- unique(selected$ArgosID)
   for (k in 1:length(unique.ID)){
@@ -46,14 +53,19 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
 
     eachID.coords[[k]] <- tmp1
     eachID.utm[[k]] <- tmp2
+    eachID.time[[k]] <- data.frame(UTC = tmp.data$UTCDateTime,
+                                   local = tmp.data$LocalDateTime)
   }
 
   return(list(all.coords = all.coords,
               all.utm = all.utm,
+              all.time = all.time,
               byID.coords = byID.coords,
               byID.utm = byID.utm,
+              byID.time = byID.time,
               eachID.coords = eachID.coords,
               eachID.utm = eachID.utm,
+              eachID.time = eachID.time,
               unique.ID = unique.ID))
 }
 
@@ -237,4 +249,26 @@ find.h.adhoc <- function(utm.data, grid = 300, extent = 1){
               h = h,
               href = h1,
               h.multip = h.multip))
+}
+
+
+getSDwtmp<- function(begindate, enddate,
+                     outdir = "data/"){
+  #dt <- as.Date(enddate) - as.Date(begindate)
+  #if (dt > 30) stop('Time range needs to be less than or equal to 30.')
+  
+  outfilename <- paste0(outdir, "Wtmp_SDBay_",
+                        begindate, '_', enddate, ".nc")
+  if (!file.exists(outfilename)){
+    url2 <- paste0("http://coastwatch.pfeg.noaa.gov/erddap/tabledap/nosCoopsMWT.nc?stationID%2Clongitude%2Clatitude%2Ctime%2CWT&stationName=%22San%20Diego%22&time%3E=",
+                   begindate, "T00%3A00%3A00Z&time%3C=",
+                   enddate, "T00%3A00%3A00Z")
+    
+    download.file(url2,
+                  destfile = outfilename,
+                  mode='wb')
+    
+  }
+  
+  return(outfilename)
 }

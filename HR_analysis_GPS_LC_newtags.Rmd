@@ -1,0 +1,1589 @@
+---
+title: "Home range analysis for green turtles in San Diego Bay"
+output: html_notebook
+---
+
+San Diego Bay Turtle Movement Analysis
+Original R Code, JT Froeschke, December 29, 2015
+Data modified from previous versions by SE Graham, June 2016, May 2018
+Data modified from May 2018 by T EGuchi, July 2018
+
+Filtered data utilize GPS, and Argos LC = 1,2,3
+Filtered data do not include points on land
+Filtered data only allow for 1 relocation every 4 horus
+
+Purpose of the script is to compute homerange (area) using 
+least squares cross-validation including 50% and 95% contours.
+An analysis of each turtle and an aggregate pre and post will be computed
+h values are chosen based on best judgment and gst behavior  
+
+```{r}
+rm(list = ls())
+#getwd()
+#list.files()
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#Section 1: Load libraries and set wd
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+
+
+internet <- F #TRUE
+save.figure <- F
+
+# Minimum number of relocations per individual to be included in HR analysis
+min_n <- 50
+#N.end <- 32.69   # approx Coronado bridge
+N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
+
+# grid value should be the same for all analysis - for the randomization process, grid.value = 300
+# ended up in some errors. So, I had to increase it to 1000. Need to figure out the effects of
+# changing this value.
+grid.value <- 1000
+source("HR_analysis_fcns.R")
+
+```
+
+Get some base layer maps here:
+
+```{r}
+# just use the 2014 eelgrass data - there are old data files also
+SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
+
+SDBay.eelg.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2008",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
+
+if (internet){
+  sdbay.all <- ggmap::get_map(location = c(lon = -117.15,
+                                           lat = 32.65),
+                       zoom = 12,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_all',
+                       force = F)
+  saveRDS(sdbay.all, file = 'RData/sdbay_all.rds')
+
+  sdbay.south <- ggmap::get_map(location = c(lon = -117.117,
+                                             lat = 32.625),
+                         zoom = 14,
+                         maptype = "satellite",
+                         color = "bw",
+                         filename = 'sdbay_south',
+                         force = F)
+  saveRDS(sdbay.south, file = 'RData/sdbay_south.rds')
+
+  sdbay.med <- ggmap::get_map(location = c(lon =  -117.117,
+                                           lat = 32.625),
+                       zoom = 13,
+                       maptype = "satellite",
+                       color = "bw",
+                       filename = 'sdbay_med',
+                       force = F)
+  saveRDS(sdbay.med, file = 'RData/sdbay_med.rds')
+} else {
+  sdbay.all <- readRDS(file = 'RData/sdbay_all.rds')
+  sdbay.south <- readRDS(file = 'RData/sdbay_south.rds')
+  sdbay.med <- readRDS(file = 'RData/sdbay_med.rds')
+}
+
+map.sdbay.zm <- ggmap::ggmap(sdbay.all)
+
+map.sdbay.south <- ggmap::ggmap(sdbay.south)
+
+map.sdbay.med <- ggmap::ggmap(sdbay.med)
+
+# read in the SDB shape file:
+SDB.shape <- readOGR(dsn = "GISfiles", layer = "sd_bay")
+SDBay <- spTransform(readOGR(dsn = "GISfiles",
+                             layer = "sd_bay",
+                             verbose = F),
+                     CRS("+proj=longlat +datum=WGS84"))
+SDBay.df <- broom::tidy(SDBay)
+
+water <- spTransform(readOGR(dsn = "GISfiles", 
+                             layer = "water",
+                             verbose = F),
+                     CRS("+proj=longlat +datum=WGS84"))
+water.df <- broom::tidy(water) %>%
+  filter(lat < 32.75 & lat > 32.58 & long > -117.25)
+
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+# not sure what this part is doing... 
+latlong = "+init=epsg:4326"
+```
+
+Section 2: read in data
+
+Section 2.1: Pre
+
+```{r}
+file.date <- "2018-10-31" #"2018-09-18" #"2018-07-26"
+ID.names <- function(name){
+  x <- unlist(strsplit(name, '_'))[1]
+  return(x)
+}
+dname <- "data/files_Jul2018_withNewTags/pre/"
+pre.files <- dir(path = dname, 
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
+
+pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
+
+col_def <- cols(ID = col_integer(),
+                ArgosID = col_integer(),
+                Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                TransmissionDateTime = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                LC = col_integer(),
+                Residual = col_double(),
+                Lat1 = col_double(),
+                Lon1 = col_double(),
+                inside = col_integer(),
+                UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                Date2 = col_date(format = "%Y/%m/%d"),
+                LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalSunset =  col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                day1night2 = col_integer(),
+                row = col_integer(),
+                include = col_integer(),
+                hr = col_integer())
+
+pre.raw <- do.call(rbind, 
+                   lapply(pre.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                            col_types = col_def))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
+  group_by(ID.f) %>%
+  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+
+pre.raw %>%
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> pre.all
+
+# This one contains all data.
+pre.all  %>%
+  #filter(Lat1 < N.end) %>% 
+  mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+         DS = ifelse(Message_Type == "DS", 1, 0),
+         LC1 = ifelse(LC == "1", 1, 0),
+         LC2 = ifelse(LC == "2", 1, 0),
+         LC3 = ifelse(LC == "3", 1, 0),
+         ARGOS.outside = ifelse(Message_Type == "DIAG" & 
+                                  (LC == "1" | LC == "2" | LC == "3") & 
+                                  inside == 0, 1, 0),
+         GPS = ifelse(Message_Type == "GPS", 1, 0),
+         GPS.reject = ifelse(Message_Type == "GPS" & 
+                               Residual > 35.0, 1, 0),
+         GPS.outside = ifelse(Message_Type == "GPS" 
+                              & Residual <= 35.0 & 
+                                inside == 0, 1, 0)) %>%
+  group_by(ArgosID) %>%
+  mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+         night1 = ifelse(day1night2 == 2, 1, 0), 
+         day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
+         night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
+  summarise(Date1 = min(LocalDateTime), 
+            n.days = max(DaysSinceFirst),
+            n.relocations.all = n(),
+            total.DIAG = sum(DIAG),
+            total.DS = sum(DS),
+            LC1 = sum(LC1, na.rm = T),
+            LC2 = sum(LC2, na.rm = T),
+            LC3 = sum(LC3, na.rm = T),
+            ARGOS.outside = sum(ARGOS.outside, na.rm = T),
+            GPS = sum(GPS, na.rm = T),
+            GPS.reject = sum(GPS.reject, na.rm = T),
+            GPS.outside = sum(GPS.outside, na.rm = T),
+            inside = sum(inside),
+            n.day.all = sum(day1),
+            n.night.all = sum(night1),
+            n.day = sum(day1a),
+            n.night = sum(night1a),
+            n.relocations = sum(include)) %>%
+  arrange(Date1) -> pre.summary
+
+pre.summary %>%
+  mutate(LC123 = LC1 + LC2 + LC3,
+         ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
+         GPS.accept = GPS - GPS.reject - GPS.outside,
+         n.data = ARGOS.accept + GPS.accept) -> pre.summary
+
+ID.pre.min_n <- filter(pre.summary,
+                       n.relocations > (min_n - 1))
+
+if (!file.exists(paste0("data/pre_sample_summary_", 
+                        file.date, ".csv")))
+  write.csv(pre.summary,
+            paste0("data/pre_sample_summary_", 
+                   file.date, ".csv"),
+            row.names = F, 
+            quote = F)
+
+if (!file.exists(paste0("data/Pre_GPS_LC_all_", 
+                        file.date, ".csv")))
+  write.csv(pre.all, paste0(dname, "Pre_GPS_LC_all_", 
+                                   file.date, ".csv"),
+            row.names = F,
+            quote = F)
+
+```
+
+Plot the data points to see what they look like:
+
+```{r}
+map.pre <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_point(data = pre.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(legend.title = element_text(size = 10, hjust = 0.5),
+        legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+if (save.figure)
+  ggsave(filename = "figures/map_pre_raw.png",
+         plot = map.pre,
+         device = "png",
+         dpi = 600)
+plot(map.pre)
+
+```
+
+To check for errors in data screening, I make a few plots. Each individual has one or no data point per 4-hour period. 
+```{r}
+p1 <- list()
+k <- 1
+for (k in 1:length(pre.IDs)){
+  pre.raw %>% filter(ArgosID == pre.IDs[k]) -> dat.01
+  pre.all %>% filter(ArgosID == pre.IDs[k]) -> dat.1
+  p1[[k]] <-ggplot() + 
+    geom_point(data = dat.01,
+               aes(x = DaysSinceFirst, 
+                   y = hr)) + 
+    geom_point(data = dat.1,
+               aes(x = DaysSinceFirst,
+                   y = hr),
+               shape = 1, size = 4,
+               color = "red",
+               alpha = 0.7) +
+    annotate("rect", xmin = 0, xmax = Inf,
+             ymin = 4, ymax = 8,
+             alpha = 0.3)+
+    annotate("rect", xmin = 0, xmax = Inf,
+             ymin = 12, ymax = 16,
+             alpha = 0.3)+
+    annotate("rect", xmin = 0, xmax = Inf,
+             ymin = 20, ymax = 24,
+             alpha = 0.3) +
+    labs(x = "Days since first transmission",
+         y = "Hr",
+         title = pre.IDs[k])
+    # facet_grid(. ~ ID.f) +
+    # facet_wrap( ~ ID.f, nrow = 3, 
+    #             scales = "free")
+    
+}
+
+```
+
+Examining the plots by eye, seems to have just one reading per 4-hr period within each day. So, I won't be doing the same for the post dataset. 
+
+Read in the post datasets. 
+
+```{r}
+dname <- "data/files_Jul2018_withNewTags/post/"
+post.files <- dir(path = dname, 
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
+
+post.IDs <- unlist(lapply(post.files, FUN = ID.names))
+
+post.raw <- do.call(rbind, 
+                   lapply(post.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                            col_types = col_def))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
+  group_by(ID.f) %>%
+  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+
+post.raw %>% 
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> post.all
+
+map.post <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+  #fill = "blue",
+               #alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.6) +
+  geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        #legend.position = c(0.2, 0.5),
+        legend.position = "none")
+
+if (save.figure)
+  ggsave(filename = "figures/map_post_raw.png",
+         plot = map.post,
+         device = "png",
+         dpi = 600)
+
+plot(map.post)
+```
+
+And probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
+```{r}
+dname <- "data/files_Jul2018_withNewTags/new/"
+new.files <- dir(path = dname, 
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
+
+new.IDs <- unlist(lapply(new.files, FUN = ID.names))
+
+col_def <- cols(ID = col_integer(),
+                ArgosID = col_integer(),
+                Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                TransmissionDateTime = col_datetime(format = "%m/%d/%Y %H:%M:%S"),
+                LC = col_integer(),
+                Residual = col_double(),
+                Lat1 = col_double(),
+                Lon1 = col_double(),
+                inside = col_integer(),
+                UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                Date2 = col_date(format = "%Y/%m/%d"),
+                LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalSunset =  col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                day1night2 = col_integer(),
+                row = col_integer(),
+                include = col_integer(),
+                hr = col_integer())
+
+new.raw <- do.call(rbind, 
+                   lapply(new.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                            col_types = col_def))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
+  group_by(ID.f) %>%
+  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+
+new.raw %>% 
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> new.all
+
+post.raw <- rbind(post.raw, new.raw) 
+
+post.all <- rbind(post.all, new.all) 
+
+post.all %>%
+  #filter(Lat1 < N.end) %>%   
+  mutate(DIAG = ifelse(Message_Type == "DIAG", 1, 0),
+         DS = ifelse(Message_Type == "DS", 1, 0),
+         LC1 = ifelse(LC == "1", 1, 0),
+         LC2 = ifelse(LC == "2", 1, 0),
+         LC3 = ifelse(LC == "3", 1, 0),
+         ARGOS.outside = ifelse(Message_Type == "DIAG" & 
+                                  (LC == "1" | LC == "2" | LC == "3") & 
+                                  inside == 0, 1, 0),
+         GPS = ifelse(Message_Type == "GPS", 1, 0),
+         GPS.reject = ifelse(Message_Type == "GPS" & 
+                               Residual > 35.0, 1, 0),
+         GPS.outside = ifelse(Message_Type == "GPS" 
+                              & Residual <= 35.0 & 
+                                inside == 0, 1, 0)) %>%
+  group_by(ArgosID) %>%
+  mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+         night1 = ifelse(day1night2 == 2, 1, 0), 
+         day1a = ifelse(day1night2 == 1 & include == 1, 1, 0),
+         night1a= ifelse(day1night2 == 2 & include == 1, 1, 0)) %>%
+  summarise(Date1 = min(LocalDateTime), 
+            n.days = max(DaysSinceFirst),
+            n.relocations.all = n(),
+            total.DIAG = sum(DIAG),
+            total.DS = sum(DS),
+            LC1 = sum(LC1, na.rm = T),
+            LC2 = sum(LC2, na.rm = T),
+            LC3 = sum(LC3, na.rm = T),
+            ARGOS.outside = sum(ARGOS.outside, na.rm = T),
+            GPS = sum(GPS, na.rm = T),
+            GPS.reject = sum(GPS.reject, na.rm = T),
+            GPS.outside = sum(GPS.outside, na.rm = T),
+            inside = sum(inside),
+            n.day.all = sum(day1),
+            n.night.all = sum(night1),
+            n.day = sum(day1a),
+            n.night = sum(night1a),
+            n.relocations = sum(include)) %>%
+  arrange(Date1) -> post.summary
+
+post.summary %>%
+  mutate(LC123 = LC1 + LC2 + LC3,
+         ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
+         GPS.accept = GPS - GPS.reject - GPS.outside,
+         n.data = ARGOS.accept + GPS.accept) -> post.summary
+
+ID.post.min_n <- filter(post.summary,
+                       n.relocations > (min_n - 1))
+
+if (!file.exists(paste0("data/post_sample_summary_", 
+                        file.date, ".csv")))
+  write.csv(post.summary,
+            paste0("data/post_sample_summary_", 
+                   file.date, ".csv"),
+            quote = F,
+            row.names = F)
+
+if (!file.exists(paste0("data/Post_GPS_LC_all_", 
+                        file.date, ".csv")))
+  write.csv(post.all, 
+            paste0("data/Post_GPS_LC_all_",
+                   file.date, ".csv"),
+            quote = F,
+            row.names = F)
+
+map.post <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) + 
+               #fill = "blue",
+               #alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.6) +geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1, color = ID.f),
+             alpha = 0.5)+ 
+  labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        #legend.position = c(0.2, 0.5),
+    legend.position = "none")
+
+if (save.figure)
+  ggsave(filename = "figures/map_post_raw_2.png",
+         plot = map.post,
+         device = "png",
+         dpi = 600)
+
+plot(map.post)
+```
+
+We have a lot more individuals from the post period than the pre, so we need to do something about that... especially for computing HRs. 
+
+
+Section 3: Compute HRs
+
+```{r}
+# when trying to compute HR for each individual, some don't have enough data
+# extract those with at least 50 data points:
+
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid.value)
+```
+
+Do the same with post dataset - choose those with at least min_n data points. 
+
+```{r}
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid.value)
+
+```
+
+Then the home range analysis starts here. First we need to figure out the smoothing parameter (bandwidth, h). There seem to be different methods and recommendations...
+
+First, least-squares cross validation on the pre data:
+```{r}
+plotLSCV(pre.kd$kd.LSCV)
+
+```
+
+Referecne or optimum bandwidth is ~248 (see pre.kd.href), whereas the LSCV comes back with h = 25.9 (Pre.kd@h$h). According to Kie (2013), we should decrease href in increments of 0.10 and the best value is the smallest increment of href that 1. resulted in a contiguous rather than disjoint 95% kernel home-range polygon, and 2. contained no lacuna within the home range. 
+```{r}
+h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
+
+h.adhoc.pre <- HR.analysis(h.multiplier, 
+                           pre.kd$kd.href, 
+                           pre.kd$list.data, 
+                           grid = grid.value)
+  
+plot(h.adhoc.pre$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc.png",
+         plot = h.adhoc.pre$figure,
+         device = "png",
+         dpi = 600)
+
+```
+
+Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is found in h.pre.1 below. 
+
+```{r}
+
+h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+# grid values from 50 to 300 don't change the outcome;
+# extent values from 1 to 200 don't change the outcome either
+
+h.pre <- round(h.pre.1$h)
+
+pre.HR <- compute.area(h.pre, 
+                       pre.kd$list.data, 
+                       grid = grid.value)
+
+writeOGR(obj = pre.HR$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_50.shp",
+         layer="Pre.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = pre.HR$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_95.shp",
+         layer="Pre.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+# plot(pre.ver.50, axes = TRUE)
+# plot(pre.ver.95, axes = TRUE)
+#points(pre.all.utm, col="blue")
+
+```
+
+
+Do the same for the post data - here we need to look at subsampling individuals. First, use all data.
+
+First, least-squares cross validation on the pre data:
+```{r}
+plotLSCV(post.kd$kd.LSCV)
+
+```
+
+```{r}
+
+h.adhoc.post <- HR.analysis(h.multiplier, 
+                            post.kd$kd.href, 
+                            post.kd$list.data, 
+                            grid = grid.value)
+  
+plot(h.adhoc.post$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc.png",
+         plot = h.adhoc.post$figure,
+         device = "png",
+         dpi = 600)
+
+```
+
+For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% UD.  This is found in h.post.1 below. 
+
+```{r}
+## Section 3.1.2
+##Visually optimized hlim = c(0.565,1.5), grid=300
+h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
+
+h.post <- round(h.post.1$h) #round(post.kd$kd.href@h$h * 0.4)
+post.HR <- compute.area(h.post, post.kd$list.data, grid = grid.value)
+writeOGR(obj = post.HR$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_50.shp",
+         layer="Post.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = post.HR$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_95.shp",
+         layer="Post.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+# plot(post.ver.50, axes = TRUE)
+# plot(post.ver.95, axes = TRUE)
+#points(pre.all.utm, col="blue")
+```
+
+
+Compare between night and day and pre and post:
+```{r}
+# pre day vs pre night:
+pre.all %>% filter(day1night2 == 1) -> pre.day
+
+pre.kd.day <- HR.analysis.step1(min_n, pre.day, tagproj, grid = grid.value)
+
+plotLSCV(pre.kd.day$kd.LSCV)
+```
+
+```{r}
+h.adhoc.pre.day <- HR.analysis(h.multiplier, 
+                               pre.kd.day$kd.href, 
+                               pre.kd.day$list.data, 
+                               grid = grid.value)
+plot(h.adhoc.pre.day$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc_day.png",
+         plot = h.adhoc.pre.day$figure,
+         device = "png",
+         dpi = 600)
+
+```
+
+multiplier = 0.7 or 0.75 may be good. See h.pre.day.1.
+
+```{r}
+h.pre.day.1 <- find.h.adhoc(pre.kd.day$list.data$all.utm)
+
+h.pre.day <- round(h.pre.day.1$h) #round(pre.kd.day$kd.href@h$h * 0.7)
+# or use the same value as before
+
+# this computes HR for day, all animals combined and for individuals
+pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = grid.value)
+writeOGR(obj = pre.HR.day$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_day_50.shp",
+         layer="Pre.day.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = pre.HR.day$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_day_95.shp",
+         layer="Pre.day.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+```
+
+For night:
+```{r}
+pre.all %>% filter(day1night2 == 2) -> pre.night
+pre.kd.night <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid.value)
+plotLSCV(pre.kd.night$kd.LSCV)
+
+```
+
+```{r}
+h.adhoc.pre.night <- HR.analysis(h.multiplier, 
+                                 pre.kd.night$kd.href, 
+                                 pre.kd.night$list.data, 
+                                 grid = grid.value)
+plot(h.adhoc.pre.night$figure)
+if (save.figure)
+  ggsave(filename = "figures/map_pre_h_adhoc_night.png",
+         plot = h.adhoc.pre.night$figure,
+         device = "png",
+         dpi = 600)
+```
+
+multiplier = 0.55 may be good. See h.pre.night.1.
+
+```{r}
+h.pre.night.1 <- find.h.adhoc(pre.kd.night$list.data$all.utm)
+
+h.pre.night <- round(h.pre.night.1$h) #round(pre.kd.night$kd.href@h$h * 0.5)
+# or use the same value as before
+
+pre.HR.night <- compute.area(h.pre.night, 
+                             pre.kd.night$list.data, 
+                             grid = grid.value)
+
+writeOGR(obj = pre.HR.night$ver.50, 
+         dsn = "shapefiles_July2018/pre_HR_night_50.shp",
+         layer="Pre.night.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = pre.HR.night$ver.95, 
+         dsn = "shapefiles_July2018/pre_HR_night_95.shp",
+         layer="Pre.night.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+```
+
+Do the same with the post period
+```{r}
+# pre day vs pre night:
+post.all %>% filter(day1night2 == 1) -> post.day
+
+post.kd.day <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid.value)
+
+plotLSCV(post.kd.day$kd.LSCV)
+```
+
+```{r}
+h.adhoc.post.day <- HR.analysis(h.multiplier, 
+                                post.kd.day$kd.href, 
+                                post.kd.day$list.data, 
+                                grid = grid.value)
+plot(h.adhoc.post.day$figure)
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc_day.png",
+         plot = h.adhoc.post.day$figure,
+         device = "png",
+         dpi = 600)
+```
+
+multiplier = 0.45 may be good. See h.post.day.1. 
+
+```{r}
+h.post.day.1 <- find.h.adhoc(post.kd.day$list.data$all.utm)
+
+h.post.day <- round(h.post.day.1$h)
+# or use the same value as before
+
+post.HR.day <- compute.area(h.post.day, post.kd.day$list.data, grid = grid.value)
+writeOGR(obj = post.HR.day$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_day_50.shp",
+         layer="Post.day.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = post.HR.day$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_day_95.shp",
+         layer="Post.day.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+```
+
+For night:
+```{r}
+post.all %>% filter(day1night2 == 2) -> post.night
+post.kd.night <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid.value)
+plotLSCV(post.kd.night$kd.LSCV)
+
+```
+
+```{r}
+h.adhoc.post.night <- HR.analysis(h.multiplier, 
+                                  post.kd.night$kd.href, 
+                                  post.kd.night$list.data, 
+                                  grid = grid.value)
+plot(h.adhoc.post.night$figure)
+if (save.figure)
+  ggsave(filename = "figures/map_post_h_adhoc_night.png",
+         plot = h.adhoc.post.night$figure,
+         device = "png",
+         dpi = 600)
+```
+
+multiplier = 0.6 may be good. See h.post.night.1. 
+
+```{r}
+h.post.night.1 <- find.h.adhoc(post.kd.night$list.data$all.utm)
+
+h.post.night <- round(h.post.night.1$h)
+
+# or use the same value as before
+
+post.HR.night <- compute.area(h.post.night, post.kd.night$list.data, grid = grid.value)
+
+writeOGR(obj = post.HR.night$ver.50, 
+         dsn = "shapefiles_July2018/post_HR_night_50.shp",
+         layer="Post.night.50", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+writeOGR(obj = post.HR.night$ver.95, 
+         dsn = "shapefiles_July2018/post_HR_night_95.shp",
+         layer="Post.night.95", 
+         driver="ESRI Shapefile", 
+         overwrite_layer=TRUE)
+
+```
+
+Extract UDs for each individual. Starting with pre:
+```{r}
+pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
+                          Area.50 = t(as.matrix(pre.HR$area.byID.50)),
+                          Area.95 = t(as.matrix(pre.HR$area.byID.95))) 
+
+h.multip.pre.eachID <- h.pre.eachID <- vector(mode = "numeric", 
+                                              length = length(pre.kd$list.data$eachID.utm))
+
+UD.95.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
+                                               length = length(pre.kd$list.data$eachID.utm))
+for (k in 1:length(pre.kd$list.data$eachID.utm)){
+  
+  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.eachID[k] <- round(best.h$h)
+  h.multip.pre.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
+                 kern = "bivnorm", grid = grid.value)
+  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+# day data
+pre.day.HR.byID <- data.frame(ID = pre.kd.day$list.data$unique.ID,
+                              Area.50 = t(as.matrix(pre.HR.day$area.byID.50)),
+                              Area.95 = t(as.matrix(pre.HR.day$area.byID.95))) 
+
+h.multip.pre.day.eachID <- h.pre.day.eachID <- vector(mode = "numeric", 
+                           length = length(pre.kd.day$list.data$eachID.utm))
+
+UD.95.pre.day.eachID <- UD.50.pre.day.eachID <- vector(mode = "list", 
+                           length = length(pre.kd.day$list.data$eachID.utm))
+for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
+  # day:
+  dat.utm <- pre.kd.day$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.day.eachID[k] <- round(best.h$h)
+  h.multip.pre.day.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.day.eachID[k], 
+                 kern = "bivnorm", grid = grid.value)
+  UD.95.pre.day.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.day.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+# night data
+h.multip.pre.night.eachID <- h.pre.night.eachID <- vector(mode = "numeric", 
+                           length = length(pre.kd.night$list.data$eachID.utm))
+
+UD.95.pre.night.eachID <- UD.50.pre.night.eachID <- vector(mode = "list", 
+                           length = length(pre.kd.night$list.data$eachID.utm))
+
+for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
+  # night:
+  dat.utm <- pre.kd.night$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.night.eachID[k] <- round(best.h$h)
+  h.multip.pre.night.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.pre.night.eachID[k], 
+                 kern = "bivnorm", grid = grid.value)
+  UD.95.pre.night.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.night.eachID[[k]] <- getverticeshr(UD, 50)
+  
+}
+
+tmp.pre.95 <- lapply(UD.95.pre.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.50 <- lapply(UD.50.pre.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.day.95 <- lapply(UD.95.pre.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.day.50 <- lapply(UD.50.pre.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.night.95 <- lapply(UD.95.pre.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.pre.night.50 <- lapply(UD.50.pre.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+for (k in 1:length(tmp.pre.95)){
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
+}
+
+pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
+pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
+
+for (k in 1:length(tmp.pre.day.95)){
+  tmp.pre.day.50[[k]] <- mutate(tmp.pre.day.50[[k]], 
+                                ID = pre.kd.day$list.data$unique.ID[k])
+  tmp.pre.day.95[[k]] <- mutate(tmp.pre.day.95[[k]], 
+                                ID = pre.kd.day$list.data$unique.ID[k])
+}
+
+pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
+pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
+
+for (k in 1:length(tmp.pre.night.95)){
+  tmp.pre.night.50[[k]] <- mutate(tmp.pre.night.50[[k]], 
+                                  ID = pre.kd.night$list.data$unique.ID[k])
+  tmp.pre.night.95[[k]] <- mutate(tmp.pre.night.95[[k]], 
+                                  ID = pre.kd.night$list.data$unique.ID[k])
+}
+
+pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
+pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
+
+```
+
+Now for post:
+```{r}
+h.post.eachID <- h.multip.post.eachID <- vector()
+UD.95.post.eachID <- UD.50.post.eachID <- list()
+
+h.post.night.eachID <- h.multip.post.night.eachID <- vector()
+UD.95.post.night.eachID <- UD.50.post.night.eachID <- list()
+
+h.post.day.eachID <- h.multip.post.day.eachID <- vector()
+UD.95.post.day.eachID <- UD.50.post.day.eachID <- list()
+
+# first find appropriate bandwidth for each individual:
+for (k in 1:length(post.kd$list.data$eachID.utm)){
+  dat.utm <- post.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.eachID[k] <- round(best.h$h)
+  h.multip.post.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.eachID[k], 
+                 kern = "bivnorm", 
+                 grid = grid.value)
+  UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+for (k in 1:length(post.kd.day$list.data$eachID.utm)){
+  # day:
+  dat.utm <- post.kd.day$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.day.eachID[k] <- round(best.h$h)
+  h.multip.post.day.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.day.eachID[k], 
+                 kern = "bivnorm", grid = grid.value)
+  UD.95.post.day.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.day.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+for (k in 1:length(post.kd.night$list.data$eachID.utm)){
+  # night:
+  dat.utm <- post.kd.night$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.night.eachID[k] <- round(best.h$h)
+  h.multip.post.night.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, h = h.post.night.eachID[k], 
+                 kern = "bivnorm", grid = grid.value)
+  UD.95.post.night.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.post.night.eachID[[k]] <- getverticeshr(UD, 50)
+  
+}
+
+tmp.post.95 <- lapply(UD.95.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.50 <- lapply(UD.50.post.eachID, 
+                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.day.95 <- lapply(UD.95.post.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.day.50 <- lapply(UD.50.post.day.eachID, 
+                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.night.95 <- lapply(UD.95.post.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.night.50 <- lapply(UD.50.post.night.eachID, 
+                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+
+for (k in 1:length(tmp.post.95)){
+  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
+                             ID = post.kd$list.data$unique.ID[k])
+}
+
+post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
+post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
+
+for (k in 1:length(tmp.post.day.95)){
+  tmp.post.day.50[[k]] <- mutate(tmp.post.day.50[[k]], 
+                                 ID = post.kd.day$list.data$unique.ID[k])
+  tmp.post.day.95[[k]] <- mutate(tmp.post.day.95[[k]], 
+                                 ID = post.kd.day$list.data$unique.ID[k])
+}
+
+post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
+post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
+
+for (k in 1:length(tmp.post.night.95)){
+  tmp.post.night.50[[k]] <- mutate(tmp.post.night.50[[k]], 
+                                   ID = post.kd.night$list.data$unique.ID[k])
+  tmp.post.night.95[[k]] <- mutate(tmp.post.night.95[[k]], 
+                                   ID = post.kd.night$list.data$unique.ID[k])
+}
+
+post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
+post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
+
+```
+
+Bring in the body size information. This was done in deployment_table.R script and manually modified for missing data - some measurements were not collected when the tags were deployed so data from the closest captures were used.  Data were entered manually for three turtles in the Excel file: 52675 (all measurements) from 2007-01-23, 44366 (SCL and CCL) from 2009-02-26, and 126065 (Mass) from 2011-03-08).   
+```{r}
+dat.table <- read.csv("data/all_sample_summary_size_2018-07-24.csv")
+
+pre.areas.95 <- unlist(lapply(lapply(UD.95.pre.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.areas.50 <- unlist(lapply(lapply(UD.50.pre.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+pre.day.areas.95 <- unlist(lapply(lapply(UD.95.pre.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.day.areas.50 <- unlist(lapply(lapply(UD.50.pre.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+pre.night.areas.95 <- unlist(lapply(lapply(UD.95.pre.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+pre.night.areas.50 <- unlist(lapply(lapply(UD.50.pre.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+pre.areas.df <- data.frame(ID.f = pre.kd$list.data$unique.ID,
+                           area.50 = pre.areas.50/1000000,
+                           area.95 = pre.areas.95/1000000)
+
+pre.day.areas.df <- data.frame(ID.f = pre.kd.day$list.data$unique.ID,
+                               area.day.50 = pre.day.areas.50/1000000,
+                               area.day.95 = pre.day.areas.95/1000000)
+
+pre.night.areas.df <- data.frame(ID.f = pre.kd.night$list.data$unique.ID,
+                           area.night.50 = pre.night.areas.50/1000000,
+                           area.night.95 = pre.night.areas.95/1000000)
+
+post.areas.95 <- unlist(lapply(lapply(UD.95.post.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.areas.50 <- unlist(lapply(lapply(UD.50.post.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+post.day.areas.95 <- unlist(lapply(lapply(UD.95.post.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.day.areas.50 <- unlist(lapply(lapply(UD.50.post.day.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+post.night.areas.95 <- unlist(lapply(lapply(UD.95.post.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+post.night.areas.50 <- unlist(lapply(lapply(UD.50.post.night.eachID, 
+                                      FUN = extract.areas),
+                               FUN = function(x) x$total.area))
+
+post.areas.df <- data.frame(ID.f = post.kd$list.data$unique.ID,
+                           area.50 = post.areas.50/1000000,
+                           area.95 = post.areas.95/1000000)
+
+post.day.areas.df <- data.frame(ID.f = post.kd.day$list.data$unique.ID,
+                           area.day.50 = post.day.areas.50/1000000,
+                           area.day.95 = post.day.areas.95/1000000)
+
+post.night.areas.df <- data.frame(ID.f = post.kd.night$list.data$unique.ID,
+                           area.night.50 = post.night.areas.50/1000000,
+                           area.night.95 = post.night.areas.95/1000000)
+
+areas.df <- rbind(pre.areas.df, post.areas.df)
+areas.night.df <- rbind(pre.night.areas.df, post.night.areas.df)
+areas.day.df <- rbind(pre.day.areas.df, post.day.areas.df)
+
+dat.table <- left_join(dat.table, areas.df, by = "ID.f") %>%
+  left_join(., areas.night.df, by = "ID.f") %>%
+  left_join(., areas.day.df, by = "ID.f")
+
+write.csv(dat.table, file = paste0("data/IDvsUDs_",
+                                   Sys.Date(), ".csv"), 
+          quote = F, row.names = F)
+
+ggplot(data = dat.table) +
+  geom_point(aes(x = Mass_kg, 
+                 y = area.50/1000000,
+                 color = period)) 
+```
+
+Plotting starts here:
+Make a plot for pre using all data:
+```{r}
+
+pre.ver.50.df <- broom::tidy(spTransform(pre.HR$ver.50, CRS("+proj=longlat")))
+pre.ver.95.df <- broom::tidy(spTransform(pre.HR$ver.95, CRS("+proj=longlat")))
+
+map.pre.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = pre.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+plot(map.pre.HR)
+```
+
+Make a plot for pre day:
+```{r}
+
+pre.day.ver.50.df <- broom::tidy(spTransform(pre.HR.day$ver.50, CRS("+proj=longlat")))
+pre.day.ver.95.df <- broom::tidy(spTransform(pre.HR.day$ver.95, CRS("+proj=longlat")))
+
+map.pre.day.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.day.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.day.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = pre.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+plot(map.pre.day.HR)
+```
+
+Make a plot for pre night:
+```{r}
+
+pre.night.ver.50.df <- broom::tidy(spTransform(pre.HR.night$ver.50, 
+                                               CRS("+proj=longlat")))
+
+pre.night.ver.95.df <- broom::tidy(spTransform(pre.HR.night$ver.95, 
+                                               CRS("+proj=longlat")))
+
+map.pre.night.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = pre.night.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.night.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = pre.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+
+plot(map.pre.night.HR)
+```
+
+Make a plot for post using all data:
+```{r}
+
+post.ver.50.df <- broom::tidy(spTransform(post.HR$ver.50, CRS("+proj=longlat")))
+post.ver.95.df <- broom::tidy(spTransform(post.HR$ver.95, CRS("+proj=longlat")))
+
+map.post.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = post.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+plot(map.post.HR)
+```
+
+Make a plot for post day:
+```{r}
+
+post.day.ver.50.df <- broom::tidy(spTransform(post.HR.day$ver.50, CRS("+proj=longlat")))
+post.day.ver.95.df <- broom::tidy(spTransform(post.HR.day$ver.95, CRS("+proj=longlat")))
+
+map.post.day.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.day.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.day.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  # geom_point(data = post.all,
+  #            aes(x = Lon1, y = Lat1),
+  #            alpha = 0.5,
+  #            size = 0.2)+ 
+  # # geom_polygon(data = water.df,
+  #              aes(x = long,
+  #                  y = lat,
+  #                  group = group),
+  #              fill = "blue",
+  #              alpha = 0.2) +
+
+  #coord_map() + 
+  #labs(color = 'ARGOS ID') + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+plot(map.post.day.HR)
+```
+
+
+Make a plot for post night:
+```{r}
+
+post.night.ver.50.df <- broom::tidy(spTransform(post.HR.night$ver.50,
+                                                CRS("+proj=longlat")))
+post.night.ver.95.df <- broom::tidy(spTransform(post.HR.night$ver.95,
+                                                CRS("+proj=longlat")))
+
+map.post.night.HR <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_polygon(data = post.night.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "cornsilk",
+               alpha = 0.6) + 
+  geom_polygon(data = post.night.ver.50.df,
+               aes(x = long, y = lat, 
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  xlab('Longitude') + ylab('Latitude') + 
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+        #legend.text = element_text(size = 8, vjust = 0),
+        legend.position = "none")
+
+plot(map.post.night.HR)
+```
+
+Simple plots with day/night for the pre:
+Plot the data points to see what they look like:
+
+```{r}
+map.pre.day.night <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_point(data = pre.all,
+             aes(x = Lon1, y = Lat1, 
+                 color = as.factor(day1night2)),
+             alpha = 0.5)+ 
+  xlab('Longitude') + ylab('Latitude') + 
+  scale_color_discrete(labels = c("Day", "Night"),
+                       name = NULL) 
+
+  theme(legend.title = NULL,
+        legend.text = element_text(size = 8, vjust = 0))
+        #legend.position = "none")
+
+plot(map.pre.day.night)
+
+```
+
+```{r}
+map.post.day.night <- map.sdbay.zm + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat)) +
+               #fill = "blue",alpha = 0.6) + 
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
+  geom_point(data = post.all,
+             aes(x = Lon1, y = Lat1, 
+                 color = as.factor(day1night2)),
+             alpha = 0.5)+ 
+  xlab('Longitude') + ylab('Latitude') + 
+  scale_color_discrete(labels = c("Day", "Night"),
+                       name = NULL) 
+
+plot(map.post.day.night)
+
+```
+
+
+UDs for individual turtles:
+```{r}
+
+p.h.pre.eachID <- ggplot() + 
+  geom_polygon(data = pre.eachID.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "aquamarine4",
+               alpha = 0.6) + 
+  geom_polygon(data = pre.eachID.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.h.pre.eachID)
+```
+
+```{r}
+
+p.h.post.eachID <- ggplot() + 
+  geom_polygon(data = post.eachID.ver.95.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "aquamarine4",
+               alpha = 0.6) + 
+  geom_polygon(data = post.eachID.ver.50.df,
+               aes(x = long, y = lat,
+                   group = group),
+               fill = "red3",
+               alpha = 0.6) + 
+  coord_map() + facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) #+
+  #scale_x_continuous(breaks = seq(from = -117.18, to = -117.08, by = 0.02),
+  #                   limits = c(-117.20, -117.06)) +
+  #scale_y_continuous(breaks = seq(from = 32.57, to = 32.67, by = 0.02),
+  #                   limits = c(32.56, 32.68))
+plot(p.h.post.eachID)
+```
+
+
+
+Save figures:
+```{r}
+if (save.figure){
+  ggsave(filename = paste0("figures/HR_pre_h_comp_", Sys.Date(), ".png"),
+       plot = h.adhoc.pre$figure,
+       dpi = 600,
+       device = "png")
+  ggsave(filename = paste0("figures/HR_post_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_day_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.pre.day$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_night_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.pre.night$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_post_day_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post.day$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_post_night_h_comp_", Sys.Date(), ".png"),
+         plot = h.adhoc.post.night$figure,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HR_pre_h_", h.pre, "_", Sys.Date(), ".png"),
+         plot = map.pre.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_h_", h.post, "_", Sys.Date(), ".png"),
+         plot = map.post.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_pre_day_h_", 
+                           h.pre.day, "_", Sys.Date(), ".png"),
+         plot = map.pre.day.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_day_h_", 
+                           h.post.day, "_", Sys.Date(), ".png"),
+         plot = map.post.day.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_pre_night_h_", 
+                           h.pre.night, "_", Sys.Date(), ".png"),
+         plot = map.pre.night.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR_post_night_h_", 
+                           h.post.night, "_", Sys.Date(), ".png"),
+         plot = map.post.night.HR,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HR50_difference_", 
+                           Sys.Date(), ".png"),
+         plot = hist.dif.50,
+         dpi = 600,
+         device = "png")
+  
+  ggsave(filename = paste0("figures/HRbyID_pre_",
+                           Sys.Date(), ".png"),
+         plot = p.h.pre.eachID,
+         dpi = 600,
+         device = "png")
+  ggsave(filename = paste0("figures/HRbyID_post_",
+                           Sys.Date(), ".png"),
+         plot = p.h.post.eachID,
+         dpi = 600,
+         device = "png")
+}
+
+save(list = ls(),
+     file = paste0("RData/output_HR_analysis_", Sys.Date(), ".RData"))
+#plot(map.post.HR)
+```

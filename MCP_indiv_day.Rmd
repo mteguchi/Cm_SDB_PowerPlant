@@ -1,0 +1,236 @@
+---
+title: "MCP per day"
+output: html_notebook
+---
+
+Computes a minimum convex polygon for each individual per day - is there a pattern in seaons or possibly temperature?
+
+
+```{r}
+rm(list = ls())
+#getwd()
+#list.files()
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#Section 1: Load libraries and set wd
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(readr)
+
+source("HR_analysis_fcns.R")
+
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+min_n <- 50
+n_days <- 5   # # days pooled to create a MCP
+```
+
+Read in post and pre datasets
+
+```{r}
+col.defs <- cols(ID = col_integer(),
+                 ArgosID = col_integer(),
+                 Message_Type = col_character(),
+                 TransmissionDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LC = col_integer(),
+                 Residual = col_double(),
+                 Lat1 = col_double(),
+                 Lon1 = col_double(),
+                 inside = col_integer(),
+                 UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 Date2 = col_datetime(format = "%Y-%m-%d"),
+                 LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LocalSunset = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 day1night2 = col_integer(),
+                 row = col_integer(),
+                 include = col_integer(),
+                 hr = col_integer(),
+                 ID.f = col_integer(),
+                 DaysSinceFirst = col_double())
+
+post.all <- read_csv("data/Post_GPS_LC_all_2018-09-18.csv",
+                     col_types = col.defs)
+
+post.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> post.ID.min_n_day
+
+post.list <- make.HR.dataset(post.all, post.ID.min_n_day, tagproj)
+
+post.ID <- post.list$unique.ID
+
+mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(post.ID))
+post.area.df <- data.frame(date = as.POSIXct(character()), area = numeric(), ID = numeric())
+r <- 1
+for (i in 1:length(post.ID)){
+  post.turtle1 <- post.list$eachID.utm[[i]]  
+  post.turtle1.time <- post.list$eachID.time[[i]]
+  post.turtle1.time$dif.time <- difftime(post.turtle1.time$UTC,
+                                         post.turtle1.time$UTC[1], 
+                                         units = "days")
+  
+  n.steps <- as.numeric(floor(floor(max(post.turtle1.time$dif.time))/n_days))
+  mcp1.area <- mcp1 <- dates <- vector(mode = "list", length = n.steps)
+  min.day <- 0
+  for (n in 1:n.steps){
+    post.turtle1.ndays <- post.turtle1[post.turtle1.time$dif.time >= min.day &
+                                         post.turtle1.time$dif.time < (min.day + n_days),]
+    post.turtle1.time.ndays <- post.turtle1.time[post.turtle1.time$dif.time >= min.day &
+                                                   post.turtle1.time$dif.time < (min.day + n_days),]
+    
+    if (nrow(post.turtle1.ndays@coords) > 4){
+      mcp1.area[[n]] <- mcp.area(post.turtle1.ndays, 
+                                 percent = 100, 
+                                 unin = "m", unout = "km2")
+      
+      #mcp1[[n]] <- mcp(post.turtle1.ndays, 
+      #                 percent = 100, 
+      #                 unin = "m", unout = "km2")
+      
+      dates[[n]] <- post.turtle1.time.ndays[1, "UTC"]
+      
+    }
+    min.day <- min.day + n_days
+  }
+  #mcp.all[[i]] <- mcp1
+  mcp.area.all[[i]] <- mcp1.area
+  dates.all[[i]] <- dates
+  
+  for (k in 1:length(mcp.area.all[[i]])){
+    if (length(mcp1.area[[k]]) > 0){
+      post.area.df[r, "date"] <- dates[[k]] #as.Date(dates[[k]], format = "%Y-%m-%d %H:%M:%S") 
+      post.area.df[r, "area"] <- mcp1.area[[k]]
+      post.area.df[r, "ID"] <- post.ID[i]
+      r <- r + 1
+      
+    }
+  }
+    
+}
+
+# combine areas and dates into a dataframe
+post.area.df %>% mutate(month = month(date),
+                   doy = yday(date)) -> post.area.df
+
+ggplot() + 
+  geom_point(data = post.area.df,
+             aes(x = doy, y = area, color = as.factor(ID)))
+
+#pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
+#pre.ID <- unique(pre.all$ArgosID)
+
+```
+
+Do the same with the pre period
+```{r}
+pre.all <- read_csv("data/Pre_GPS_LC_all_2018-09-18.csv",
+                     col_types = col.defs)
+
+pre.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> pre.ID.min_n_day
+
+pre.list <- make.HR.dataset(pre.all, pre.ID.min_n_day, tagproj)
+
+pre.ID <- pre.list$unique.ID
+
+mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(post.ID))
+pre.area.df <- data.frame(date = as.POSIXct(character()), area = numeric(), ID = numeric())
+r <- 1
+for (i in 1:length(pre.ID)){
+  pre.turtle1 <- pre.list$eachID.utm[[i]]  
+  pre.turtle1.time <- pre.list$eachID.time[[i]]
+  pre.turtle1.time$dif.time <- difftime(pre.turtle1.time$UTC,
+                                         pre.turtle1.time$UTC[1], 
+                                         units = "days")
+  
+  n.steps <- as.numeric(floor(floor(max(pre.turtle1.time$dif.time))/n_days))
+  mcp1.area <- mcp1 <- dates <- vector(mode = "list", length = n.steps)
+  min.day <- 0
+  for (n in 1:n.steps){
+    pre.turtle1.ndays <- pre.turtle1[pre.turtle1.time$dif.time >= min.day &
+                                         pre.turtle1.time$dif.time < (min.day + n_days),]
+    pre.turtle1.time.ndays <- pre.turtle1.time[pre.turtle1.time$dif.time >= min.day &
+                                                   pre.turtle1.time$dif.time < (min.day + n_days),]
+    
+    if (nrow(pre.turtle1.ndays@coords) > 4){
+      mcp1.area[[n]] <- mcp.area(pre.turtle1.ndays, 
+                                 percent = 100, 
+                                 unin = "m", unout = "km2")
+      
+      #mcp1[[n]] <- mcp(post.turtle1.ndays, 
+      #                 percent = 100, 
+      #                 unin = "m", unout = "km2")
+      
+      dates[[n]] <- pre.turtle1.time.ndays[1, "UTC"]
+      
+    }
+    min.day <- min.day + n_days
+  }
+  #mcp.all[[i]] <- mcp1
+  mcp.area.all[[i]] <- mcp1.area
+  dates.all[[i]] <- dates
+  
+  for (k in 1:length(mcp.area.all[[i]])){
+    if (length(mcp1.area[[k]]) > 0){
+      pre.area.df[r, "date"] <- dates[[k]] #as.Date(dates[[k]], format = "%Y-%m-%d %H:%M:%S") 
+      pre.area.df[r, "area"] <- mcp1.area[[k]]
+      pre.area.df[r, "ID"] <- post.ID[i]
+      r <- r + 1
+      
+    }
+  }
+    
+}
+
+# combine areas and dates into a dataframe
+pre.area.df %>% mutate(month = month(date),
+                   doy = yday(date)) -> pre.area.df
+
+ggplot() + 
+  geom_point(data = pre.area.df,
+             aes(x = doy, y = area, color = as.factor(ID)))
+
+```
+
+
+Is there any relationship with water temp?
+
+```{r}
+
+col.defs.water <- cols(date = col_date(format = "%m/%d/%Y"),
+                       timeUTC = col_time(format = "%H:%M:%S"),
+                       tempC = col_double())
+
+water.tmp <- read_csv(file = "data/watertmp_data.csv",
+                     col_types = col.defs.water)
+
+
+area.df <- rbind(pre.area.df, post.area.df)
+
+arae.df$temp <- NA
+#water.tmp.1 <- vector(mode = "numeric", length = nrow(area.df))
+for (k in 1:nrow(area.df)){
+  date1 <- area.df$date[k]
+  water.tmp %>% filter(date > date1 - days(5) & date < date1 + days(5)) -> water.tmp.1
+  area.df$temp[k] <- mean(water.tmp.1$tempC, na.rm = T)
+  
+}
+
+```
+
+
