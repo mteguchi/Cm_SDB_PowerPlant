@@ -57,6 +57,7 @@ Get some base layer maps here:
 
 ```{r}
 # just use the 2014 eelgrass data - there are old data files also
+# it turns into a spatialpolygondataframe
 SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
                                        layer = "SD_Baywide_Eelgrass_2014_Final",
                                        verbose = F),
@@ -311,6 +312,18 @@ for (k in 1:length(pre.IDs)){
     
 }
 
+print(p1[[1]])
+
+```
+
+
+```{r}
+print(p1[[3]])
+```
+
+
+```{r}
+print(p1[[6]])
 ```
 
 Examining the plots by eye, seems to have just one reading per 4-hr period within each day. So, I won't be doing the same for the post dataset. 
