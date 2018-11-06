@@ -38,7 +38,7 @@ n_days <- 5   # # days pooled to create a MCP
 
 Read in post and pre datasets
 
-```{r}
+```{r, include=FALSE}
 col.defs <- cols(ID = col_integer(),
                  ArgosID = col_integer(),
                  Message_Type = col_character(),
@@ -135,7 +135,7 @@ ggplot() +
 ```
 
 Do the same with the pre period
-```{r}
+```{r, include=FALSE}
 pre.all <- read_csv("data/Pre_GPS_LC_all_2018-09-18.csv",
                      col_types = col.defs)
 
@@ -149,7 +149,8 @@ pre.list <- make.HR.dataset(pre.all, pre.ID.min_n_day, tagproj)
 pre.ID <- pre.list$unique.ID
 
 mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(post.ID))
-pre.area.df <- data.frame(date = as.POSIXct(character()), area = numeric(), ID = numeric())
+pre.area.df <- data.frame(date = as.POSIXct(character()), 
+                          area = numeric(), ID = numeric())
 r <- 1
 for (i in 1:length(pre.ID)){
   pre.turtle1 <- pre.list$eachID.utm[[i]]  
@@ -211,26 +212,49 @@ ggplot() +
 Is there any relationship with water temp?
 
 ```{r}
-
-col.defs.water <- cols(date = col_date(format = "%m/%d/%Y"),
-                       timeUTC = col_time(format = "%H:%M:%S"),
-                       tempC = col_double())
-
-water.tmp <- read_csv(file = "data/watertmp_data.csv",
-                     col_types = col.defs.water)
-
-
+pre.area.df$PP <- 0
+post.area.df$PP <- 1
 area.df <- rbind(pre.area.df, post.area.df)
+wtemp <- vector(mode = "numeric", length = nrow(area.df))
+k <- 1
 
-arae.df$temp <- NA
-#water.tmp.1 <- vector(mode = "numeric", length = nrow(area.df))
 for (k in 1:nrow(area.df)){
-  date1 <- area.df$date[k]
-  water.tmp %>% filter(date > date1 - days(5) & date < date1 + days(5)) -> water.tmp.1
-  area.df$temp[k] <- mean(water.tmp.1$tempC, na.rm = T)
-  
+    begin.date <- date(area.df[k, "date"])
+    end.date <- date(area.df[k, "date"] + days(n_days - 1))
+    tmp.data <- getSDwtmp(begin.date, end.date,
+                        outdir = "data/")
+    # nc format doesn't seem to work --- gets error using nc_open
+    # 6 November 2018
+    #datafileID <- nc_open(tmp.nc$filename)
+    
+    # these files have column headings in the first row and their
+    # units in the second row. so, first two rows need to be removed
+    col_names <- names(read_csv(tmp.data$filename$csv, n_max = 0))
+    wtemp[k] <- read_csv(file = tmp.data$filename$csv,
+                         col_names = col_names,
+                         skip = 2) %>%
+      filter(station == "SDBC1") %>%
+      summarise(mean.wtmp = mean(as.numeric(wtmp), na.rm = TRUE))
+    
 }
+
+area.df$wtemp <- unlist(wtemp)
+
+ggplot(data = area.df) +
+  geom_point(aes(x = wtemp, y = area, color = as.factor(PP)),
+             size = 3)
 
 ```
 
+Any pattern with respect to day of year?
+```{r}
+area.df %>% mutate(doy = yday(date)) -> area.df
+
+ggplot(data = area.df) + 
+  geom_point(aes(x = doy, y = area, color = wtemp,
+                 shape = as.factor(PP)),
+             size = 3,
+             alpha = 0.5)
+
+```
 

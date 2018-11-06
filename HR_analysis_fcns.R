@@ -4,6 +4,8 @@ library(dplyr)
 library(adehabitatHR)
 library(rgdal)
 library(leaflet)
+library(ncdf4)
+
 
 # I'm not sure what this does - probably defines lat-lon coordinate system?
 latlong <- "+init=epsg:4326"
@@ -257,19 +259,40 @@ getSDwtmp<- function(begindate, enddate,
   #dt <- as.Date(enddate) - as.Date(begindate)
   #if (dt > 30) stop('Time range needs to be less than or equal to 30.')
   
-  outfilename <- paste0(outdir, "Wtmp_SDBay_",
+  outfilename.nc <- paste0(outdir, "Wtmp_SDBay_",
                         begindate, '_', enddate, ".nc")
-  if (!file.exists(outfilename)){
-
-    url2 <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.nc?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
+  outfilename.csv <- paste0(outdir, "Wtmp_SDBay_",
+                           begindate, '_', enddate, ".csv")
+  
+  url.nc <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.nc?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
+                 begindate, "T00%3A00%3A00Z&time%3C=", 
+                 enddate, "T20%3A00%3A00Z")
+  url.csv <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.csv?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
                    begindate, "T00%3A00%3A00Z&time%3C=", 
                    enddate, "T20%3A00%3A00Z")
-    
-    download.file(url2,
-                  destfile = outfilename,
+  
+  if (!file.exists(outfilename.nc)){
+
+    download.file(url.nc,
+                  destfile = outfilename.nc,
                   mode='wb')
     
   }
   
-  return(outfilename)
+  if (!file.exists(outfilename.csv)){
+    
+    download.file(url.csv,
+                  destfile = outfilename.csv,
+                  mode='wb')
+    
+  }
+  
+  outfile.nc.info <- file.info(outfilename.nc)
+  outfile.csv.info <- file.info(outfilename.csv)
+  
+  out.list <- list(url = list(nc = url.nc, csv = url.csv),
+                   filename = list(nc = outfilename.nc, csv = outfilename.csv),
+                   file.info = list(nc = outfile.nc.info, csv = outfile.csv.info))
+  
+  return(out.list)
 }
