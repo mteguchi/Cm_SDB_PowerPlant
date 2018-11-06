@@ -55,7 +55,7 @@ source("HR_analysis_fcns.R")
 
 Get some base layer maps here:
 
-```{r}
+```{r, cache=T}
 # just use the 2014 eelgrass data - there are old data files also
 # it turns into a spatialpolygondataframe
 SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
@@ -136,7 +136,7 @@ Section 2: read in data
 
 Section 2.1: Pre
 
-```{r}
+```{r, cache=T}
 file.date <- "2018-10-31" #"2018-09-18" #"2018-07-26"
 ID.names <- function(name){
   x <- unlist(strsplit(name, '_'))[1]
@@ -249,7 +249,7 @@ if (!file.exists(paste0("data/Pre_GPS_LC_all_",
 
 Plot the data points to see what they look like:
 
-```{r}
+```{r, cache=T}
 map.pre <- map.sdbay.zm + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
@@ -278,7 +278,7 @@ plot(map.pre)
 ```
 
 To check for errors in data screening, I make a few plots. Each individual has one or no data point per 4-hour period. 
-```{r}
+```{r, cache=T}
 p1 <- list()
 k <- 1
 for (k in 1:length(pre.IDs)){
@@ -330,7 +330,7 @@ Examining the plots by eye, seems to have just one reading per 4-hr period withi
 
 Read in the post datasets. 
 
-```{r}
+```{r, cache=T}
 dname <- "data/files_Jul2018_withNewTags/post/"
 post.files <- dir(path = dname, 
                  pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
@@ -380,7 +380,7 @@ plot(map.post)
 ```
 
 And probably we should inlude the new files into "post". Also, take out the one track that goes out the bay - north of 32.66N
-```{r}
+```{r, cache=T}
 dname <- "data/files_Jul2018_withNewTags/new/"
 new.files <- dir(path = dname, 
                  pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
@@ -522,7 +522,7 @@ We have a lot more individuals from the post period than the pre, so we need to 
 
 Section 3: Compute HRs
 
-```{r}
+```{r, cache=T}
 # when trying to compute HR for each individual, some don't have enough data
 # extract those with at least 50 data points:
 
@@ -531,7 +531,7 @@ pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid.value)
 
 Do the same with post dataset - choose those with at least min_n data points. 
 
-```{r}
+```{r, cache=T}
 post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid.value)
 
 ```
@@ -545,7 +545,7 @@ plotLSCV(pre.kd$kd.LSCV)
 ```
 
 Referecne or optimum bandwidth is ~248 (see pre.kd.href), whereas the LSCV comes back with h = 25.9 (Pre.kd@h$h). According to Kie (2013), we should decrease href in increments of 0.10 and the best value is the smallest increment of href that 1. resulted in a contiguous rather than disjoint 95% kernel home-range polygon, and 2. contained no lacuna within the home range. 
-```{r}
+```{r, cache=T}
 h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
 
 h.adhoc.pre <- HR.analysis(h.multiplier, 
@@ -565,7 +565,7 @@ if (save.figure)
 
 Looking at these plots, multiplier = 0.6 may be the smallest value with a contiguous 95% UD.  This is found in h.pre.1 below. 
 
-```{r}
+```{r, cache=T}
 
 h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
 ## Section 3.1.2
@@ -605,7 +605,7 @@ plotLSCV(post.kd$kd.LSCV)
 
 ```
 
-```{r}
+```{r, cache=T}
 
 h.adhoc.post <- HR.analysis(h.multiplier, 
                             post.kd$kd.href, 
@@ -624,7 +624,7 @@ if (save.figure)
 
 For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% UD.  This is found in h.post.1 below. 
 
-```{r}
+```{r, cache=T}
 ## Section 3.1.2
 ##Visually optimized hlim = c(0.565,1.5), grid=300
 h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
@@ -650,7 +650,7 @@ writeOGR(obj = post.HR$ver.95,
 
 
 Compare between night and day and pre and post:
-```{r}
+```{r, cache=T}
 # pre day vs pre night:
 pre.all %>% filter(day1night2 == 1) -> pre.day
 
@@ -659,7 +659,7 @@ pre.kd.day <- HR.analysis.step1(min_n, pre.day, tagproj, grid = grid.value)
 plotLSCV(pre.kd.day$kd.LSCV)
 ```
 
-```{r}
+```{r, cache=T}
 h.adhoc.pre.day <- HR.analysis(h.multiplier, 
                                pre.kd.day$kd.href, 
                                pre.kd.day$list.data, 
@@ -676,7 +676,7 @@ if (save.figure)
 
 multiplier = 0.7 or 0.75 may be good. See h.pre.day.1.
 
-```{r}
+```{r, cache=T}
 h.pre.day.1 <- find.h.adhoc(pre.kd.day$list.data$all.utm)
 
 h.pre.day <- round(h.pre.day.1$h) #round(pre.kd.day$kd.href@h$h * 0.7)
@@ -698,14 +698,14 @@ writeOGR(obj = pre.HR.day$ver.95,
 ```
 
 For night:
-```{r}
+```{r, cache=T}
 pre.all %>% filter(day1night2 == 2) -> pre.night
 pre.kd.night <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid.value)
 plotLSCV(pre.kd.night$kd.LSCV)
 
 ```
 
-```{r}
+```{r, cache=T}
 h.adhoc.pre.night <- HR.analysis(h.multiplier, 
                                  pre.kd.night$kd.href, 
                                  pre.kd.night$list.data, 
@@ -720,7 +720,7 @@ if (save.figure)
 
 multiplier = 0.55 may be good. See h.pre.night.1.
 
-```{r}
+```{r, cache=T}
 h.pre.night.1 <- find.h.adhoc(pre.kd.night$list.data$all.utm)
 
 h.pre.night <- round(h.pre.night.1$h) #round(pre.kd.night$kd.href@h$h * 0.5)
@@ -744,7 +744,7 @@ writeOGR(obj = pre.HR.night$ver.95,
 ```
 
 Do the same with the post period
-```{r}
+```{r, cache=T}
 # pre day vs pre night:
 post.all %>% filter(day1night2 == 1) -> post.day
 
@@ -753,7 +753,7 @@ post.kd.day <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid.value)
 plotLSCV(post.kd.day$kd.LSCV)
 ```
 
-```{r}
+```{r, cache=T}
 h.adhoc.post.day <- HR.analysis(h.multiplier, 
                                 post.kd.day$kd.href, 
                                 post.kd.day$list.data, 
@@ -768,7 +768,7 @@ if (save.figure)
 
 multiplier = 0.45 may be good. See h.post.day.1. 
 
-```{r}
+```{r, cache=T}
 h.post.day.1 <- find.h.adhoc(post.kd.day$list.data$all.utm)
 
 h.post.day <- round(h.post.day.1$h)
@@ -790,14 +790,14 @@ writeOGR(obj = post.HR.day$ver.95,
 ```
 
 For night:
-```{r}
+```{r, cache=T}
 post.all %>% filter(day1night2 == 2) -> post.night
 post.kd.night <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid.value)
 plotLSCV(post.kd.night$kd.LSCV)
 
 ```
 
-```{r}
+```{r, cache=T}
 h.adhoc.post.night <- HR.analysis(h.multiplier, 
                                   post.kd.night$kd.href, 
                                   post.kd.night$list.data, 
@@ -812,7 +812,7 @@ if (save.figure)
 
 multiplier = 0.6 may be good. See h.post.night.1. 
 
-```{r}
+```{r, cache=T}
 h.post.night.1 <- find.h.adhoc(post.kd.night$list.data$all.utm)
 
 h.post.night <- round(h.post.night.1$h)
@@ -836,11 +836,16 @@ writeOGR(obj = post.HR.night$ver.95,
 ```
 
 Extract UDs for each individual. Starting with pre:
-```{r}
+```{r, cache=T}
 pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
-                          Area.50 = t(as.matrix(pre.HR$area.byID.50)),
-                          Area.95 = t(as.matrix(pre.HR$area.byID.95))) 
+                          X50 = t(as.matrix(pre.HR$area.byID.50)),
+                          X95 = t(as.matrix(pre.HR$area.byID.95))) 
 
+pre.summary %>% mutate(ID = ArgosID) %>%
+  right_join(pre.HR.byID, by = "ID") %>%
+    dplyr::select(c("ID", "n.days", "X50", "X95")) %>% 
+  dplyr::rename(Area.50  = X50, Area.95 = X95) -> pre.HR.byID
+  
 h.multip.pre.eachID <- h.pre.eachID <- vector(mode = "numeric", 
                                               length = length(pre.kd$list.data$eachID.utm))
 
@@ -949,7 +954,16 @@ pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
 ```
 
 Now for post:
-```{r}
+```{r, cache=T}
+post.HR.byID <- data.frame(ID = post.kd$list.data$unique.ID,
+                          X50 = t(as.matrix(post.HR$area.byID.50)),
+                          X95 = t(as.matrix(post.HR$area.byID.95))) 
+
+post.summary %>% mutate(ID = ArgosID) %>%
+  right_join(post.HR.byID, by = "ID") %>%
+    dplyr::select(c("ID", "n.days", "X50", "X95")) %>% 
+  dplyr::rename(Area.50  = X50, Area.95 = X95) -> post.HR.byID
+
 h.post.eachID <- h.multip.post.eachID <- vector()
 UD.95.post.eachID <- UD.50.post.eachID <- list()
 
@@ -1046,7 +1060,7 @@ post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
 ```
 
 Bring in the body size information. This was done in deployment_table.R script and manually modified for missing data - some measurements were not collected when the tags were deployed so data from the closest captures were used.  Data were entered manually for three turtles in the Excel file: 52675 (all measurements) from 2007-01-23, 44366 (SCL and CCL) from 2009-02-26, and 126065 (Mass) from 2011-03-08).   
-```{r}
+```{r, cache=T}
 dat.table <- read.csv("data/all_sample_summary_size_2018-07-24.csv")
 
 pre.areas.95 <- unlist(lapply(lapply(UD.95.pre.eachID, 
@@ -1135,7 +1149,7 @@ ggplot(data = dat.table) +
 
 Plotting starts here:
 Make a plot for pre using all data:
-```{r}
+```{r, cache=T}
 
 pre.ver.50.df <- broom::tidy(spTransform(pre.HR$ver.50, CRS("+proj=longlat")))
 pre.ver.95.df <- broom::tidy(spTransform(pre.HR$ver.95, CRS("+proj=longlat")))
@@ -1465,7 +1479,7 @@ plot(map.post.day.night)
 ```
 
 
-UDs for individual turtles:
+UDs for individual turtles. I wasn to add samplel sizes and calculated areas for these plots. 
 ```{r}
 
 p.h.pre.eachID <- ggplot() + 
@@ -1479,6 +1493,21 @@ p.h.pre.eachID <- ggplot() +
                    group = group),
                fill = "red3",
                alpha = 0.6) +
+  geom_text(data = pre.HR.byID, 
+            aes(x = -117.15, y = 32.59,
+                label = paste("50% =", signif(Area.50, 2), "km^2"),
+                vjust = 0.0, hjust = 0),
+            size = 3) +
+  geom_text(data = pre.HR.byID, 
+            aes(x = -117.15, y = 32.60,
+                label = paste("95% =", signif(Area.95, 2), "km^2"),
+                vjust = 1.0, hjust = 0),
+            size = 3) +
+  geom_text(data = pre.HR.byID,
+            aes(x = -117.12, y = 32.645,
+                label = paste("n = ", signif(n.days, 3), "days"),
+                vjust = 0.0, hjust = 0),
+            size = 3) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
@@ -1504,6 +1533,21 @@ p.h.post.eachID <- ggplot() +
                    group = group),
                fill = "red3",
                alpha = 0.6) + 
+  geom_text(data = post.HR.byID, 
+            aes(x = -117.15, y = 32.59,
+                label = paste("50% =", signif(Area.50, 2), "km^2"),
+                vjust = 0.0, hjust = 0),
+            size = 2) +
+  geom_text(data = post.HR.byID, 
+            aes(x = -117.15, y = 32.60,
+                label = paste("95% =", signif(Area.95, 2), "km^2"),
+                vjust = 1.0, hjust = 0),
+            size = 2) +
+  geom_text(data = post.HR.byID,
+            aes(x = -117.12, y = 32.645,
+                label = paste("n = ", signif(n.days, 3), "days"),
+                vjust = 0.0, hjust = 0),
+            size = 2) +
   coord_map() + facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
@@ -1540,16 +1584,19 @@ if (save.figure){
          plot = h.adhoc.post.day$figure,
          dpi = 600,
          device = "png")
-  ggsave(filename = paste0("figures/HR_post_night_h_comp_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_post_night_h_comp_", 
+                           Sys.Date(), ".png"),
          plot = h.adhoc.post.night$figure,
          dpi = 600,
          device = "png")
-  ggsave(filename = paste0("figures/HR_pre_h_", h.pre, "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_pre_h_", h.pre, "_", 
+                           Sys.Date(), ".png"),
          plot = map.pre.HR,
          dpi = 600,
          device = "png")
   
-  ggsave(filename = paste0("figures/HR_post_h_", h.post, "_", Sys.Date(), ".png"),
+  ggsave(filename = paste0("figures/HR_post_h_", h.post, "_", 
+                           Sys.Date(), ".png"),
          plot = map.post.HR,
          dpi = 600,
          device = "png")

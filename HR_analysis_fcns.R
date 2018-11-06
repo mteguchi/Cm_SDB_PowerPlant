@@ -251,7 +251,7 @@ find.h.adhoc <- function(utm.data, grid = 300, extent = 1){
               h.multip = h.multip))
 }
 
-
+# this doesn't work as of 5 Nov 2018 - coastwatch changed the link... 
 getSDwtmp<- function(begindate, enddate,
                      outdir = "data/"){
   #dt <- as.Date(enddate) - as.Date(begindate)
@@ -260,9 +260,10 @@ getSDwtmp<- function(begindate, enddate,
   outfilename <- paste0(outdir, "Wtmp_SDBay_",
                         begindate, '_', enddate, ".nc")
   if (!file.exists(outfilename)){
-    url2 <- paste0("http://coastwatch.pfeg.noaa.gov/erddap/tabledap/nosCoopsMWT.nc?stationID%2Clongitude%2Clatitude%2Ctime%2CWT&stationName=%22San%20Diego%22&time%3E=",
-                   begindate, "T00%3A00%3A00Z&time%3C=",
-                   enddate, "T00%3A00%3A00Z")
+
+    url2 <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.nc?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
+                   begindate, "T00%3A00%3A00Z&time%3C=", 
+                   enddate, "T20%3A00%3A00Z")
     
     download.file(url2,
                   destfile = outfilename,
