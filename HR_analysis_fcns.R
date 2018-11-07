@@ -253,7 +253,8 @@ find.h.adhoc <- function(utm.data, grid = 300, extent = 1){
               h.multip = h.multip))
 }
 
-# this doesn't work as of 5 Nov 2018 - coastwatch changed the link... 
+# Download or open files that contain data from buoys. It downloads in
+# .nc and .csv formats. 
 getSDwtmp<- function(begindate, enddate,
                      outdir = "data/"){
   #dt <- as.Date(enddate) - as.Date(begindate)
