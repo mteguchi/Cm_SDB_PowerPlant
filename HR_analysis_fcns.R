@@ -260,9 +260,9 @@ getSDwtmp<- function(begindate, enddate,
   #dt <- as.Date(enddate) - as.Date(begindate)
   #if (dt > 30) stop('Time range needs to be less than or equal to 30.')
   
-  outfilename.nc <- paste0(outdir, "Wtmp_SDBay_",
+  outfilename.nc <- paste0(outdir, "nc/Wtmp_SDBay_",
                         begindate, '_', enddate, ".nc")
-  outfilename.csv <- paste0(outdir, "Wtmp_SDBay_",
+  outfilename.csv <- paste0(outdir, "csv/Wtmp_SDBay_",
                            begindate, '_', enddate, ".csv")
   
   url.nc <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.nc?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",

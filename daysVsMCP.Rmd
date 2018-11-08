@@ -1,0 +1,368 @@
+---
+title: "Days vs MCP size"
+output: html_notebook
+---
+
+This analysis looks at how MCP based home ranges changes with sample size, i.e., number of days. For each individual, MCP is computed for all data points (after filtering is done and data points selected for each 4-hr period) with increasing number of days. Plots are made for each individual.
+
+```{r}
+rm(list = ls())
+#getwd()
+#list.files()
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#Section 1: Load libraries and set wd
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(readr)
+
+source("HR_analysis_fcns.R")
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+min_n <- 50
+min_days <- 5   # # days pooled to create a MCP
+
+col.defs <- cols(ID = col_integer(),
+                 ArgosID = col_integer(),
+                 Message_Type = col_character(),
+                 TransmissionDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LC = col_integer(),
+                 Residual = col_double(),
+                 Lat1 = col_double(),
+                 Lon1 = col_double(),
+                 inside = col_integer(),
+                 UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 Date2 = col_datetime(format = "%Y-%m-%d"),
+                 LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 LocalSunset = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                 day1night2 = col_integer(),
+                 row = col_integer(),
+                 include = col_integer(),
+                 hr = col_integer(),
+                 ID.f = col_integer(),
+                 DaysSinceFirst = col_double())
+
+```
+
+First bring in data.
+
+```{r, cache=T}
+data.all <- read_csv("data/Post_GPS_LC_all_2018-09-18.csv",
+                     col_types = col.defs)
+
+data.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> data.ID.min_n_day
+
+data.list <- make.HR.dataset(data.all, data.ID.min_n_day, tagproj)
+
+data.ID <- data.list$unique.ID
+
+mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", 
+                                               length = length(data.ID))
+post.data.area.df <- data.frame(days = numeric(), 
+                           area = numeric(), 
+                           ID = numeric(),
+                           date = as.POSIXct(character()),
+                           lat.center = numeric(),
+                           lon.center = numeric())
+
+i <- r <- 1
+for (i in 1:length(data.ID)){
+  data.turtle1 <- data.list$eachID.utm[[i]]  
+  data.turtle1.time <- data.list$eachID.time[[i]]
+  data.turtle1.time$dif.time <- difftime(data.turtle1.time$UTC,
+                                         data.turtle1.time$UTC[1], 
+                                         units = "days")
+  data.turtle1.latlon <- data.list$eachID.coords[[i]]
+  
+  max.n.days <- ceiling(max(data.turtle1.time$dif.time))
+  n.steps <- length(c(min_days : max.n.days))
+  mcp1.area <- mcp1 <- dates <- center <- vector(mode = "list", 
+                                                 length = n.steps)
+  n <- 1
+  for (n_days in min_days : max.n.days){
+      data.turtle1.ndays <- data.turtle1[data.turtle1.time$dif.time < n_days,]
+      data.turtle1.time.ndays <- data.turtle1.time[data.turtle1.time$dif.time < n_days,]
+      data.turtle1.ndays.latlon <- data.turtle1.latlon[data.turtle1.time$dif.time < n_days,]    
+      if (nrow(data.turtle1.ndays@coords) > 4){
+        mcp1.area[[n]] <- mcp.area(data.turtle1.ndays, 
+                                   percent = 100, 
+                                   unin = "m", unout = "km2",
+                                   plotit = FALSE)
+        
+        dates[[n]] <- data.turtle1.time.ndays[nrow(data.turtle1.time.ndays),
+                                              "UTC"]
+        center[[n]] <- rgeos::gCentroid(data.turtle1.ndays.latlon)
+        
+        post.data.area.df[r, "area"] <- mcp1.area[[n]]
+        post.data.area.df[r, "date"] <- dates[[n]]
+        post.data.area.df[r, "lat.center"] <- center[[n]]$y
+        post.data.area.df[r, "lon.center"] <- center[[n]]$x
+        
+      }
+      post.data.area.df[r, "days"] <- n_days
+      post.data.area.df[r, "ID"] <- data.ID[i]
+      n <- n + 1
+      r <- r + 1
+  }
+
+
+}
+    
+```
+
+plot the results:
+```{r}
+ggplot(data = post.data.area.df) + 
+  geom_path(aes(x = days, y = area)) + 
+  facet_grid(. ~ ID) + 
+  facet_wrap( ~ ID, nrow = 4)
+```
+
+Do the same with the pre period.
+
+```{r, cache=T}
+data.all <- read_csv("data/Pre_GPS_LC_all_2018-09-18.csv",
+                     col_types = col.defs)
+data.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> data.ID.min_n_day
+
+data.list <- make.HR.dataset(data.all, data.ID.min_n_day, tagproj)
+
+data.ID <- data.list$unique.ID
+
+mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", 
+                                               length = length(data.ID))
+pre.data.area.df <- data.frame(days = numeric(), 
+                           area = numeric(), 
+                           ID = numeric(),
+                           date = as.POSIXct(character()),
+                           lat.center = numeric(),
+                           lon.center = numeric())
+
+i <- r <- 1
+for (i in 1:length(data.ID)){
+  data.turtle1 <- data.list$eachID.utm[[i]]  
+  data.turtle1.time <- data.list$eachID.time[[i]]
+  data.turtle1.time$dif.time <- difftime(data.turtle1.time$UTC,
+                                         data.turtle1.time$UTC[1], 
+                                         units = "days")
+  
+  data.turtle1.latlon <- data.list$eachID.coords[[i]]
+  max.n.days <- ceiling(max(data.turtle1.time$dif.time))
+  n.steps <- length(c(min_days : max.n.days))
+  mcp1.area <- mcp1 <- dates <- center <- vector(mode = "list", length = n.steps)
+  n <- 1
+  for (n_days in min_days : max.n.days){
+      data.turtle1.ndays <- data.turtle1[data.turtle1.time$dif.time < n_days,]
+      data.turtle1.time.ndays <- data.turtle1.time[data.turtle1.time$dif.time < n_days,]
+      
+      data.turtle1.ndays.latlon <- data.turtle1.latlon[data.turtle1.time$dif.time < n_days,]
+      
+      if (nrow(data.turtle1.ndays@coords) > 4){
+        mcp1[[n]] <- mcp(data.turtle1.ndays,
+                         percent = 100,
+                         unin = "m", unout = "km2")
+        mcp1.area[[n]] <- mcp.area(data.turtle1.ndays, 
+                                   percent = 100, 
+                                   unin = "m", unout = "km2",
+                                   plotit = FALSE)
+        dates[[n]] <- data.turtle1.time.ndays[nrow(data.turtle1.time.ndays),
+                                              "UTC"]
+        center[[n]] <- rgeos::gCentroid(data.turtle1.ndays.latlon)
+        pre.data.area.df[r, "area"] <- mcp1.area[[n]]
+        pre.data.area.df[r, "date"] <- dates[[n]]
+        pre.data.area.df[r, "lat.center"] <- center[[n]]$y
+        pre.data.area.df[r, "lon.center"] <- center[[n]]$x
+        
+      }
+      pre.data.area.df[r, "days"] <- n_days
+      pre.data.area.df[r, "ID"] <- data.ID[i]
+      n <- n + 1
+      r <- r + 1
+  }
+
+
+}
+```
+
+plot the results:
+```{r}
+ggplot(data = pre.data.area.df) + 
+  geom_path(aes(x = days, y = area)) + 
+  facet_grid(. ~ ID) + 
+  facet_wrap( ~ ID, nrow = 2)
+```
+
+Can I add water temperature to these data?
+
+```{r, cache=T}
+
+wtemp <- min_wtemp <- max_wtemp <- SD_wtemp <- vector(mode = "numeric", 
+                                                      length = nrow(post.data.area.df))
+k <- 1
+for (k in 1:nrow(post.data.area.df)){
+  begin.date <- date(post.data.area.df[k, "date"])
+  if (!is.na(begin.date)){
+    end.date <- begin.date
+    tmp.data <- getSDwtmp(begin.date, end.date,
+                          outdir = "data/Wtmp_SDBay/")
+    # nc format doesn't seem to work --- gets error using nc_open
+    # 6 November 2018
+    #datafileID <- nc_open(tmp.nc$filename)
+    
+    # these files have column headings in the first row and their
+    # units in the second row. so, first two rows need to be removed
+    col_names <- names(read_csv(tmp.data$filename$csv, n_max = 0))
+    data.tmp <- read_csv(file = tmp.data$filename$csv,
+                         col_names = col_names,
+                         skip = 2) %>%
+      filter(station == "SDBC1")
+    
+    wtemp[k] <- data.tmp %>%
+      summarise(mean.wtmp = mean(as.numeric(wtmp), na.rm = TRUE))
+    min_wtemp[k] <- data.tmp %>%
+      summarise(min.wtmp = min(as.numeric(wtmp), na.rm = TRUE))
+    max_wtemp[k] <- data.tmp %>%
+      summarise(max.wtmp = max(as.numeric(wtmp), na.rm = TRUE))
+    SD_wtemp[k] <- data.tmp %>%
+      summarise(SD.wtmp = sd(as.numeric(wtmp), na.rm = TRUE))
+    
+  }
+  
+}
+
+post.data.area.df$wtemp <- unlist(wtemp)
+post.data.area.df$min_wtemp <- unlist(min_wtemp)
+post.data.area.df$max_wtemp <- unlist(max_wtemp)
+post.data.area.df$SD_wtemp <- unlist(SD_wtemp)
+
+
+ggplot(data = post.data.area.df) + 
+  geom_path(aes(x = days, y = area, 
+                color = wtemp),
+            size = 1.5) + 
+  facet_grid(. ~ ID) + 
+  facet_wrap( ~ ID, nrow = 4)
+```
+
+How about for the pre period:
+```{r, cache=T}
+wtemp <- min_wtemp <- max_wtemp <- SD_wtemp <- vector(mode = "numeric", 
+                                                      length = nrow(pre.data.area.df))
+k <- 1
+for (k in 1:nrow(pre.data.area.df)){
+  begin.date <- date(pre.data.area.df[k, "date"])
+  if (!is.na(begin.date)){
+    end.date <- begin.date
+    tmp.data <- getSDwtmp(begin.date, end.date,
+                          outdir = "data/Wtmp_SDBay/")
+    # nc format doesn't seem to work --- gets error using nc_open
+    # 6 November 2018
+    #datafileID <- nc_open(tmp.nc$filename)
+    
+    # these files have column headings in the first row and their
+    # units in the second row. so, first two rows need to be removed
+    col_names <- names(read_csv(tmp.data$filename$csv, n_max = 0))
+    data.tmp <- read_csv(file = tmp.data$filename$csv,
+                         col_names = col_names,
+                         skip = 2) %>%
+      filter(station == "SDBC1")
+    
+    wtemp[k] <- data.tmp %>%
+      summarise(mean.wtmp = mean(as.numeric(wtmp), na.rm = TRUE))
+    min_wtemp[k] <- data.tmp %>%
+      summarise(min.wtmp = min(as.numeric(wtmp), na.rm = TRUE))
+    max_wtemp[k] <- data.tmp %>%
+      summarise(max.wtmp = max(as.numeric(wtmp), na.rm = TRUE))
+    SD_wtemp[k] <- data.tmp %>%
+      summarise(SD.wtmp = sd(as.numeric(wtmp), na.rm = TRUE))
+    
+  }
+  
+}
+
+pre.data.area.df$wtemp <- unlist(wtemp)
+pre.data.area.df$min_wtemp <- unlist(min_wtemp)
+pre.data.area.df$max_wtemp <- unlist(max_wtemp)
+pre.data.area.df$SD_wtemp <- unlist(SD_wtemp)
+
+
+ggplot(data = pre.data.area.df) + 
+  geom_path(aes(x = days, y = area, 
+                color = wtemp),
+            size = 1.5) + 
+  facet_grid(. ~ ID) + 
+  facet_wrap( ~ ID, nrow = 4)
+```
+
+Try looking at these data differently...
+
+```{r}
+ggplot(data = pre.data.area.df) + 
+  geom_point(aes(x = wtemp, y = area, color = as.factor(ID)))
+```
+
+Intereisting patterns... are they in different areas of the bay? 78500 seems to decrease the size as temperature increases. What's going on here?
+
+```{r}
+ggplot(data = pre.data.area.df) + 
+  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID)))
+```
+
+So, this shows that they all separated into different latitude/temperature spaces, except 44366 and 52675. Looking at the previous plot, 78500 was shrinking its UD as the water temperature increased. This plot shows, however, it moved to the northern part of the bay as the temperature increased - or that it moved to south as temperature decreased. All turtles showed that, within each turtle's temperature range, they moved south as water temperature decreased. How far north they go seems to depend on each individual. 
+
+Time vs. latitude:
+
+```{r}
+ggplot(data = pre.data.area.df) + 
+  geom_path(aes(x = days, y = lat.center, color = as.factor(ID)),
+            size = 2)
+```
+
+
+How does longitude look?
+```{r}
+ggplot(data = pre.data.area.df) + 
+  geom_point(aes(x = wtemp, y = lon.center, color = as.factor(ID)))
+```
+
+
+```{r}
+ggplot(data = post.data.area.df) + 
+  geom_point(aes(x = wtemp, y = area, color = as.factor(ID))) + 
+  xlim(c(15, 26))
+```
+
+
+```{r}
+ggplot(data = post.data.area.df) + 
+  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID))) + 
+  xlim(c(15, 26))
+```
+
+
+```{r}
+ggplot(data = post.data.area.df) + 
+  geom_path(aes(x = days, y = lat.center, color = as.factor(ID)),
+            size = 2)
+```
+
+
+
