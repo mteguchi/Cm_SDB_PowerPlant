@@ -33,7 +33,9 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
 tagproj <- proj4string(tagprj)
 
 min_n <- 50
-n_days <- 10   # # days pooled to create a MCP
+n_days <- 7   # # days pooled to create a MCP
+save.fig <- TRUE
+save.files <- TRUE
 ```
 
 Read in post and pre datasets
@@ -64,7 +66,7 @@ post.all <- read_csv("data/Post_GPS_LC_all_2018-09-18.csv",
                      col_types = col.defs)
 
 post.all %>% count(by = ArgosID) %>%
-    filter(n > (min_n - 1)) %>%
+    dplyr::filter(n > (min_n - 1)) %>%
     #dplyr::select(by) %>%
     rename(ArgosID = by) -> post.ID.min_n_day
 
@@ -72,12 +74,14 @@ post.list <- make.HR.dataset(post.all, post.ID.min_n_day, tagproj)
 
 post.ID <- post.list$unique.ID
 
-mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(post.ID))
+mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", 
+                                               length = length(post.ID))
 post.area.df <- data.frame(date = as.POSIXct(character()), 
                            area = numeric(), ID = numeric(),
                            lat.center = numeric(),
-                           lon.center = numeric())
-r <- 1
+                           lon.center = numeric(),
+                           days = numeric())
+i <- r <- 1
 for (i in 1:length(post.ID)){
   post.turtle1 <- post.list$eachID.utm[[i]]  
   post.turtle1.time <- post.list$eachID.time[[i]]
@@ -90,6 +94,7 @@ for (i in 1:length(post.ID)){
   mcp1.area <- mcp1 <- dates <- center <- vector(mode = "list", 
                                                  length = n.steps)
   min.day <- 0
+  n <- 1
   for (n in 1:n.steps){
     post.turtle1.ndays <- post.turtle1[post.turtle1.time$dif.time >= min.day &
                                          post.turtle1.time$dif.time < (min.day + n_days),]
@@ -113,6 +118,8 @@ for (i in 1:length(post.ID)){
       post.area.df[r, "date"] <- dates[[n]]
       post.area.df[r, "lat.center"] <- center[[n]]$y
       post.area.df[r, "lon.center"] <- center[[n]]$x
+      post.area.df[r, "days"] <- as.numeric( post.turtle1.time.ndays[ nrow( post.turtle1.time.ndays), 
+                                                                     "dif.time"]) 
     }
     post.area.df[r, "ID"] <- post.ID[i]
     min.day <- min.day + n_days
@@ -139,13 +146,21 @@ post.area.df %>% na.omit() %>%
   mutate(month = month(date),
          doy = yday(date)) -> post.area.df
 
-ggplot() + 
+p.7 <- ggplot() + 
   geom_point(data = post.area.df,
+             aes(x = doy, y = area, color = as.factor(ID)),
+             size = 2) + 
+  geom_path(data = post.area.df,
              aes(x = doy, y = area, color = as.factor(ID)))
 
+print(p.7)
 #pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
 #pre.ID <- unique(pre.all$ArgosID)
-
+if (save.fig)
+  ggsave(plot = p.7,
+         filename = paste0("figures/doyVsArea_", n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
 ```
 
 Do the same with the pre period
@@ -166,8 +181,9 @@ mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(po
 pre.area.df <- data.frame(date = as.POSIXct(character()), 
                           area = numeric(), 
                           ID = numeric(),
-                           lat.center = numeric(),
-                           lon.center = numeric())
+                          lat.center = numeric(),
+                          lon.center = numeric(),
+                          days = numeric())
 r <- 1
 for (i in 1:length(pre.ID)){
   pre.turtle1 <- pre.list$eachID.utm[[i]]  
@@ -204,6 +220,8 @@ for (i in 1:length(pre.ID)){
       pre.area.df[r, "date"] <- dates[[n]]
       pre.area.df[r, "lat.center"] <- center[[n]]$y
       pre.area.df[r, "lon.center"] <- center[[n]]$x
+      pre.area.df[r, "days"] <- as.numeric( pre.turtle1.time.ndays[ nrow( pre.turtle1.time.ndays), 
+                                                                     "dif.time"])
     }
     min.day <- min.day + n_days
     pre.area.df[r, "ID"] <- pre.ID[i]
@@ -230,9 +248,19 @@ pre.area.df %>% na.omit() %>%
   mutate(month = month(date),
          doy = yday(date)) -> pre.area.df
 
-ggplot() + 
+p.8 <- ggplot() + 
   geom_point(data = pre.area.df,
+             aes(x = doy, y = area, color = as.factor(ID)),
+             size = 2) +
+  geom_line(data = pre.area.df,
              aes(x = doy, y = area, color = as.factor(ID)))
+print(p.8)
+
+if (save.fig)
+  ggsave(plot = p.8,
+         filename = paste0("figures/doyVsArea_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
 
 ```
 
@@ -280,49 +308,200 @@ area.df$max_wtemp <- unlist(max_wtemp)
 area.df$SD_wtemp <- unlist(SD_wtemp)
 area.df$dif_wtemp <- area.df$max_wtemp - area.df$min_wtemp
 
-ggplot(data = area.df) +
+p.1 <- ggplot(data = area.df) +
   geom_point(aes(x = wtemp, y = area, 
                  color = as.factor(PP)),
              size = 3) #+ 
   #facet_grid(. ~ ID) + 
   #facet_wrap( ~ ID, nrow = 4)
 
+if (save.fig)
+  ggsave(plot = p.1,
+         filename = paste0("figures/wtempVsArea_", n_days, "days.png"),
+         device = "png",
+         dpi = 600)
+
 ```
 
 Any pattern with respect to day of year?
 ```{r}
 area.df %>% mutate(doy = yday(date)) -> area.df
+area.df %>% group_by(ID) %>% 
+  summarise(lat.first = first(lat.center),
+            PP = first(PP),
+            date.first = first(date),
+            area.first = first(area),
+            days.first = first(days),
+            wtemp.first = first(wtemp),
+            min.wtemp.first = first(min_wtemp),
+            max.wtemp.first = first(max_wtemp),
+            SD.wtemp.first = first(SD_wtemp)) -> area.first.df
 
-ggplot(data = area.df) + 
+if (save.files)
+  write.csv(area.df, 
+            file = paste0("data/MCP_area_df_", n_days, "days.csv"),
+            quote = FALSE,
+            row.names = FALSE)
+
+p.2 <- ggplot(data = area.df) + 
   geom_point(aes(x = doy, y = area, color = wtemp,
                  shape = as.factor(PP)),
              size = 3,
              alpha = 0.5)
+print(p.2)
+
+if (save.fig)
+  ggsave(plot = p.2,
+         filename = paste0("figures/doyVsAreaVsWtemp_", n_days, "days.png"),
+         device = "png",
+         dpi = 600)
 
 ```
 
 Latitude?
 
 ```{r}
-ggplot(data = filter(area.df, PP == 0)) + 
-  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID)))
+p.3 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(x = wtemp, 
+                 y = lat.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = wtemp, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(x = wtemp.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.3)
+
+if (save.fig)
+  ggsave(plot = p.3,
+         filename = paste0("figures/wtempVsLatCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
 ```
 
+There is an increasing relationship between water temperature and the centers of MCPs for the pre period. 
+
 ```{r}
-ggplot(data = filter(area.df, PP == 1)) + 
-  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID)))
+p.4 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(x = wtemp, 
+                 y = lat.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(x = wtemp, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(x = wtemp.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.4)
+
+if (save.fig)
+  ggsave(plot = p.4,
+         filename = paste0("figures/wtempVsLatCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
 ```
+
+For the post period, there also is an increasing relationship but a few turtles in the lower end makes it difficult to generalize. 
+
+Did the center of MCPs changed with sampling time? 
+```{r}
+p.5 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
+  geom_point(aes(x = days, 
+                 y = lat.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = days, 
+                y = lat.center, 
+                color = as.factor(ID)))
+
+print(p.5)
+if (save.fig)
+  ggsave(plot = p.5,
+         filename = paste0("figures/daysVsLatCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+```
+
+
+```{r}
+p.6 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
+  geom_point(aes(x = days, 
+                 y = lat.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = days, 
+                y = lat.center, 
+                color = as.factor(ID)))
+print(p.6)
+if (save.fig)
+  ggsave(plot = p.6,
+         filename = paste0("figures/daysVsLatCenter_", n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+Try days vs area:
+```{r}
+p.9 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
+  geom_point(aes(x = days, 
+                 y = area, 
+                 color = as.factor(ID)),
+             size = 2) + 
+    geom_line(aes(x = days, 
+                 y = area, 
+                 color = as.factor(ID)))
+print(p.9)
+if (save.fig)
+  ggsave(plot = p.9,
+         filename = paste0("figures/daysVsArea", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+```
+
+And for the post period:
+```{r}
+p.10 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
+  geom_point(aes(x = days, 
+                 y = area, 
+                 color = as.factor(ID)),
+             size = 2) + 
+    geom_line(aes(x = days, 
+                 y = area, 
+                 color = as.factor(ID)))
+print(p.10)
+if (save.fig)
+  ggsave(plot = p.10,
+         filename = paste0("figures/daysVsArea", n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
 
 
 Visual analysis doesn't bring out any particular patterns... so let's try mixed-effects model with ID as a random effect.
 ```{r}
 library(lme4)
-fit.1 <- lmer(area ~ PP + wtemp + SD_wtemp| ID, data = area.df)
-fit.2 <- lmer(area ~ wtemp + SD_wtemp| ID, data = area.df) 
-fit.3 <- lmer(area ~ PP +  SD_wtemp| ID, data = area.df)
-fit.4 <- lmer(area ~ PP + wtemp | ID, data = area.df) 
-fit.5 <- lmer(area ~ wtemp | ID, data = area.df)
-fit.6 <- lmer(area ~ SD_wtemp| ID, data = area.df)
+fit.1 <- lmer(lat.center ~ PP + wtemp + SD_wtemp + (1 | ID), 
+              data = area.df)
+fit.2 <- lmer(lat.center ~ wtemp + SD_wtemp + (1 | ID), 
+              data = area.df) 
+fit.3 <- lmer(lat.center ~ PP +  SD_wtemp + (1 | ID), 
+              data = area.df)
+fit.4 <- lmer(lat.center ~ PP + wtemp + (1 | ID), 
+              data = area.df) 
+fit.5 <- lmer(lat.center ~ wtemp + (1 | ID), 
+              data = area.df)
+fit.6 <- lmer(lat.center ~ SD_wtemp + (1 | ID), 
+              data = area.df)
 
 anova(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6)
 summary(fit.5)

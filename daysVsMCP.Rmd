@@ -323,7 +323,8 @@ Intereisting patterns... are they in different areas of the bay? 78500 seems to 
 
 ```{r}
 ggplot(data = pre.data.area.df) + 
-  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID)))
+  geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID))) + 
+  geom_path(aes(x = wtemp, y = lat.center, color = as.factor(ID)))
 ```
 
 So, this shows that they all separated into different latitude/temperature spaces, except 44366 and 52675. Looking at the previous plot, 78500 was shrinking its UD as the water temperature increased. This plot shows, however, it moved to the northern part of the bay as the temperature increased - or that it moved to south as temperature decreased. All turtles showed that, within each turtle's temperature range, they moved south as water temperature decreased. How far north they go seems to depend on each individual. 
@@ -340,7 +341,8 @@ ggplot(data = pre.data.area.df) +
 How does longitude look?
 ```{r}
 ggplot(data = pre.data.area.df) + 
-  geom_point(aes(x = wtemp, y = lon.center, color = as.factor(ID)))
+  geom_point(aes(x = wtemp, y = lon.center, color = as.factor(ID))) +
+  geom_path(aes(x = wtemp, y = lon.center, color = as.factor(ID)))
 ```
 
 
@@ -354,6 +356,7 @@ ggplot(data = post.data.area.df) +
 ```{r}
 ggplot(data = post.data.area.df) + 
   geom_point(aes(x = wtemp, y = lat.center, color = as.factor(ID))) + 
+  geom_path(aes(x = wtemp, y = lat.center, color = as.factor(ID))) + 
   xlim(c(15, 26))
 ```
 
