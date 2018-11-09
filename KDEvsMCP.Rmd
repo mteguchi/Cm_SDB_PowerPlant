@@ -1,0 +1,152 @@
+---
+title: "KDE vs. MCP"
+output: html_notebook
+---
+
+Comparing the areas computed by KDE and MCP - trying to justify using MCP for showing the center of MCPs moved with changing temperature.
+
+```{r}
+rm(list = ls())
+#getwd()
+#list.files()
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#Section 1: Load libraries and set wd
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+
+source("HR_analysis_fcns.R")
+
+grid.value <- 1000
+min_n <- 50
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+
+tagproj <- proj4string(tagprj)
+
+# not sure what this part is doing... 
+latlong = "+init=epsg:4326"
+
+file.date <- "2018-10-31"
+```
+
+Read in the data files:
+
+```{r}
+pre.summary <-  read.csv(paste0("data/pre_sample_summary_", 
+                                file.date, ".csv"))
+
+pre.all <-  read.csv(paste0("data/Pre_GPS_LC_all_", 
+                                   file.date, ".csv"))
+
+post.summary <- read.csv(paste0("data/post_sample_summary_", 
+                   file.date, ".csv"))
+
+post.all <-  read.csv(paste0("data/Post_GPS_LC_all_",
+                   file.date, ".csv"))
+
+```
+
+Then do the KDE first on the pre data:
+
+```{r, cache=T}
+# when trying to compute HR for each individual, some don't have enough data
+# extract those with at least 50 data points:
+
+pre.kd <- HR.analysis.step1(min_n, pre.all, 
+                            tagproj, 
+                            grid = grid.value)
+
+# h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
+# 
+# h.pre <- round(h.pre.1$h)
+# 
+# pre.HR <- compute.area(h.pre, 
+#                        pre.kd$list.data, 
+#                        grid = grid.value)
+
+
+UD.95.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
+                                               length = length(pre.kd$list.data$eachID.utm))
+h.pre.eachID <- h.multip.pre.eachID <- vector(mode = "numeric", length = length(pre.kd$list.data$eachID.utm))
+
+for (k in 1:length(pre.kd$list.data$eachID.utm)){
+  
+  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.pre.eachID[k] <- round(best.h$h)
+  h.multip.pre.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, 
+                 h = h.pre.eachID[k], 
+                 kern = "bivnorm", 
+                 grid = grid.value)
+  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+tmp.pre.95 <- lapply(UD.95.pre.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.50 <- lapply(UD.50.pre.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+
+for (k in 1:length(tmp.pre.95)){
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])
+}
+
+pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
+pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
+
+
+```
+
+Then compute MCP using all data:
+```{r}
+pre.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> pre.ID.min_n_day
+
+pre.list <- make.HR.dataset(pre.all, pre.ID.min_n_day, tagproj)
+
+pre.ID <- pre.list$unique.ID
+
+mcp1.50 <- mcp1.95 <- vector(mode = "list", length = length(pre.ID))
+for (i in 1:length(pre.ID)){
+  pre.turtle1 <- pre.list$eachID.utm[[i]]  
+  pre.turtle1.time <- pre.list$eachID.time[[i]]
+  pre.turtle1.time$dif.time <- difftime(pre.turtle1.time$UTC,
+                                         pre.turtle1.time$UTC[1], 
+                                         units = "days")
+  pre.turtle1.latlon <- pre.list$eachID.coords[[i]]
+  mcp1.50[[i]] <- mcp(pre.turtle1, 
+                      percent = 50, 
+                      unin = "m", unout = "km2")
+  mcp1.95[[i]] <- mcp(pre.turtle1, 
+                      percent = 95, 
+                      unin = "m", unout = "km2")
+  
+}
+```
+
+
+
+Do the same with post dataset - choose those with at least min_n data points. 
+
+```{r, cache=T}
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid.value)
+
+```

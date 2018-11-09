@@ -240,7 +240,7 @@ if (!file.exists(paste0("data/pre_sample_summary_",
 
 if (!file.exists(paste0("data/Pre_GPS_LC_all_", 
                         file.date, ".csv")))
-  write.csv(pre.all, paste0(dname, "Pre_GPS_LC_all_", 
+  write.csv(pre.all, paste0("data/Pre_GPS_LC_all_", 
                                    file.date, ".csv"),
             row.names = F,
             quote = F)

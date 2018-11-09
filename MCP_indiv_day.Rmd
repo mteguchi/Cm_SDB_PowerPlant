@@ -33,14 +33,14 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
 tagproj <- proj4string(tagprj)
 
 min_n <- 50
-n_days <- 7   # # days pooled to create a MCP
+n_days <- 20   # # days pooled to create a MCP
 save.fig <- TRUE
 save.files <- TRUE
 ```
 
 Read in post and pre datasets
 
-```{r, include=FALSE}
+```{r, include=FALSE, echo=FALSE, message=FALSE}
 col.defs <- cols(ID = col_integer(),
                  ArgosID = col_integer(),
                  Message_Type = col_character(),
@@ -164,7 +164,7 @@ if (save.fig)
 ```
 
 Do the same with the pre period
-```{r, include=FALSE}
+```{r, include=FALSE, message=FALSE, echo=FALSE}
 pre.all <- read_csv("data/Pre_GPS_LC_all_2018-09-18.csv",
                      col_types = col.defs)
 
@@ -254,7 +254,6 @@ p.8 <- ggplot() +
              size = 2) +
   geom_line(data = pre.area.df,
              aes(x = doy, y = area, color = as.factor(ID)))
-print(p.8)
 
 if (save.fig)
   ggsave(plot = p.8,
@@ -264,10 +263,15 @@ if (save.fig)
 
 ```
 
+```{r}
+print(p.8)
+```
+
+
 
 Is there any relationship with water temp?
 
-```{r}
+```{r, echo=FALSE, message=FALSE, include=FALSE}
 pre.area.df$PP <- 0
 post.area.df$PP <- 1
 area.df <- rbind(pre.area.df, post.area.df)
@@ -315,6 +319,7 @@ p.1 <- ggplot(data = area.df) +
   #facet_grid(. ~ ID) + 
   #facet_wrap( ~ ID, nrow = 4)
 
+#print(p.1)
 if (save.fig)
   ggsave(plot = p.1,
          filename = paste0("figures/wtempVsArea_", n_days, "days.png"),
@@ -322,6 +327,11 @@ if (save.fig)
          dpi = 600)
 
 ```
+
+```{r}
+print(p.1)
+```
+
 
 Any pattern with respect to day of year?
 ```{r}
