@@ -66,16 +66,7 @@ pre.kd <- HR.analysis.step1(min_n, pre.all,
                             tagproj, 
                             grid = grid.value)
 
-# h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
-# 
-# h.pre <- round(h.pre.1$h)
-# 
-# pre.HR <- compute.area(h.pre, 
-#                        pre.kd$list.data, 
-#                        grid = grid.value)
-
-
-UD.95.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
+UD.95.pre.eachID <- UD.75.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
                                                length = length(pre.kd$list.data$eachID.utm))
 h.pre.eachID <- h.multip.pre.eachID <- vector(mode = "numeric", length = length(pre.kd$list.data$eachID.utm))
 
@@ -90,10 +81,14 @@ for (k in 1:length(pre.kd$list.data$eachID.utm)){
                  kern = "bivnorm", 
                  grid = grid.value)
   UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.75.pre.eachID[[k]] <- getverticeshr(UD, 75)
   UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
 }
 
 tmp.pre.95 <- lapply(UD.95.pre.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.75 <- lapply(UD.75.pre.eachID, 
                      FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 
 tmp.pre.50 <- lapply(UD.50.pre.eachID, 
@@ -105,9 +100,11 @@ for (k in 1:length(tmp.pre.95)){
                             ID = pre.kd$list.data$unique.ID[k])
   tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
                             ID = pre.kd$list.data$unique.ID[k])
-}
+  tmp.pre.75[[k]] <- mutate(tmp.pre.75[[k]], 
+                            ID = pre.kd$list.data$unique.ID[k])}
 
 pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
+pre.eachID.ver.75.df <- do.call("rbind", tmp.pre.75)
 pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
 
 
@@ -124,7 +121,7 @@ pre.list <- make.HR.dataset(pre.all, pre.ID.min_n_day, tagproj)
 
 pre.ID <- pre.list$unique.ID
 
-mcp1.50 <- mcp1.95 <- vector(mode = "list", length = length(pre.ID))
+pre.mcp1.50 <- pre.mcp1.75 <- pre.mcp1.95 <- vector(mode = "list", length = length(pre.ID))
 for (i in 1:length(pre.ID)){
   pre.turtle1 <- pre.list$eachID.utm[[i]]  
   pre.turtle1.time <- pre.list$eachID.time[[i]]
@@ -132,14 +129,41 @@ for (i in 1:length(pre.ID)){
                                          pre.turtle1.time$UTC[1], 
                                          units = "days")
   pre.turtle1.latlon <- pre.list$eachID.coords[[i]]
-  mcp1.50[[i]] <- mcp(pre.turtle1, 
-                      percent = 50, 
-                      unin = "m", unout = "km2")
-  mcp1.95[[i]] <- mcp(pre.turtle1, 
-                      percent = 95, 
-                      unin = "m", unout = "km2")
+  pre.mcp1.50[[i]] <- mcp(pre.turtle1, 
+                          percent = 50, 
+                          unin = "m", unout = "km2")
+  pre.mcp1.75[[i]] <- mcp(pre.turtle1, 
+                          percent = 75, 
+                          unin = "m", unout = "km2")
+  pre.mcp1.95[[i]] <- mcp(pre.turtle1, 
+                          percent = 95, 
+                          unin = "m", unout = "km2")
   
 }
+
+tmp.pre.95 <- lapply(pre.mcp1.95, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.75 <- lapply(pre.mcp1.75, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.pre.50 <- lapply(pre.mcp1.50, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+
+for (k in 1:length(tmp.pre.95)){
+  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], 
+                            ID = pre.ID[k])
+  tmp.pre.75[[k]] <- mutate(tmp.pre.75[[k]], 
+                            ID = pre.ID[k])
+  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
+                            ID = pre.ID[k])
+}
+
+pre.MCP.95.df <- do.call("rbind", tmp.pre.95)
+pre.MCP.75.df <- do.call("rbind", tmp.pre.75)
+pre.MCP.50.df <- do.call("rbind", tmp.pre.50)
+
 ```
 
 
@@ -147,6 +171,130 @@ for (i in 1:length(pre.ID)){
 Do the same with post dataset - choose those with at least min_n data points. 
 
 ```{r, cache=T}
-post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid.value)
+post.kd <- HR.analysis.step1(min_n, post.all, 
+                             tagproj, 
+                             grid = grid.value)
+
+UD.95.post.eachID <- UD.75.post.eachID <- UD.50.post.eachID <- vector(mode = "list", 
+                                               length = length(post.kd$list.data$eachID.utm))
+h.post.eachID <- h.multip.post.eachID <- vector(mode = "numeric", length = length(post.kd$list.data$eachID.utm))
+
+for (k in 1:length(post.kd$list.data$eachID.utm)){
+  
+  dat.utm <- post.kd$list.data$eachID.utm[[k]]
+  best.h <- find.h.adhoc(dat.utm)
+  h.post.eachID[k] <- round(best.h$h)
+  h.multip.post.eachID[k] <- best.h$h.multip
+  UD <- kernelUD(dat.utm, 
+                 h = h.post.eachID[k], 
+                 kern = "bivnorm", 
+                 grid = grid.value)
+  UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
+  UD.75.post.eachID[[k]] <- getverticeshr(UD, 75)  
+  UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
+}
+
+tmp.post.95 <- lapply(UD.95.post.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.75 <- lapply(UD.75.post.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.50 <- lapply(UD.50.post.eachID, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+
+for (k in 1:length(tmp.post.95)){
+  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
+                            ID = post.kd$list.data$unique.ID[k])
+  tmp.post.75[[k]] <- mutate(tmp.post.75[[k]], 
+                            ID = post.kd$list.data$unique.ID[k])
+  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
+                            ID = post.kd$list.data$unique.ID[k])
+}
+
+post.eachID.ver.95.df <- do.call("rbind", tmp.post.95)
+post.eachID.ver.75.df <- do.call("rbind", tmp.post.75)
+post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
 
 ```
+
+Then for MCPs on post data.
+
+```{r}
+post.all %>% count(by = ArgosID) %>%
+    filter(n > (min_n - 1)) %>%
+    #dplyr::select(by) %>%
+    rename(ArgosID = by) -> post.ID.min_n_day
+
+post.list <- make.HR.dataset(post.all, post.ID.min_n_day, tagproj)
+
+post.ID <- post.list$unique.ID
+
+post.mcp1.50 <- post.mcp1.75 <- post.mcp1.95 <- vector(mode = "list", 
+                                                       length = length(post.ID))
+for (i in 1:length(post.ID)){
+  post.turtle1 <- post.list$eachID.utm[[i]]  
+  post.turtle1.time <- post.list$eachID.time[[i]]
+  post.turtle1.time$dif.time <- difftime(post.turtle1.time$UTC,
+                                         post.turtle1.time$UTC[1], 
+                                         units = "days")
+  post.turtle1.latlon <- post.list$eachID.coords[[i]]
+  post.mcp1.50[[i]] <- mcp(post.turtle1, 
+                           percent = 50, 
+                           unin = "m", unout = "km2")
+  post.mcp1.75[[i]] <- mcp(post.turtle1, 
+                           percent = 75, 
+                           unin = "m", unout = "km2")
+  post.mcp1.95[[i]] <- mcp(post.turtle1, 
+                           percent = 95, 
+                           unin = "m", unout = "km2")
+  
+}
+
+tmp.post.95 <- lapply(post.mcp1.95, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+tmp.post.75 <- lapply(post.mcp1.75, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+tmp.post.50 <- lapply(post.mcp1.50, 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+
+
+for (k in 1:length(tmp.post.95)){
+  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
+                            ID = post.ID[k])
+  tmp.post.75[[k]] <- mutate(tmp.post.75[[k]], 
+                            ID = post.ID[k])
+  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
+                            ID = post.ID[k])
+}
+
+post.MCP.95.df <- do.call("rbind", tmp.post.95)
+post.MCP.75.df <- do.call("rbind", tmp.post.75)
+post.MCP.50.df <- do.call("rbind", tmp.post.50)
+
+```
+
+And save some stuff so I don't have to run this again unless necessary.
+
+```{r}
+KDE.out <- list(pre.50 = pre.eachID.ver.50.df,
+                post.50 = post.eachID.ver.50.df,
+                pre.75 = pre.eachID.ver.75.df,
+                post.75 = post.eachID.ver.75.df,
+                pre.95 = pre.eachID.ver.95.df,
+                post.95 = post.eachID.ver.95.df)
+MCP.out <- list(pre.50 = pre.MCP.50.df,
+                post.50 = post.MCP.50.df,
+                pre.75 = pre.MCP.75.df,
+                post.75 = post.MCP.75.df,
+                pre.95 = pre.MCP.95.df,
+                post.95 = post.MCP.95.df)
+data.list <- list(post = post.list, pre = pre.list)
+
+out.list <- list(KDE = KDE.out, 
+                 MCP = MCP.out, 
+                 data = data.list)
+saveRDS(out.list, file = "RData/KDEvsMCPout.rds")
+```
+

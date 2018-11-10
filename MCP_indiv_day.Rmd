@@ -31,9 +31,12 @@ source("HR_analysis_fcns.R")
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
+latlong = "+init=epsg:4326"
 
 min_n <- 50
-n_days <- 20   # # days pooled to create a MCP
+n_days <- 10   # # days pooled to create a MCP
+MCP.percent <- 95
+
 save.fig <- TRUE
 save.files <- TRUE
 ```
@@ -74,7 +77,7 @@ post.list <- make.HR.dataset(post.all, post.ID.min_n_day, tagproj)
 
 post.ID <- post.list$unique.ID
 
-mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", 
+mcp.post <- mcp.post.area <- post.dates <- vector(mode = "list", 
                                                length = length(post.ID))
 post.area.df <- data.frame(date = as.POSIXct(character()), 
                            area = numeric(), ID = numeric(),
@@ -104,15 +107,15 @@ for (i in 1:length(post.ID)){
                                                    post.turtle1.time$dif.time < (min.day + n_days),]
     if (nrow(post.turtle1.ndays@coords) > 4){
       mcp1.area[[n]] <- mcp.area(post.turtle1.ndays, 
-                                 percent = 100, 
+                                 percent = MCP.percent, 
                                  unin = "m", unout = "km2",
                                  plotit = FALSE)
       
-      #mcp1[[n]] <- mcp(post.turtle1.ndays, 
-      #                 percent = 100, 
-      #                 unin = "m", unout = "km2")
+      mcp1[[n]] <- mcp(post.turtle1.ndays,
+                       percent = MCP.percent,
+                       unin = "m", unout = "km2")
       
-      dates[[n]] <- post.turtle1.time.ndays[1, "UTC"]
+      dates[[n]] <- min(post.turtle1.time.ndays$UTC)
       center[[n]] <- rgeos::gCentroid(post.turtle1.ndays.latlon)
       post.area.df[r, "area"] <- mcp1.area[[n]]
       post.area.df[r, "date"] <- dates[[n]]
@@ -126,19 +129,23 @@ for (i in 1:length(post.ID)){
     r <- r + 1
   }
   #mcp.all[[i]] <- mcp1
-  mcp.area.all[[i]] <- mcp1.area
-  dates.all[[i]] <- dates
+  mcp.post.area[[i]] <- compact(mcp1.area)
+  post.dates[[i]] <- compact(dates)
   
-  # for (k in 1:length(mcp.area.all[[i]])){
-  #   if (length(mcp1.area[[k]]) > 0){
-  #     post.area.df[r, "date"] <- dates[[k]] #as.Date(dates[[k]], format = "%Y-%m-%d %H:%M:%S") 
-  #     post.area.df[r, "area"] <- mcp1.area[[k]]
-  #     post.area.df[r, "ID"] <- post.ID[i]
-  #     r <- r + 1
-  #     
-  #   }
-  # }
-    
+  tmp.post <- lapply(compact(mcp1), 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+  
+  # Do not use date to index... maybe just use n of n.steps... 
+  # need to add ID also
+
+  for (k in 1:length(tmp.post)){
+    tmp.post[[k]] <- mutate(tmp.post[[k]], 
+                            k = k,
+                            ID = post.ID[i])  
+  }
+
+  mcp.post[[i]] <- do.call("rbind", tmp.post)
+
 }
 
 # combine areas and dates into a dataframe
@@ -146,6 +153,11 @@ post.area.df %>% na.omit() %>%
   mutate(month = month(date),
          doy = yday(date)) -> post.area.df
 
+
+
+```
+
+```{r}
 p.7 <- ggplot() + 
   geom_point(data = post.area.df,
              aes(x = doy, y = area, color = as.factor(ID)),
@@ -177,7 +189,8 @@ pre.list <- make.HR.dataset(pre.all, pre.ID.min_n_day, tagproj)
 
 pre.ID <- pre.list$unique.ID
 
-mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", length = length(post.ID))
+mcp.pre <- mcp.pre.area <- pre.dates <- vector(mode = "list", 
+                                               length = length(pre.ID))
 pre.area.df <- data.frame(date = as.POSIXct(character()), 
                           area = numeric(), 
                           ID = numeric(),
@@ -206,15 +219,15 @@ for (i in 1:length(pre.ID)){
     
     if (nrow(pre.turtle1.ndays@coords) > 4){
       mcp1.area[[n]] <- mcp.area(pre.turtle1.ndays, 
-                                 percent = 100, 
+                                 percent = MCP.percent, 
                                  unin = "m", unout = "km2",
                                  plotit = FALSE)
       
-      #mcp1[[n]] <- mcp(post.turtle1.ndays, 
-      #                 percent = 100, 
-      #                 unin = "m", unout = "km2")
-      
-      dates[[n]] <- pre.turtle1.time.ndays[1, "UTC"]
+      mcp1[[n]] <- mcp(post.turtle1.ndays,
+                       percent = MCP.percent,
+                       unin = "m", unout = "km2")
+
+      dates[[n]] <- min(pre.turtle1.time.ndays$UTC)
       center[[n]] <- rgeos::gCentroid(pre.turtle1.ndays.latlon)
       pre.area.df[r, "area"] <- mcp1.area[[n]]
       pre.area.df[r, "date"] <- dates[[n]]
@@ -227,20 +240,20 @@ for (i in 1:length(pre.ID)){
     pre.area.df[r, "ID"] <- pre.ID[i]
     r <- r + 1
   }
-  #mcp.all[[i]] <- mcp1
-  mcp.area.all[[i]] <- mcp1.area
-  dates.all[[i]] <- dates
   
-  #for (k in 1:length(mcp.area.all[[i]])){
-  #  if (length(mcp1.area[[k]]) > 0){
-      #pre.area.df[r, "date"] <- dates[[k]] #as.Date(dates[[k]], format = "%Y-%m-%d %H:%M:%S") 
-   #   pre.area.df[r, "area"] <- mcp1.area[[k]]
-    #  pre.area.df[r, "ID"] <- pre.ID[i]
-     # 
-      
-    #}
-  #}
-    
+  mcp.pre.area[[i]] <- compact(mcp1.area)
+  pre.dates[[i]] <- compact(dates)
+  
+  tmp.pre <- lapply(compact(mcp1), 
+                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+  
+  for (k in 1:length(tmp.pre)){
+    tmp.pre[[k]] <- mutate(tmp.pre[[k]], 
+                            k = k,
+                            ID = post.ID[i])  
+  }
+
+  mcp.pre[[i]] <- do.call("rbind", tmp.pre)
 }
 
 # combine areas and dates into a dataframe
@@ -248,6 +261,10 @@ pre.area.df %>% na.omit() %>%
   mutate(month = month(date),
          doy = yday(date)) -> pre.area.df
 
+```
+
+
+```{r}
 p.8 <- ggplot() + 
   geom_point(data = pre.area.df,
              aes(x = doy, y = area, color = as.factor(ID)),
@@ -311,7 +328,10 @@ area.df$min_wtemp <- unlist(min_wtemp)
 area.df$max_wtemp <- unlist(max_wtemp)
 area.df$SD_wtemp <- unlist(SD_wtemp)
 area.df$dif_wtemp <- area.df$max_wtemp - area.df$min_wtemp
+```
 
+
+```{r}
 p.1 <- ggplot(data = area.df) +
   geom_point(aes(x = wtemp, y = area, 
                  color = as.factor(PP)),
@@ -338,6 +358,7 @@ Any pattern with respect to day of year?
 area.df %>% mutate(doy = yday(date)) -> area.df
 area.df %>% group_by(ID) %>% 
   summarise(lat.first = first(lat.center),
+            lon.first = first(lon.center),
             PP = first(PP),
             date.first = first(date),
             area.first = first(area),
@@ -393,8 +414,36 @@ if (save.fig)
          dpi = 600)
 
 ```
-
 There is an increasing relationship between water temperature and the centers of MCPs for the pre period. 
+
+Longitude
+
+```{r}
+p.13 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(x = wtemp, 
+                 y = lon.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = wtemp, 
+                 y = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(x = wtemp.first,
+                 y = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.13)
+
+if (save.fig)
+  ggsave(plot = p.13,
+         filename = paste0("figures/wtempVsLonCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
+And the decreasing one with longitude. 
+
 
 ```{r}
 p.4 <- ggplot(data = filter(area.df, PP == 1)) + 
@@ -420,7 +469,34 @@ if (save.fig)
          dpi = 600)
 ```
 
-For the post period, there also is an increasing relationship but a few turtles in the lower end makes it difficult to generalize. 
+The water temp vs latitude center relationship is a bit whacky... For the post period, there also is an increasing relationship but a few turtles in the lower end makes it difficult to generalize. 
+
+```{r}
+p.12 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(x = wtemp, 
+                 y = lon.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(x = wtemp, 
+                 y = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(x = wtemp.first,
+                 y = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.12)
+
+if (save.fig)
+  ggsave(plot = p.12,
+         filename = paste0("figures/wtempVsLonCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+Longitude doesn't seem to show the strong relationship found in the pre period. 
+
 
 Did the center of MCPs changed with sampling time? 
 ```{r}
@@ -455,6 +531,23 @@ print(p.6)
 if (save.fig)
   ggsave(plot = p.6,
          filename = paste0("figures/daysVsLatCenter_", n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+```{r}
+p.11 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
+  geom_point(aes(x = days, 
+                 y = lon.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = days, 
+                y = lon.center, 
+                color = as.factor(ID)))
+print(p.11)
+if (save.fig)
+  ggsave(plot = p.11,
+         filename = paste0("figures/daysVsLonCenter_", n_days, "days_post.png"),
          device = "png",
          dpi = 600)
 ```
@@ -495,6 +588,39 @@ if (save.fig)
          dpi = 600)
 ```
 
+
+Visual inspection of how the MCPs moved for each individual
+```{r}
+p.MCP.post <- ggplot() + 
+  geom_polygon(data = MCP.out$post.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$post.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "deepskyblue",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$post.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.post)
+```
 
 
 Visual analysis doesn't bring out any particular patterns... so let's try mixed-effects model with ID as a random effect.

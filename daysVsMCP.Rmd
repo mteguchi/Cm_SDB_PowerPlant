@@ -31,7 +31,8 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
 tagproj <- proj4string(tagprj)
 
 min_n <- 50
-min_days <- 5   # # days pooled to create a MCP
+min_days <- 7   # the minimum # days pooled to create a MCP
+MCP.percent <- 95
 
 col.defs <- cols(ID = col_integer(),
                  ArgosID = col_integer(),
@@ -100,12 +101,11 @@ for (i in 1:length(data.ID)){
       data.turtle1.ndays.latlon <- data.turtle1.latlon[data.turtle1.time$dif.time < n_days,]    
       if (nrow(data.turtle1.ndays@coords) > 4){
         mcp1.area[[n]] <- mcp.area(data.turtle1.ndays, 
-                                   percent = 100, 
+                                   percent = MCP.percent, 
                                    unin = "m", unout = "km2",
                                    plotit = FALSE)
         
-        dates[[n]] <- data.turtle1.time.ndays[nrow(data.turtle1.time.ndays),
-                                              "UTC"]
+        dates[[n]] <- max(data.turtle1.time.ndays$UTC)
         center[[n]] <- rgeos::gCentroid(data.turtle1.ndays.latlon)
         
         post.data.area.df[r, "area"] <- mcp1.area[[n]]
@@ -150,11 +150,11 @@ data.ID <- data.list$unique.ID
 mcp.all <- mcp.area.all <- dates.all <- vector(mode = "list", 
                                                length = length(data.ID))
 pre.data.area.df <- data.frame(days = numeric(), 
-                           area = numeric(), 
-                           ID = numeric(),
-                           date = as.POSIXct(character()),
-                           lat.center = numeric(),
-                           lon.center = numeric())
+                               area = numeric(), 
+                               ID = numeric(),
+                               date = as.POSIXct(character()),
+                               lat.center = numeric(),
+                               lon.center = numeric())
 
 i <- r <- 1
 for (i in 1:length(data.ID)){
@@ -177,15 +177,15 @@ for (i in 1:length(data.ID)){
       
       if (nrow(data.turtle1.ndays@coords) > 4){
         mcp1[[n]] <- mcp(data.turtle1.ndays,
-                         percent = 100,
+                         percent = MCP.percent,
                          unin = "m", unout = "km2")
         mcp1.area[[n]] <- mcp.area(data.turtle1.ndays, 
-                                   percent = 100, 
+                                   percent = MCP.percent, 
                                    unin = "m", unout = "km2",
                                    plotit = FALSE)
-        dates[[n]] <- data.turtle1.time.ndays[nrow(data.turtle1.time.ndays),
-                                              "UTC"]
+        dates[[n]] <- max(data.turtle1.time.ndays$UTC)
         center[[n]] <- rgeos::gCentroid(data.turtle1.ndays.latlon)
+        
         pre.data.area.df[r, "area"] <- mcp1.area[[n]]
         pre.data.area.df[r, "date"] <- dates[[n]]
         pre.data.area.df[r, "lat.center"] <- center[[n]]$y
@@ -316,7 +316,8 @@ Try looking at these data differently...
 
 ```{r}
 ggplot(data = pre.data.area.df) + 
-  geom_point(aes(x = wtemp, y = area, color = as.factor(ID)))
+  geom_point(aes(x = wtemp, y = area, color = as.factor(ID))) + 
+  geom_path(aes(x = wtemp, y = area, color = as.factor(ID)))
 ```
 
 Intereisting patterns... are they in different areas of the bay? 78500 seems to decrease the size as temperature increases. What's going on here?
@@ -349,6 +350,8 @@ ggplot(data = pre.data.area.df) +
 ```{r}
 ggplot(data = post.data.area.df) + 
   geom_point(aes(x = wtemp, y = area, color = as.factor(ID))) + 
+  geom_path(aes(x = wtemp, y = area, color = as.factor(ID))) + 
+  
   xlim(c(15, 26))
 ```
 
@@ -360,6 +363,17 @@ ggplot(data = post.data.area.df) +
   xlim(c(15, 26))
 ```
 
+
+```{r}
+ggplot(data = post.data.area.df) + 
+  geom_point(aes(x = wtemp, 
+                 y = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_path(aes(x = wtemp, 
+                y = lon.center, 
+                color = as.factor(ID))) + 
+  xlim(c(15, 26))
+```
 
 ```{r}
 ggplot(data = post.data.area.df) + 

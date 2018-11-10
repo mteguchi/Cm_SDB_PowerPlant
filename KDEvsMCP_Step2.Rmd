@@ -1,0 +1,456 @@
+---
+title: "KDE vs MCP plotting"
+output: html_notebook
+---
+
+This file uses the output from KDEvsMCP.Rmd and creates plots to compare how the two methods differ in computing areas from the relocation data for SDB green turtles.
+
+First setup libraries and some constants:
+```{r, echo=FALSE}
+rm(list = ls())
+#getwd()
+#list.files()
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#Section 1: Load libraries and set wd
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+
+source("HR_analysis_fcns.R")
+
+grid.value <- 1000
+min_n <- 50
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+
+tagproj <- proj4string(tagprj)
+
+# not sure what this part is doing... 
+latlong = "+init=epsg:4326"
+
+file.date <- "2018-10-31"
+save.fig <- TRUE
+```
+
+```{r}
+KDE.MCP.data <- readRDS("RData/KDEvsMCPout.rds")
+KDE.out <- KDE.MCP.data$KDE
+MCP.out <- KDE.MCP.data$MCP
+post.data <- KDE.MCP.data$data$post
+pre.data <- KDE.MCP.data$data$pre
+
+post.data.df <- data.frame(cbind(post.data$byID.coords@data,
+                                 post.data$byID.coords@coords)) %>%
+  group_by(ID)
+pre.data.df <- data.frame(cbind(pre.data$byID.coords@data,
+                                 pre.data$byID.coords@coords))  %>%
+  group_by(ID)
+```
+
+Then make plots. Pre period first.
+
+First compare MCP 50% and 95%
+```{r}
+p.MCP.pre <- ggplot() + 
+  geom_point(data = pre.data.df,
+             aes(x = x, y = y)) +
+  geom_polygon(data = MCP.out$pre.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 0.8) +
+  geom_polygon(data = MCP.out$pre.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "deepskyblue",
+               alpha = 0.5) +
+  
+  geom_polygon(data = MCP.out$pre.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 0.2) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.pre)
+
+if (save.fig)
+  ggsave(plot = p.MCP.pre,
+         filename = "figures/MCP_pre.png",
+         device = "png",
+         dpi = 600)
+```
+
+and KDE
+
+```{r}
+p.KDE.pre <- ggplot() + 
+  geom_point(data = pre.data.df,
+             aes(x = x, y = y)) +
+  geom_polygon(data = KDE.out$pre.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightpink",
+               alpha = 0.7) +
+  geom_polygon(data = KDE.out$pre.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "indianred",
+               alpha = 0.7) +
+  
+  geom_polygon(data = KDE.out$pre.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "red4",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.KDE.pre)
+
+if (save.fig)
+  ggsave(plot = p.KDE.pre,
+         filename = "figures/KDE_pre.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+```{r}
+p.MCP.KDE.pre.50 <- ggplot() + 
+  geom_point(data = pre.data.df,
+             aes(x = x, y = y),
+             color = "gray50") +
+  geom_polygon(data = KDE.out$pre.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "red4",
+               alpha = 0.6) +
+  geom_polygon(data = MCP.out$pre.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.pre.50)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.pre.50,
+         filename = "figures/MCP_KDE_50_pre.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+75% for pre
+```{r}
+p.MCP.KDE.pre.75 <- ggplot() + 
+    geom_point(data = pre.data.df,
+             aes(x = x, y = y)) +
+  geom_polygon(data = KDE.out$pre.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "indianred",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$pre.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "deepskyblue",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.pre.75)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.pre.75,
+         filename = "figures/MCP_KDE_75_pre.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+
+and 95% for pre
+
+```{r}
+p.MCP.KDE.pre.95 <- ggplot() + 
+    geom_point(data = pre.data.df,
+             aes(x = x, y = y)) +
+  geom_polygon(data = KDE.out$pre.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightpink",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$pre.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.pre.95)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.pre.95,
+         filename = "figures/MCP_KDE_95_pre.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+And for the post period
+```{r}
+p.MCP.post <- ggplot() + 
+  geom_point(data = post.data.df,
+             aes(x = x, y = y),
+             color = "gray50") +
+  geom_polygon(data = MCP.out$post.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$post.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "deepskyblue",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$post.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.post)
+
+if (save.fig)
+  ggsave(plot = p.MCP.post,
+         filename = "figures/MCP_post.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+and KDE
+
+```{r}
+p.KDE.post <- ggplot() + 
+  geom_point(data = post.data.df,
+             aes(x = x, y = y)) +
+  geom_polygon(data = KDE.out$post.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightpink",
+               alpha = 0.7) +
+  geom_polygon(data = KDE.out$post.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "indianred",
+               alpha = 0.7) +
+  
+  geom_polygon(data = KDE.out$post.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "red4",
+               alpha = 0.6) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.KDE.post)
+
+if (save.fig)
+  ggsave(plot = p.KDE.post,
+         filename = "figures/KDE_post.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+```{r}
+p.MCP.KDE.post.50 <- ggplot() + 
+  geom_point(data = post.data.df,
+             aes(x = x, y = y),
+             color = "gray60") +
+  geom_polygon(data = KDE.out$post.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "red4",
+               alpha = 0.7) +
+  geom_polygon(data = MCP.out$post.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 0.7) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.post.50)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.post.50,
+         filename = "figures/MCP_KDE_50_post.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+75%
+```{r}
+p.MCP.KDE.75.post <- ggplot() + 
+  geom_point(data = post.data.df,
+             aes(x = x, y = y),
+             color = "gray50") +
+  geom_polygon(data = KDE.out$post.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "indianred",
+               alpha = 0.6) +
+  geom_polygon(data = MCP.out$post.75,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "deepskyblue",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.75.post)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.75.post,
+         filename = "figures/MCP_KDE_75_post.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+
+And post 95%
+
+```{r}
+p.MCP.KDE.95.post <- ggplot() + 
+  geom_point(data = post.data.df,
+             aes(x = x, y = y),
+             color = "gray50") +
+  geom_polygon(data = KDE.out$post.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightpink",
+               alpha = 0.6) +
+  geom_polygon(data = MCP.out$post.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.KDE.95.post)
+
+if (save.fig)
+  ggsave(plot = p.MCP.KDE.95.post,
+         filename = "figures/MCP_KDE_95_post.png",
+         device = "png",
+         dpi = 600)
+
+```
+
+So, they seem to be comparable for these home range estimations. If anything, MCP underestimates the range. For the purpose of finding the centers of polygons, MCPs should be fine. Especially 95% MCP seems to capture what my eyes see. 
