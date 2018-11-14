@@ -34,7 +34,7 @@ tagproj <- proj4string(tagprj)
 latlong = "+init=epsg:4326"
 
 min_n <- 50
-n_days <- 10   # # days pooled to create a MCP
+n_days <- 14   # # days pooled to create a MCP
 MCP.percent <- 95
 
 save.fig <- TRUE
@@ -223,7 +223,7 @@ for (i in 1:length(pre.ID)){
                                  unin = "m", unout = "km2",
                                  plotit = FALSE)
       
-      mcp1[[n]] <- mcp(post.turtle1.ndays,
+      mcp1[[n]] <- mcp(pre.turtle1.ndays,
                        percent = MCP.percent,
                        unin = "m", unout = "km2")
 
@@ -245,7 +245,7 @@ for (i in 1:length(pre.ID)){
   pre.dates[[i]] <- compact(dates)
   
   tmp.pre <- lapply(compact(mcp1), 
-                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+                    FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
   
   for (k in 1:length(tmp.pre)){
     tmp.pre[[k]] <- mutate(tmp.pre[[k]], 
@@ -420,16 +420,16 @@ Longitude
 
 ```{r}
 p.13 <- ggplot(data = filter(area.df, PP == 0)) + 
-  geom_point(aes(x = wtemp, 
-                 y = lon.center, 
+  geom_point(aes(y = wtemp, 
+                 x = lon.center, 
                  color = as.factor(ID)),
              size = 2) + 
-  geom_path(aes(x = wtemp, 
-                 y = lon.center, 
+  geom_path(aes(y = wtemp, 
+                 x = lon.center, 
                  color = as.factor(ID))) + 
   geom_point(data = filter(area.first.df, PP == 0),
-             aes(x = wtemp.first,
-                 y = lon.first,
+             aes(y = wtemp.first,
+                 x = lon.first,
                  color = as.factor(ID)),
              size = 4)
 print(p.13)
@@ -473,15 +473,15 @@ The water temp vs latitude center relationship is a bit whacky... For the post p
 
 ```{r}
 p.12 <- ggplot(data = filter(area.df, PP == 1)) + 
-  geom_point(aes(x = wtemp, 
-                 y = lon.center, 
+  geom_point(aes(y = wtemp, 
+                 x = lon.center, 
                  color = as.factor(ID)))+
-  geom_path(aes(x = wtemp, 
-                 y = lon.center, 
+  geom_path(aes(y = wtemp, 
+                 x = lon.center, 
                  color = as.factor(ID))) + 
   geom_point(data = filter(area.first.df, PP == 1),
-             aes(x = wtemp.first,
-                 y = lon.first,
+             aes(y = wtemp.first,
+                 x = lon.first,
                  color = as.factor(ID)),
              size = 4)
 
@@ -565,7 +565,7 @@ p.9 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
 print(p.9)
 if (save.fig)
   ggsave(plot = p.9,
-         filename = paste0("figures/daysVsArea", n_days, "days_pre.png"),
+         filename = paste0("figures/daysVsArea_", n_days, "days_pre.png"),
          device = "png",
          dpi = 600)
 ```
@@ -583,7 +583,7 @@ p.10 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
 print(p.10)
 if (save.fig)
   ggsave(plot = p.10,
-         filename = paste0("figures/daysVsArea", n_days, "days_post.png"),
+         filename = paste0("figures/daysVsArea_", n_days, "days_post.png"),
          device = "png",
          dpi = 600)
 ```
@@ -591,28 +591,16 @@ if (save.fig)
 
 Visual inspection of how the MCPs moved for each individual
 ```{r}
-p.MCP.post <- ggplot() + 
-  geom_polygon(data = MCP.out$post.95,
-               aes(x = long, y = lat,
-                   group = group),
+mcp.post.df <- do.call("rbind", mcp.post)
+#id.1 <- filter(mcp.post.df, ID == 126065)
+p.MCP.post <- ggplot(data = mcp.post.df) + 
+  geom_polygon(aes(x = long, y = lat,
+                   fill = as.factor(k)),
                color = "black",
-               fill = "lightcyan",
-               alpha = 0.7) +
-  geom_polygon(data = MCP.out$post.75,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "deepskyblue",
-               alpha = 0.7) +
-  geom_polygon(data = MCP.out$post.50,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "blue4",
-               alpha = 0.6) +
+               alpha = 0.4) +
   coord_map() + 
   facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 3) + 
+  facet_wrap( ~ ID, nrow = 4) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
@@ -620,12 +608,45 @@ p.MCP.post <- ggplot() +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
                      limits = c(32.59, 32.65))
 plot(p.MCP.post)
+if (save.fig)
+  ggsave(plot = p.MCP.post,
+         filename = paste0("figures/MCPvsTimeByID_", n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+There is no particular pattern, except may be 152315 moving a bit north? 
+
+```{r}
+mcp.pre.df <- do.call("rbind", mcp.pre)
+p.MCP.pre <- ggplot(data = mcp.pre.df) + 
+  geom_polygon(aes(x = long, y = lat,
+                   fill = as.factor(k)),
+               color = "black",
+               alpha = 0.4) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 4) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.15, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.59, 32.65))
+plot(p.MCP.pre)
+if (save.fig)
+  ggsave(plot = p.MCP.pre,
+         filename = paste0("figures/MCPvsTimeByID_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
 ```
 
 
 Visual analysis doesn't bring out any particular patterns... so let's try mixed-effects model with ID as a random effect.
+
 ```{r}
 library(lme4)
+#library(mgcv)
 fit.1 <- lmer(lat.center ~ PP + wtemp + SD_wtemp + (1 | ID), 
               data = area.df)
 fit.2 <- lmer(lat.center ~ wtemp + SD_wtemp + (1 | ID), 
@@ -638,9 +659,15 @@ fit.5 <- lmer(lat.center ~ wtemp + (1 | ID),
               data = area.df)
 fit.6 <- lmer(lat.center ~ SD_wtemp + (1 | ID), 
               data = area.df)
-
+ 
 anova(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6)
 summary(fit.5)
+fit.list <- list(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6)
+ 
+
+if (save.files)
+  saveRDS(fit.list, file = paste0("RData/fit_list_", n_days, "days.rds"))
+ 
 #plot(fit.1)
 ```
 
