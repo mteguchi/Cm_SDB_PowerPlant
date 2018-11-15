@@ -34,7 +34,7 @@ tagproj <- proj4string(tagprj)
 latlong = "+init=epsg:4326"
 
 min_n <- 50
-n_days <- 14   # # days pooled to create a MCP
+n_days <- 10   # # days pooled to create a MCP
 MCP.percent <- 95
 
 save.fig <- TRUE
@@ -294,33 +294,38 @@ post.area.df$PP <- 1
 area.df <- rbind(pre.area.df, post.area.df)
 wtemp <- min_wtemp <- max_wtemp <- SD_wtemp <- vector(mode = "numeric", 
                                                       length = nrow(area.df))
+
+# lagged by 14 days
+wtemp_14 <- min_wtemp_14 <- max_wtemp_14 <- SD_wtemp_14 <- vector(mode = "numeric", 
+                                                      length = nrow(area.df))
+
+# lagged by 7 days
+wtemp_7 <- min_wtemp_7 <- max_wtemp_7 <- SD_wtemp_7 <- vector(mode = "numeric", 
+                                                      length = nrow(area.df))
+
 k <- 1
 
 for (k in 1:nrow(area.df)){
     begin.date <- date(area.df[k, "date"])
     end.date <- date(area.df[k, "date"] + days(n_days - 1))
-    tmp.data <- getSDwtmp(begin.date, end.date,
-                        outdir = "data/Wtmp_SDBay/")
-    # nc format doesn't seem to work --- gets error using nc_open
-    # 6 November 2018
-    #datafileID <- nc_open(tmp.nc$filename)
+    tmp.1 <- tmp.summary(begin.date, end.date)
+    tmp.14 <- tmp.summary(begin.date-days(14), begin.date)
+    tmp.7 <- tmp.summary(begin.date - days(7), begin.date)
+
+    wtemp[k] <- tmp.1$mean
+    min_wtemp[k] <- tmp.1$min
+    max_wtemp[k] <- tmp.1$max
+    SD_wtemp[k] <- tmp.1$SD
+    wtemp_7[k] <- tmp.7$mean
+    min_wtemp_7[k] <- tmp.7$min
+    max_wtemp_7[k] <- tmp.7$max
+    SD_wtemp_7[k] <- tmp.7$SD
+    wtemp_14[k] <- tmp.14$mean
+    min_wtemp_14[k] <- tmp.14$min
+    max_wtemp_14[k] <- tmp.14$max
+    SD_wtemp_14[k] <- tmp.14$SD
+
     
-    # these files have column headings in the first row and their
-    # units in the second row. so, first two rows need to be removed
-    col_names <- names(read_csv(tmp.data$filename$csv, n_max = 0))
-    data.tmp <- read_csv(file = tmp.data$filename$csv,
-                         col_names = col_names,
-                         skip = 2) %>%
-      filter(station == "SDBC1")
-    
-    wtemp[k] <- data.tmp %>%
-      summarise(mean.wtmp = mean(as.numeric(wtmp), na.rm = TRUE))
-    min_wtemp[k] <- data.tmp %>%
-      summarise(min.wtmp = min(as.numeric(wtmp), na.rm = TRUE))
-    max_wtemp[k] <- data.tmp %>%
-      summarise(max.wtmp = max(as.numeric(wtmp), na.rm = TRUE))
-    SD_wtemp[k] <- data.tmp %>%
-      summarise(SD.wtmp = sd(as.numeric(wtmp), na.rm = TRUE))
 }
 
 area.df$wtemp <- unlist(wtemp)
@@ -328,6 +333,19 @@ area.df$min_wtemp <- unlist(min_wtemp)
 area.df$max_wtemp <- unlist(max_wtemp)
 area.df$SD_wtemp <- unlist(SD_wtemp)
 area.df$dif_wtemp <- area.df$max_wtemp - area.df$min_wtemp
+
+area.df$wtemp_7 <- unlist(wtemp_7)
+area.df$min_wtemp_7 <- unlist(min_wtemp_7)
+area.df$max_wtemp_7 <- unlist(max_wtemp_7)
+area.df$SD_wtemp_7 <- unlist(SD_wtemp_7)
+area.df$dif_wtemp_7 <- area.df$max_wtemp_7 - area.df$min_wtemp_7
+
+area.df$wtemp_14 <- unlist(wtemp_14)
+area.df$min_wtemp_14 <- unlist(min_wtemp_14)
+area.df$max_wtemp_14 <- unlist(max_wtemp_14)
+area.df$SD_wtemp_14 <- unlist(SD_wtemp_14)
+area.df$dif_wtemp_14 <- area.df$max_wtemp_14 - area.df$min_wtemp_14
+
 ```
 
 
@@ -353,6 +371,49 @@ print(p.1)
 ```
 
 
+```{r}
+p.1_7 <- ggplot(data = area.df) +
+  geom_point(aes(x = wtemp_7, y = area, 
+                 color = as.factor(PP)),
+             size = 3) #+ 
+  #facet_grid(. ~ ID) + 
+  #facet_wrap( ~ ID, nrow = 4)
+
+#print(p.1)
+if (save.fig)
+  ggsave(plot = p.1_7,
+         filename = paste0("figures/wtemp_7VsArea_", n_days, "days.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
+```{r}
+print(p.1_7)
+```
+
+```{r}
+p.1_14 <- ggplot(data = area.df) +
+  geom_point(aes(x = wtemp_14, y = area, 
+                 color = as.factor(PP)),
+             size = 3) +
+  labs(title = "14 day lag")
+  #facet_grid(. ~ ID) + 
+  #facet_wrap( ~ ID, nrow = 4)
+
+#print(p.1)
+if (save.fig)
+  ggsave(plot = p.1_14,
+         filename = paste0("figures/wtemp_14VsArea_", n_days, "days.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
+```{r}
+print(p.1_14)
+```
+
 Any pattern with respect to day of year?
 ```{r}
 area.df %>% mutate(doy = yday(date)) -> area.df
@@ -366,7 +427,15 @@ area.df %>% group_by(ID) %>%
             wtemp.first = first(wtemp),
             min.wtemp.first = first(min_wtemp),
             max.wtemp.first = first(max_wtemp),
-            SD.wtemp.first = first(SD_wtemp)) -> area.first.df
+            SD.wtemp.first = first(SD_wtemp),
+            wtemp_7.first = first(wtemp_7),
+            min.wtemp_7.first = first(min_wtemp_7),
+            max.wtemp_7.first = first(max_wtemp_7),
+            SD.wtemp_7.first = first(SD_wtemp_7),
+            wtemp_14.first = first(wtemp_14),
+            min.wtemp_14.first = first(min_wtemp_14),
+            max.wtemp_14.first = first(max_wtemp_14),
+            SD.wtemp_14.first = first(SD_wtemp_14)) -> area.first.df
 
 if (save.files)
   write.csv(area.df, 
@@ -416,6 +485,55 @@ if (save.fig)
 ```
 There is an increasing relationship between water temperature and the centers of MCPs for the pre period. 
 
+
+```{r}
+p.3_7 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(x = wtemp_7, 
+                 y = lat.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = wtemp_7, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(x = wtemp_7.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.3_7)
+
+if (save.fig)
+  ggsave(plot = p.3_7,
+         filename = paste0("figures/wtemp_7VsLatCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
+```{r}
+p.3_14 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(x = wtemp_14, 
+                 y = lat.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(x = wtemp_14, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(x = wtemp_14.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.3_14)
+
+if (save.fig)
+  ggsave(plot = p.3_14,
+         filename = paste0("figures/wtemp_14VsLatCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
 Longitude
 
 ```{r}
@@ -444,6 +562,54 @@ if (save.fig)
 
 And the decreasing one with longitude. 
 
+```{r}
+p.13_7 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(y = wtemp_7, 
+                 x = lon.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(y = wtemp_7, 
+                 x = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(y = wtemp_7.first,
+                 x = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.13_7)
+
+if (save.fig)
+  ggsave(plot = p.13_7,
+         filename = paste0("figures/wtemp_7VsLonCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
+```
+
+
+```{r}
+p.13_14 <- ggplot(data = filter(area.df, PP == 0)) + 
+  geom_point(aes(y = wtemp_14, 
+                 x = lon.center, 
+                 color = as.factor(ID)),
+             size = 2) + 
+  geom_path(aes(y = wtemp_14, 
+                 x = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 0),
+             aes(y = wtemp_14.first,
+                 x = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+print(p.13_14)
+
+if (save.fig)
+  ggsave(plot = p.13_14,
+         filename = paste0("figures/wtemp_14VsLonCenter_", n_days, "days_pre.png"),
+         device = "png",
+         dpi = 600)
+
+```
 
 ```{r}
 p.4 <- ggplot(data = filter(area.df, PP == 1)) + 
@@ -471,6 +637,57 @@ if (save.fig)
 
 The water temp vs latitude center relationship is a bit whacky... For the post period, there also is an increasing relationship but a few turtles in the lower end makes it difficult to generalize. 
 
+
+```{r}
+p.4_7 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(x = wtemp_7, 
+                 y = lat.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(x = wtemp_7, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(x = wtemp_7.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.4_7)
+
+if (save.fig)
+  ggsave(plot = p.4_7,
+         filename = paste0("figures/wtemp_7VsLatCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+
+```{r}
+p.4_14 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(x = wtemp_14, 
+                 y = lat.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(x = wtemp_14, 
+                 y = lat.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(x = wtemp_14.first,
+                 y = lat.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.4_14)
+
+if (save.fig)
+  ggsave(plot = p.4_14,
+         filename = paste0("figures/wtemp_14VsLatCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+
 ```{r}
 p.12 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(y = wtemp, 
@@ -496,6 +713,56 @@ if (save.fig)
 ```
 
 Longitude doesn't seem to show the strong relationship found in the pre period. 
+
+
+```{r}
+p.12_7 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(y = wtemp_7, 
+                 x = lon.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(y = wtemp_7, 
+                 x = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(y = wtemp_7.first,
+                 x = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.12_7)
+
+if (save.fig)
+  ggsave(plot = p.12_7,
+         filename = paste0("figures/wtemp_7VsLonCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
+
+
+```{r}
+p.12_14 <- ggplot(data = filter(area.df, PP == 1)) + 
+  geom_point(aes(y = wtemp_14, 
+                 x = lon.center, 
+                 color = as.factor(ID)))+
+  geom_path(aes(y = wtemp_14, 
+                 x = lon.center, 
+                 color = as.factor(ID))) + 
+  geom_point(data = filter(area.first.df, PP == 1),
+             aes(y = wtemp_14.first,
+                 x = lon.first,
+                 color = as.factor(ID)),
+             size = 4)
+
+print(p.12_14)
+
+if (save.fig)
+  ggsave(plot = p.12_14,
+         filename = paste0("figures/wtemp_14VsLonCenter_", 
+                           n_days, "days_post.png"),
+         device = "png",
+         dpi = 600)
+```
 
 
 Did the center of MCPs changed with sampling time? 
@@ -647,22 +914,25 @@ Visual analysis doesn't bring out any particular patterns... so let's try mixed-
 ```{r}
 library(lme4)
 #library(mgcv)
-fit.1 <- lmer(lat.center ~ PP + wtemp + SD_wtemp + (1 | ID), 
+fit.1 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + SD_wtemp + (1 | ID), 
               data = area.df)
-fit.2 <- lmer(lat.center ~ wtemp + SD_wtemp + (1 | ID), 
+
+fit.2 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + (1 | ID), 
               data = area.df) 
-fit.3 <- lmer(lat.center ~ PP +  SD_wtemp + (1 | ID), 
+fit.3 <- lmer(lat.center ~ PP +  wtemp_7 + wtemp_14 + (1 | ID), 
               data = area.df)
-fit.4 <- lmer(lat.center ~ PP + wtemp + (1 | ID), 
+fit.4 <- lmer(lat.center ~ wtemp_7 + wtemp_14 + (1 | ID), 
               data = area.df) 
-fit.5 <- lmer(lat.center ~ wtemp + (1 | ID), 
+fit.5 <- lmer(lat.center ~ wtemp_14 + (1 | ID), 
               data = area.df)
-fit.6 <- lmer(lat.center ~ SD_wtemp + (1 | ID), 
+fit.6 <- lmer(lat.center ~ wtemp_7 + (1 | ID), 
+              data = area.df)
+fit.7 <- lmer(lat.center ~ wtemp + (1 | ID), 
               data = area.df)
  
-anova(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6)
-summary(fit.5)
-fit.list <- list(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6)
+anova(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6, fit.7)
+summary(fit.4)
+fit.list <- list(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6, fit.7)
  
 
 if (save.files)

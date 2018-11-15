@@ -297,3 +297,33 @@ getSDwtmp<- function(begindate, enddate,
   
   return(out.list)
 }
+
+tmp.summary <- function(begin.date, end.date){
+  # nc format doesn't seem to work --- gets error using nc_open
+  # 6 November 2018
+  #datafileID <- nc_open(tmp.nc$filename)
+  
+  # these files have column headings in the first row and their
+  # units in the second row. so, first two rows need to be removed
+  
+  tmp.data <- getSDwtmp(begin.date, end.date,
+                        outdir = "data/Wtmp_SDBay/")
+  col_names <- names(read_csv(tmp.data$filename$csv, n_max = 0))
+  data.tmp <- read_csv(file = tmp.data$filename$csv,
+                       col_names = col_names,
+                       skip = 2) %>%
+    filter(station == "SDBC1")
+  
+  wtemp <- data.tmp %>%
+    summarise(mean.wtmp = mean(as.numeric(wtmp), na.rm = TRUE))
+  min_wtemp <- data.tmp %>%
+    summarise(min.wtmp = min(as.numeric(wtmp), na.rm = TRUE))
+  max_wtemp <- data.tmp %>%
+    summarise(max.wtmp = max(as.numeric(wtmp), na.rm = TRUE))
+  SD_wtemp <- data.tmp %>%
+    summarise(SD.wtmp = sd(as.numeric(wtmp), na.rm = TRUE))
+  
+  return(list(mean = wtemp, min = min_wtemp,
+              max = max_wtemp, SD = SD_wtemp))
+}
+
