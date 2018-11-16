@@ -34,7 +34,7 @@ tagproj <- proj4string(tagprj)
 latlong = "+init=epsg:4326"
 
 min_n <- 50
-n_days <- 10   # # days pooled to create a MCP
+n_days <- 7   # # days pooled to create a MCP
 MCP.percent <- 95
 
 save.fig <- TRUE
@@ -744,7 +744,8 @@ if (save.fig)
 p.12_14 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(y = wtemp_14, 
                  x = lon.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(y = wtemp_14, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
@@ -770,8 +771,8 @@ Did the center of MCPs changed with sampling time?
 p.5 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
   geom_point(aes(x = days, 
                  y = lat.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(x = days, 
                 y = lat.center, 
                 color = as.factor(ID)))
@@ -789,8 +790,8 @@ if (save.fig)
 p.6 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
   geom_point(aes(x = days, 
                  y = lat.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(x = days, 
                 y = lat.center, 
                 color = as.factor(ID)))
@@ -804,12 +805,12 @@ if (save.fig)
 
 ```{r}
 p.11 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
-  geom_point(aes(x = days, 
-                 y = lon.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
-  geom_path(aes(x = days, 
-                y = lon.center, 
+  geom_point(aes(y = days, 
+                 x = lon.center, 
+                 color = as.factor(ID),
+                 size = doy)) + 
+  geom_path(aes(y = days, 
+                x = lon.center, 
                 color = as.factor(ID)))
 print(p.11)
 if (save.fig)
@@ -870,10 +871,10 @@ p.MCP.post <- ggplot(data = mcp.post.df) +
   facet_wrap( ~ ID, nrow = 4) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
+  scale_x_continuous(breaks = c(-117.13, -117.11),
+                     limits = c(-117.133, -117.09)) +
+  scale_y_continuous(breaks = c(32.61, 32.63),
+                     limits = c(32.60, 32.65))
 plot(p.MCP.post)
 if (save.fig)
   ggsave(plot = p.MCP.post,
@@ -913,31 +914,62 @@ Visual analysis doesn't bring out any particular patterns... so let's try mixed-
 
 ```{r}
 library(lme4)
+area.df %>% dplyr::select(-"date") %>%
+  scale() %>% as.data.frame() -> area.df.center.scale
 #library(mgcv)
-fit.1 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + SD_wtemp + (1 | ID), 
-              data = area.df)
+lat.fit.1 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + SD_wtemp + (1 | ID), 
+              data = area.df.center.scale)
 
-fit.2 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + (1 | ID), 
-              data = area.df) 
-fit.3 <- lmer(lat.center ~ PP +  wtemp_7 + wtemp_14 + (1 | ID), 
-              data = area.df)
-fit.4 <- lmer(lat.center ~ wtemp_7 + wtemp_14 + (1 | ID), 
-              data = area.df) 
-fit.5 <- lmer(lat.center ~ wtemp_14 + (1 | ID), 
-              data = area.df)
-fit.6 <- lmer(lat.center ~ wtemp_7 + (1 | ID), 
-              data = area.df)
-fit.7 <- lmer(lat.center ~ wtemp + (1 | ID), 
-              data = area.df)
+lat.fit.2 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale) 
+lat.fit.3 <- lmer(lat.center ~ PP +  wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale)
+lat.fit.4 <- lmer(lat.center ~ wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale) 
+lat.fit.5 <- lmer(lat.center ~ wtemp_14 + (1 | ID), 
+              data = area.df.center.scale)
+lat.fit.6 <- lmer(lat.center ~ wtemp_7 + (1 | ID), 
+              data = area.df.center.scale)
+lat.fit.7 <- lmer(lat.center ~ wtemp + (1 | ID), 
+              data = area.df.center.scale)
  
-anova(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6, fit.7)
-summary(fit.4)
-fit.list <- list(fit.1, fit.2, fit.3, fit.4, fit.5, fit.6, fit.7)
+anova(lat.fit.1, lat.fit.2, lat.fit.3, lat.fit.4, 
+      lat.fit.5, lat.fit.6, lat.fit.7)
+summary(lat.fit.4)
+lat.fit.list <- list(lat.fit.1, lat.fit.2, lat.fit.3, 
+                     lat.fit.4, lat.fit.5, lat.fit.6, lat.fit.7)
  
+#plot(fit.1)
+```
+
+```{r}
+lon.fit.1 <- lmer(lon.center ~ PP + wtemp + wtemp_7 + wtemp_14 + SD_wtemp + (1 | ID), 
+              data = area.df.center.scale)
+
+lon.fit.2 <- lmer(lon.center ~ PP + wtemp + wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale) 
+lon.fit.3 <- lmer(lon.center ~ PP +  wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale)
+lon.fit.4 <- lmer(lon.center ~ wtemp_7 + wtemp_14 + (1 | ID), 
+              data = area.df.center.scale) 
+lon.fit.5 <- lmer(lon.center ~ wtemp_14 + (1 | ID), 
+              data = area.df.center.scale)
+lon.fit.6 <- lmer(lon.center ~ wtemp_7 + (1 | ID), 
+              data = area.df.center.scale)
+lon.fit.7 <- lmer(lon.center ~ wtemp + (1 | ID), 
+              data = area.df.center.scale)
+ 
+anova(lon.fit.1, lon.fit.2, lon.fit.3, lon.fit.4, 
+      lon.fit.5, lon.fit.6, lon.fit.7)
+summary(lon.fit.4)
+lon.fit.list <- list(lon.fit.1, lon.fit.2, lon.fit.3, 
+                     lon.fit.4, lon.fit.5, lon.fit.6, lon.fit.7)
+ 
+fit.list <- list(lat = lat.fit.list,
+                 lon = lon.fit.list)
 
 if (save.files)
   saveRDS(fit.list, file = paste0("RData/fit_list_", n_days, "days.rds"))
- 
-#plot(fit.1)
+
 ```
 
