@@ -464,16 +464,20 @@ Latitude?
 p.3 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(x = wtemp, 
                  y = lat.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(x = wtemp, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(x = wtemp.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(x = wtemp.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4) + 
+  labs(y = "Center of MCP (latitude)",
+       y = "Mean water temperature (C)") + 
+
+  theme(legend.position = "none")
 print(p.3)
 
 if (save.fig)
@@ -490,16 +494,20 @@ There is an increasing relationship between water temperature and the centers of
 p.3_7 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(x = wtemp_7, 
                  y = lat.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(x = wtemp_7, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(x = wtemp_7.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(x = wtemp_7.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(y = "Center of MCP (latitude)",
+       x = "Mean water temperature over 7 days (C)") + 
+
+  theme(legend.position = "none")
 print(p.3_7)
 
 if (save.fig)
@@ -514,16 +522,21 @@ if (save.fig)
 p.3_14 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(x = wtemp_14, 
                  y = lat.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(x = wtemp_14, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(x = wtemp_14.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(x = wtemp_14.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(y = "Center of MCP (latitude)",
+       x = "Mean water temperature over 14 days (C)") + 
+
+  theme(legend.position = "none")
+
 print(p.3_14)
 
 if (save.fig)
@@ -540,16 +553,20 @@ Longitude
 p.13 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(y = wtemp, 
                  x = lon.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(y = wtemp, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(y = wtemp.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(y = wtemp.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature (C)") + 
+
+  theme(legend.position = "none")
 print(p.13)
 
 if (save.fig)
@@ -566,16 +583,21 @@ And the decreasing one with longitude.
 p.13_7 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(y = wtemp_7, 
                  x = lon.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(y = wtemp_7, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(y = wtemp_7.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(y = wtemp_7.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature over 7 days (C)") + 
+
+  theme(legend.position = "none")
+
 print(p.13_7)
 
 if (save.fig)
@@ -591,16 +613,20 @@ if (save.fig)
 p.13_14 <- ggplot(data = filter(area.df, PP == 0)) + 
   geom_point(aes(y = wtemp_14, 
                  x = lon.center, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
   geom_path(aes(y = wtemp_14, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 0),
-             aes(y = wtemp_14.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 0),
+  #            aes(y = wtemp_14.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature over 14 days (C)") + 
+
+  theme(legend.position = "none")
 print(p.13_14)
 
 if (save.fig)
@@ -615,15 +641,20 @@ if (save.fig)
 p.4 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(x = wtemp, 
                  y = lat.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(x = wtemp, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(x = wtemp.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(x = wtemp.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+    labs(y = "Center of MCP (latitude)",
+       x = "Mean water temperature (C)") + 
+
+  theme(legend.position = "none")
 
 print(p.4)
 
@@ -642,15 +673,20 @@ The water temp vs latitude center relationship is a bit whacky... For the post p
 p.4_7 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(x = wtemp_7, 
                  y = lat.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(x = wtemp_7, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(x = wtemp_7.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(x = wtemp_7.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(y = "Center of MCP (latitude)",
+       x = "Mean water temperature over 7 days (C)") + 
+
+  theme(legend.position = "none")
 
 print(p.4_7)
 
@@ -667,15 +703,20 @@ if (save.fig)
 p.4_14 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(x = wtemp_14, 
                  y = lat.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(x = wtemp_14, 
                  y = lat.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(x = wtemp_14.first,
-                 y = lat.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(x = wtemp_14.first,
+  #                y = lat.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(y = "Center of MCP (latitude)",
+       x = "Mean water temperature over 14 days (C)") + 
+
+  theme(legend.position = "none")
 
 print(p.4_14)
 
@@ -692,15 +733,20 @@ if (save.fig)
 p.12 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(y = wtemp, 
                  x = lon.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(y = wtemp, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(y = wtemp.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(y = wtemp.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+    labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature (C)") + 
+
+  theme(legend.position = "none")
 
 print(p.12)
 
@@ -719,15 +765,20 @@ Longitude doesn't seem to show the strong relationship found in the pre period.
 p.12_7 <- ggplot(data = filter(area.df, PP == 1)) + 
   geom_point(aes(y = wtemp_7, 
                  x = lon.center, 
-                 color = as.factor(ID)))+
+                 color = as.factor(ID),
+                 size = doy))+
   geom_path(aes(y = wtemp_7, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(y = wtemp_7.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(y = wtemp_7.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature over 7 days (C)") + 
+  
+  theme(legend.position = "none")
 
 print(p.12_7)
 
@@ -749,11 +800,14 @@ p.12_14 <- ggplot(data = filter(area.df, PP == 1)) +
   geom_path(aes(y = wtemp_14, 
                  x = lon.center, 
                  color = as.factor(ID))) + 
-  geom_point(data = filter(area.first.df, PP == 1),
-             aes(y = wtemp_14.first,
-                 x = lon.first,
-                 color = as.factor(ID)),
-             size = 4)
+  # geom_point(data = filter(area.first.df, PP == 1),
+  #            aes(y = wtemp_14.first,
+  #                x = lon.first,
+  #                color = as.factor(ID)),
+  #            size = 4)
+  labs(x = "Center of MCP (longitude)",
+       y = "Mean water temperature over 14 days (C)") + 
+  theme(legend.position = "none")
 
 print(p.12_14)
 
@@ -775,7 +829,8 @@ p.5 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
                  size = doy)) + 
   geom_path(aes(x = days, 
                 y = lat.center, 
-                color = as.factor(ID)))
+                color = as.factor(ID))) + 
+  theme(legend.position = "none")
 
 print(p.5)
 if (save.fig)
@@ -794,7 +849,9 @@ p.6 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
                  size = doy)) + 
   geom_path(aes(x = days, 
                 y = lat.center, 
-                color = as.factor(ID)))
+                color = as.factor(ID))) +
+  theme(legend.position = "none")
+
 print(p.6)
 if (save.fig)
   ggsave(plot = p.6,
@@ -811,7 +868,9 @@ p.11 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
                  size = doy)) + 
   geom_path(aes(y = days, 
                 x = lon.center, 
-                color = as.factor(ID)))
+                color = as.factor(ID))) + 
+  theme(legend.position = "none")
+
 print(p.11)
 if (save.fig)
   ggsave(plot = p.11,
@@ -829,7 +888,9 @@ p.9 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
              size = 2) + 
     geom_line(aes(x = days, 
                  y = area, 
-                 color = as.factor(ID)))
+                 color = as.factor(ID))) + 
+  theme(legend.position = "none")
+
 print(p.9)
 if (save.fig)
   ggsave(plot = p.9,
@@ -843,11 +904,13 @@ And for the post period:
 p.10 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
   geom_point(aes(x = days, 
                  y = area, 
-                 color = as.factor(ID)),
-             size = 2) + 
+                 color = as.factor(ID),
+                 size = doy)) + 
     geom_line(aes(x = days, 
                  y = area, 
-                 color = as.factor(ID)))
+                 color = as.factor(ID))) + 
+  theme(legend.position = "none")
+
 print(p.10)
 if (save.fig)
   ggsave(plot = p.10,
@@ -868,13 +931,15 @@ p.MCP.post <- ggplot(data = mcp.post.df) +
                alpha = 0.4) +
   coord_map() + 
   facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 4) + 
+  facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.13, -117.11),
                      limits = c(-117.133, -117.09)) +
   scale_y_continuous(breaks = c(32.61, 32.63),
-                     limits = c(32.60, 32.65))
+                     limits = c(32.60, 32.65)) + 
+  theme(legend.position = "none")
+
 plot(p.MCP.post)
 if (save.fig)
   ggsave(plot = p.MCP.post,
@@ -894,13 +959,15 @@ p.MCP.pre <- ggplot(data = mcp.pre.df) +
                alpha = 0.4) +
   coord_map() + 
   facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 4) + 
+  facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
                      limits = c(-117.15, -117.08)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
+                     limits = c(32.59, 32.65)) + 
+  theme(legend.position = "none")
+
 plot(p.MCP.pre)
 if (save.fig)
   ggsave(plot = p.MCP.pre,
