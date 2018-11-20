@@ -33,6 +33,10 @@ min_n <- 50
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
 
+grid <- 1000
+extent <- 1
+
+
 source("HR_analysis_fcns.R")
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
@@ -46,8 +50,8 @@ Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files
 post.all <- read.csv("data/Post_GPS_LC_all_2018-09-18.csv")
 pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
 
-pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = 300)
-post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
 
 h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
 ## Section 3.1.2
@@ -59,7 +63,7 @@ h.pre <- round(h.pre.1$h)
 
 pre.HR <- compute.area(h.pre, 
                        pre.kd$list.data, 
-                       grid = 300)
+                       grid = grid)
 
 h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
 
@@ -67,11 +71,11 @@ h.post <- round(h.post.1$h)
 
 post.HR <- compute.area(h.post, 
                        post.kd$list.data, 
-                       grid = 300)
+                       grid = grid)
 
 ```
 
-Select all possible combinations of 5 (nrow(ID.pre.min_n) - 1) to 16 (nrow(ID.post.min_n) - 1) individuals from the post data. There are 8008 possible combinations when min_n = 50, n = 5, and total_n = 17. It takes a bit of time, I select 1000 of them. All these were ran using postUD_effects_n.Rmd. Results are saved in .rds files. 
+Select all possible combinations of 5 (nrow(ID.pre.min_n) - 1) to 15 (nrow(ID.post.min_n) - 1) individuals from the post data. There are 8008 possible combinations when min_n = 50, n = 5, and total_n = 17. It takes a bit of time, I select 1000 of them. All these were ran using postUD_effects_n.Rmd. Results are saved in .rds files. 
 
 First, we look at the change in computed areas as a function of sample sizes. 
 
@@ -88,8 +92,6 @@ ID.pre.min_n <- filter(pre.summary,
 # This loop takes a long time... It was run once already so start from 
 # where it was left off. .RData file needs to be loaded to figure out
 # how far along the first attempt was. 
-grid <- 1000
-extent <- 1
 
 # select randomized results 
 file.names <- list.files(path = "Rdata/", pattern = "areas_combos_n")
@@ -97,8 +99,12 @@ file.names <- list.files(path = "Rdata/", pattern = "areas_combos_n")
 # initialize empty lists for collecting info
 area50.list <- area95.list <- vector(mode = "list", length = length(file.names))
 p.d50.list <- p.d95.list <- vector(mode = "list", length = length(file.names))
+dif.50.list <- dif.95.list <- vector(mode = "list", length = length(file.names))
 Fn.50.0 <- Fn.95.0 <- vector(mode = "numeric", length = length(file.names))
 
+
+# file.names are not listed from 5 to 15, so results need to be placed in the 
+# right spot 
 for (k in 1:length(file.names)){
   # find the sample size for this file:
   n.txt <- unlist(strsplit(strsplit(strsplit(file.names[k], 
@@ -113,29 +119,29 @@ for (k in 1:length(file.names)){
   area95.list[[as.numeric(n.txt) - 4]] <- data.frame(area95 = areas.combos$area95,
                                                      n = as.numeric(n.txt))
   
-  dif.50.df <- data.frame(dif = areas.combos$area50 - pre.HR$area.50)
-  dif.95.df <- data.frame(dif = areas.combos$area95 - pre.HR$area.95)
+  dif.50.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area50 - pre.HR$area.50)
+  dif.95.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area95 - pre.HR$area.95)
   
-  p.d50.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.50.df) + 
+  p.d50.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.50.list[[as.numeric(n.txt) - 4]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.1) +
     labs(title = paste0("n = ", n.txt), 
-         x = "Difference in area (50%)", y = "Count")
+         x = "Difference in area (50% UD)", y = "Count")
   
   # find the ecdf of the differences
-  Fn.50 <- ecdf(dif.50.df$dif)
+  Fn.50 <- ecdf(dif.50.list[[as.numeric(n.txt) - 4]]$dif)
   
   # compute the probability at 0:
   Fn.50.0[as.numeric(n.txt) - 4] <- Fn.50(0)
   
   #plot(hist.dif.50)
   
-  p.d95.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.95.df) + 
+  p.d95.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.95.list[[as.numeric(n.txt) - 4]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.15) +
     labs(title = paste0("n = ", n.txt), 
-         x = "Difference in area (95%)", y = "Count")
+         x = "Difference in area (95% UD)", y = "Count")
   
   # find the ecdf of the differences
-  Fn.95 <- ecdf(dif.95.df$dif)
+  Fn.95 <- ecdf(dif.95.list[[as.numeric(n.txt) - 4]]$dif)
   
   # compute the probability at 0:
   Fn.95.0[as.numeric(n.txt) - 4] <- Fn.95(0)
@@ -155,6 +161,7 @@ area50.df <- do.call(rbind, area50.list) %>%
 area50.means <- area50.df %>% 
   group_by(f.n) %>% 
   summarize(mean.50 = mean(area50),
+            median.50 = median(area50),
             n = first(n)) 
 
 area95.df <- do.call(rbind, area95.list) %>% 
@@ -163,6 +170,7 @@ area95.df <- do.call(rbind, area95.list) %>%
 area95.means <- area95.df %>% 
   group_by(f.n) %>% 
   summarize(mean.95 = mean(area95),
+            median.95 = median(area95),
             n = first(n)) 
 
 pre.df <- data.frame(n = c(6, 6), 
@@ -171,18 +179,21 @@ pre.df <- data.frame(n = c(6, 6),
 post.df <- data.frame(n = c(17, 17), 
                      areas = c(post.HR$area.50, post.HR$area.95))
  
-ggplot() + 
+p.dif.dist <- ggplot() + 
   geom_point(data = area50.df,
              aes(x = n, y = area50)) + 
   geom_point(data = area50.means,
              aes(x = n, 
                  y = mean.50),
-             size = 4.5) + 
+             size = 4.5,
+             shape = 15) + 
   geom_point(data = area95.df,
              aes(x = n, y = area95)) + 
   geom_point(data = area95.means,
-             aes(x = n, y = mean.95),
-             size = 4.5) + 
+             aes(x = n, 
+                 y = mean.95),
+             size = 4.5,
+             shape = 15) + 
   geom_point(data = pre.df,
              aes(x = n, y = areas),
              color = "green",
@@ -197,8 +208,17 @@ ggplot() +
   labs(x = "Number of individuals",
        y = "Estimated UDs")
   
+ggsave(filename = "figures/preVsPost_effect_n.png",
+       plot = p.dif.dist,
+       device = "png",
+       dpi = 600)
 
+plot(p.dif.dist)
 ```
+
+This plot shows that 50% UDs have less variability than 95% UDs. Also, the means of 50% UDs at various sample sizes (the number of individuals) are closer to the 50% UD with all individuals than the means of 95% UDs. So, to make a comparison between the pre and post UDs with different sample sizes, we should use 50% UDs. 
+
+Another way to look at the distributions - ridge plots. 
 
 ```{r}
 
@@ -219,7 +239,7 @@ ggplot(data = area95.df) +
 
 area50.df$f.n <- as.factor(area50.df$n)
 ggplot(data = area50.df) + 
-  geom_density_ridges2(aes(x = area50, y = f.n, stat = "identity"),
+  geom_density_ridges2(aes(x = area50, y = f.n),
                        fill = "springgreen2") + 
     geom_vline(xintercept = post.HR$area.50,
              size = 1.5, color = "black",
@@ -227,3 +247,24 @@ ggplot(data = area50.df) +
 labs(x = "50% UD", y = "Number of individuals")
 
 ```
+
+Look at the differences between pre and post periods using 50% UDs.
+
+```{r}
+p.d50.n6 <- ggplot(data = dif.50.list[[2]]) + 
+    geom_histogram(aes(x = dif), binwidth = 0.1) +
+    labs(x = "Difference in area (50% UD)", y = "Count")
+
+ggsave(filename = "figures/preVsPost_n6.png",
+       plot = p.dif.dist,
+       device = "png",
+       dpi = 600)
+
+
+plot(p.d50.n6)
+
+
+```
+
+So, the majority of the differences are above zero (94.5%), indicating that there was an increase in 50% UDs after the PP shut down. 
+

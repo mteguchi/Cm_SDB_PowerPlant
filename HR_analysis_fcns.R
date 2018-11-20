@@ -78,7 +78,7 @@ HR.bvnorm.fcn <- function(all.utm,
                           byID.utm,
                           h="href",
                           hlim=c(0.03, 1.5),
-                          grid=300, extent = 1){
+                          grid=1000, extent = 1){
 
   all.kd <- kernelUD(all.utm,
                      h = h,
@@ -125,7 +125,7 @@ HR.bvnorm.fcn <- function(all.utm,
 # reference bandwidth (href) and the method of least square cross validation (LSCV).
 # UD from the LSCV method can be plotted to find the bandwidth that minimizes the
 # CV of bandwidth.
-HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=300){
+HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=1000){
   data.df %>% count(by = ArgosID) %>%
     filter(n > (min_n - 1)) %>%
     #dplyr::select(by) %>%
@@ -155,7 +155,7 @@ HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=300){
 # HR.analysis.step1), an output of make.HR.dataset, and grid size (default is 300)
 # It returns a figure (faceted 95% UDs in SDB), a dataframe used to make the figure,
 # and bandwidth values that correspond to mulipliers.
-HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
+HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
   h.adhoc <- h.multiplier * kd.href@h$h
 
   kd.adhoc <- vector(mode = "list", length = length(h.adhoc))
@@ -210,7 +210,7 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 300){
 # A function to compute 50 and 95% UD areas. INputs are bandwidth (h),
 # the output from make.HR.dataset, and grid value. It uses HR.bvnorm.fcn.
 # Returns 50 and 95% areas and vertices, which are used to plot UDs.
-compute.area <- function(h, list.data, grid=300){
+compute.area <- function(h, list.data, grid=1000){
   HR <- HR.bvnorm.fcn(list.data$all.utm,
                       list.data$byID.utm,
                       h = h,
@@ -325,5 +325,72 @@ tmp.summary <- function(begin.date, end.date){
   
   return(list(mean = wtemp, min = min_wtemp,
               max = max_wtemp, SD = SD_wtemp))
+}
+
+# extracts KD for each ID given the total KD
+UD.eachID <- function(kd.all, grid.value = 1000){
+  UD.95 <- UD.75 <- UD.50 <- vector(mode = "list", 
+                                    length = length(kd.all$list.data$eachID.utm))
+  
+  h.eachID <- h.multip.eachID <- vector(mode = "numeric", 
+                                        length = length(kd.all$list.data$eachID.utm))
+  UD.area <- data.frame(ID = NA, area.50 = NA, area.75 = NA, area.95 = NA)
+  #UD.area <- vector(mode = "list", 
+  #                  length = length(kd.all$list.data$eachID.utm))
+  
+  for (k in 1:length(kd.all$list.data$eachID.utm)){
+    
+    dat.utm <- kd.all$list.data$eachID.utm[[k]]
+    best.h <- find.h.adhoc(dat.utm)
+    h.eachID[k] <- round(best.h$h)
+    h.multip.eachID[k] <- best.h$h.multip
+    UD <- kernelUD(dat.utm, 
+                   h = h.eachID[k], 
+                   kern = "bivnorm", 
+                   grid = grid.value)
+    UD.tmp <- kernel.area(UD,
+                          percent = c(50, 75, 95),
+                          unin = c("m"),
+                          unout = c("km2"),
+                          standardize = FALSE)
+    
+    UD.area[k,] <- c("ID" = kd.all$list.data$unique.ID[k], 
+                     "area.50" =  UD.tmp[1],
+                     "area.75" = UD.tmp[2],
+                     "area.95" = UD.tmp[3])
+    
+    UD.95[[k]] <- getverticeshr(UD, 95)
+    UD.75[[k]] <- getverticeshr(UD, 75)  
+    UD.50[[k]] <- getverticeshr(UD, 50)
+  }
+  
+  tmp.95 <- lapply(UD.95, 
+                   FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+  
+  tmp.75 <- lapply(UD.75, 
+                   FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+  tmp.50 <- lapply(UD.50, 
+                   FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
+  
+  for (k in 1:length(tmp.95)){
+    tmp.50[[k]] <- mutate(tmp.50[[k]], 
+                          ID = kd.all$list.data$unique.ID[k])
+    tmp.75[[k]] <- mutate(tmp.75[[k]], 
+                          ID = kd.all$list.data$unique.ID[k])
+    tmp.95[[k]] <- mutate(tmp.95[[k]], 
+                          ID = kd.all$list.data$unique.ID[k])
+  }
+  
+  df.95 <- do.call("rbind", tmp.95)
+  df.75 <- do.call("rbind", tmp.75)
+  df.50 <- do.call("rbind", tmp.50)
+  
+  out.list <- list(vert.95.df = df.95,
+                   vert.75.df = df.75,
+                   vert.50.df = df.50,
+                   area = UD.area,
+                   h = h.eachID,
+                   h.multip = h.multip.eachID)
+  return(out.list)
 }
 
