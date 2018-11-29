@@ -43,7 +43,7 @@ tagproj <- proj4string(tagprj)
 
 ```
 
-Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files contain raw data for pre and post periods. Analyze day vs nights here. 
+Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files contain raw data for pre period. First, look at each turtle for day and night combined. 
 
 ```{r, message=FALSE}
 pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
@@ -54,40 +54,11 @@ pre.combined.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
 #h.pre.combined <- round(h.pre.day.1$h)
 KD.eachID.pre.combined <- UD.eachID(pre.combined.kd)
 
-p.KDE.pre.combined <- ggplot() + 
-  geom_polygon(data = KD.eachID.pre.combined$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.7) +
 
-  geom_polygon(data = KD.eachID.pre.combined$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.4) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
-plot(p.KDE.pre.combined)
-
-if (save.fig)
-  ggsave(plot = p.KDE.pre.combined,
-         filename = "figures/KDE_pre_combined.png",
-         device = "png",
-         dpi = 600)
 ```
 
 
-
+Next, post period data are loaded and UDs for day and night combined are computed.
 ```{r, message=FALSE}
 post.all <- read.csv("data/Post_GPS_LC_all_2018-09-18.csv")
 
@@ -97,40 +68,11 @@ post.combined.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
 #h.pre.combined <- round(h.pre.day.1$h)
 KD.eachID.post.combined <- UD.eachID(post.combined.kd)
 
-p.KDE.post.combined <- ggplot() + 
-  geom_polygon(data = KD.eachID.post.combined$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.7) +
 
-  geom_polygon(data = KD.eachID.post.combined$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.4) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 3) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
-plot(p.KDE.post.combined)
-
-if (save.fig)
-  ggsave(plot = p.KDE.post.combined,
-         filename = "figures/KDE_post_combined.png",
-         device = "png",
-         dpi = 600)
 ```
 
 
-
+We then pull out just day time for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
 ```{r}
 
 # pre and day time
@@ -147,40 +89,9 @@ pre.day.kd <- HR.analysis.step1(min_n, pre.day, tagproj, grid = grid)
 
 KD.eachID.pre.day <- UD.eachID(pre.day.kd)
 
-p.KDE.pre.day <- ggplot() + 
-  geom_polygon(data = KD.eachID.pre.day$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.7) +
-
-  geom_polygon(data = KD.eachID.pre.day$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.4) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
-plot(p.KDE.pre.day)
-
-if (save.fig)
-  ggsave(plot = p.KDE.pre.day,
-         filename = "figures/KDE_pre_day.png",
-         device = "png",
-         dpi = 600)
-
 ```
 
-
+Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
 
 ```{r}
 # pre and night time
@@ -191,52 +102,9 @@ pre.night.kd <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid)
 # pre.night.HR <- compute.area(h.pre.night, pre.night.kd$list.data)
 KD.eachID.pre.night <- UD.eachID(pre.night.kd)
 
-p.KDE.pre.day.night <- ggplot() + 
-    geom_polygon(data = KD.eachID.pre.day$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightcyan",
-               alpha = 0.7) +
-
-  geom_polygon(data = KD.eachID.pre.day$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "blue4",
-               alpha = 0.7) +
-
-  geom_polygon(data = KD.eachID.pre.night$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.3) +
-
-  geom_polygon(data = KD.eachID.pre.night$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.3) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
-plot(p.KDE.pre.day.night)
-
-if (save.fig)
-  ggsave(plot = p.KDE.pre.day.night,
-         filename = "figures/KDE_pre_day_night.png",
-         device = "png",
-         dpi = 600)
-
 ```
+
+Post period and daytime. 
 
 ```{r}
 # post and day time
@@ -247,41 +115,10 @@ post.day.kd <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid)
 # post.day.HR <- compute.area(h.post.day, post.day.kd$list.data)
 KD.eachID.post.day <- UD.eachID(post.day.kd)
 
-p.KDE.post.day <- ggplot() + 
-  geom_polygon(data = KD.eachID.post.day$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.7) +
-
-  geom_polygon(data = KD.eachID.post.day$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.4) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
-
-if (save.fig)
-  ggsave(plot = p.KDE.post.day,
-         filename = "figures/KDE_post_day.png",
-         device = "png",
-         dpi = 600)
-
-plot(p.KDE.post.day)
 
 ```
 
-
+Post period night time overlayed on top of daytime. 
 
 ```{r}
 # post and night
@@ -293,64 +130,182 @@ post.night.kd <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid)
 KD.eachID.post.night <- UD.eachID(post.night.kd)
 
 
-p.KDE.post.day.night <- ggplot() + 
-     geom_polygon(data = KD.eachID.post.day$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightcyan",
-               alpha = 0.7) +
-  # geom_polygon(data = KD.eachID.post.day$vert.75.df,
-  #              aes(x = long, y = lat,
-  #                  group = group),
-  #              color = "black",
-  #              fill = "deepskyblue",
-  #              alpha = 0.7) +
-  
-  geom_polygon(data = KD.eachID.post.day$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "blue4",
-               alpha = 0.7) +
-  geom_polygon(data = KD.eachID.post.night$vert.95.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "lightpink",
-               alpha = 0.3) +
-  # geom_polygon(data = KD.eachID.post.night$vert.75.df,
-  #              aes(x = long, y = lat,
-  #                  group = group),
-  #              color = "black",
-  #              fill = "indianred",
-  #              alpha = 0.3) +
-  
-  geom_polygon(data = KD.eachID.post.night$vert.50.df,
-               aes(x = long, y = lat,
-                   group = group),
-               color = "black",
-               fill = "red4",
-               alpha = 0.3) +
-  coord_map() + 
-  facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
-  labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+```
 
-if (save.fig)
-  ggsave(plot = p.KDE.post.day.night,
-         filename = "figures/KDE_post_day_night.png",
-         device = "png",
-         dpi = 600)
 
-plot(p.KDE.post.day.night)
+Combine all turtles together - day and night. 
+```{r}
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
+
+h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
+h.pre <- round(h.pre.1$h)
+
+UD.pre <- kernelUD(pre.kd$list.data$all.utm, 
+                   h = h.pre, 
+                   kern = "bivnorm", 
+                   grid = grid)
+
+# UD.pre.tmp <- kernel.area(UD.pre,
+#                           percent = c(50, 95),
+#                           unin = c("m"),
+#                           unout = c("km2"),
+#                           standardize = FALSE)
+    
+UD.pre.95 <- getverticeshr(UD.pre, 95)
+UD.pre.50 <- getverticeshr(UD.pre, 50)
+    
+UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, CRS("+proj=longlat")))
+UD.pre.50.latlon <- broom::tidy(spTransform(UD.pre.50, CRS("+proj=longlat")))
+
+# work on the post period
+h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
+
+h.post <- round(h.post.1$h)
+
+UD.post <- kernelUD(post.kd$list.data$all.utm, 
+                    h = h.post, 
+                    kern = "bivnorm", 
+                    grid = grid)
+
+# UD.post.tmp <- kernel.area(UD.post,
+#                            percent = c(50, 95),
+#                            unin = c("m"),
+#                            unout = c("km2"),
+#                            standardize = FALSE)
+
+UD.post.95 <- getverticeshr(UD.post, 95)
+UD.post.50 <- getverticeshr(UD.post, 50)
+    
+UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, CRS("+proj=longlat")))
+UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, CRS("+proj=longlat")))
+
+
 ```
 
 
 
+Then split these into day and night.
+
+```{r}
+h.pre.1 <- find.h.adhoc(pre.day.kd$list.data$all.utm)
+h.pre.day <- round(h.pre.1$h)
+
+UD.pre.day <- kernelUD(pre.day.kd$list.data$all.utm, 
+                   h = h.pre.day, 
+                   kern = "bivnorm", 
+                   grid = grid)
+
+# UD.pre.tmp <- kernel.area(UD.pre,
+#                           percent = c(50, 95),
+#                           unin = c("m"),
+#                           unout = c("km2"),
+#                           standardize = FALSE)
+    
+UD.pre.day.95 <- getverticeshr(UD.pre.day, 95)
+UD.pre.day.50 <- getverticeshr(UD.pre.day, 50)
+    
+UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95, CRS("+proj=longlat")))
+UD.pre.day.95.latlon$daynight <- "day"
+UD.pre.day.50.latlon <- broom::tidy(spTransform(UD.pre.day.50, CRS("+proj=longlat")))
+UD.pre.day.50.latlon$daynight <- "day"
+
+
+h.pre.1 <- find.h.adhoc(pre.night.kd$list.data$all.utm)
+h.pre.night <- round(h.pre.1$h)
+
+UD.pre.night <- kernelUD(pre.night.kd$list.data$all.utm, 
+                   h = h.pre.night, 
+                   kern = "bivnorm", 
+                   grid = grid)
+
+# UD.pre.tmp <- kernel.area(UD.pre,
+#                           percent = c(50, 95),
+#                           unin = c("m"),
+#                           unout = c("km2"),
+#                           standardize = FALSE)
+    
+UD.pre.night.95 <- getverticeshr(UD.pre.night, 95)
+UD.pre.night.50 <- getverticeshr(UD.pre.night, 50)
+    
+UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95, CRS("+proj=longlat")))
+UD.pre.night.95.latlon$daynight <- "night"
+UD.pre.night.50.latlon <- broom::tidy(spTransform(UD.pre.night.50, CRS("+proj=longlat")))
+UD.pre.night.50.latlon$daynight <- "night"
+
+UD.pre.day.night.95.latlon <- rbind(UD.pre.day.95.latlon, UD.pre.night.95.latlon)
+UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, UD.pre.night.50.latlon)
+```
+
+
+
+
+```{r}
+h.post.1 <- find.h.adhoc(post.day.kd$list.data$all.utm)
+h.post.day <- round(h.post.1$h)
+
+UD.post.day <- kernelUD(post.day.kd$list.data$all.utm, 
+                   h = h.post.day, 
+                   kern = "bivnorm", 
+                   grid = grid)
+
+# UD.pre.tmp <- kernel.area(UD.pre,
+#                           percent = c(50, 95),
+#                           unin = c("m"),
+#                           unout = c("km2"),
+#                           standardize = FALSE)
+    
+UD.post.day.95 <- getverticeshr(UD.post.day, 95)
+UD.post.day.50 <- getverticeshr(UD.post.day, 50)
+    
+UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95, CRS("+proj=longlat")))
+UD.post.day.95.latlon$daynight <- "day"
+UD.post.day.50.latlon <- broom::tidy(spTransform(UD.post.day.50, CRS("+proj=longlat")))
+UD.post.day.50.latlon$daynight <- "day"
+
+
+h.post.1 <- find.h.adhoc(post.night.kd$list.data$all.utm)
+h.post.night <- round(h.post.1$h)
+
+UD.post.night <- kernelUD(post.night.kd$list.data$all.utm, 
+                   h = h.post.night, 
+                   kern = "bivnorm", 
+                   grid = grid)
+
+# UD.pre.tmp <- kernel.area(UD.pre,
+#                           percent = c(50, 95),
+#                           unin = c("m"),
+#                           unout = c("km2"),
+#                           standardize = FALSE)
+    
+UD.post.night.95 <- getverticeshr(UD.post.night, 95)
+UD.post.night.50 <- getverticeshr(UD.post.night, 50)
+    
+UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95, CRS("+proj=longlat")))
+UD.post.night.95.latlon$daynight <- "night"
+UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50, CRS("+proj=longlat")))
+UD.post.night.50.latlon$daynight <- "night"
+
+
+UD.post.95.day.night.latlon <- rbind(UD.post.day.95.latlon, UD.post.night.95.latlon)
+UD.post.50.day.night.latlon <- rbind(UD.post.day.50.latlon, UD.post.night.50.latlon)
+```
+
+
+Save results. 
+
+```{r}
+#These are the only things needed for making plots
+save.list <- list(KD.eachID.pre.combined, KD.eachID.post.combined, KD.eachID.pre.day, 
+                  KD.eachID.pre.night, KD.eachID.post.day, KD.eachID.post.night, 
+                  UD.post.95.latlon, UD.post.50.latlon, UD.pre.95.latlon, 
+                  UD.pre.50.latlon, UD.pre.day.95.latlon, UD.pre.day.50.latlon,
+                  UD.pre.night.95.latlon, UD.pre.night.50.latlon, UD.post.day.95.latlon,
+                  UD.post.day.50.latlon, UD.post.night.95.latlon, UD.post.night.50.latlon,
+                  UD.pre.day.night.95.latlon, UD.pre.day.night.50.latlon,
+                  UD.post.day.night.95.latlon, UD.post.day.night.50.latlon)
+
+saveRDS(save.list, file = "RData/PreVsPost_DayNight.RDS")
+
+```
 

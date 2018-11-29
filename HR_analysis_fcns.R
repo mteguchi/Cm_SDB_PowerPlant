@@ -229,7 +229,7 @@ compute.area <- function(h, list.data, grid=1000){
 }
 
 # This funciton finds a bandwidth value that makes 95% UD contiguous
-find.h.adhoc <- function(utm.data, grid = 300, extent = 1){
+find.h.adhoc <- function(utm.data, grid = 1000, extent = 1){
   tmp.href <- kernelUD(utm.data, h = "href",
                        kern = "bivnorm", grid = grid,
                        extent = extent)
