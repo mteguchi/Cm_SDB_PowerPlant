@@ -287,8 +287,8 @@ UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50, CRS("+proj=
 UD.post.night.50.latlon$daynight <- "night"
 
 
-UD.post.95.day.night.latlon <- rbind(UD.post.day.95.latlon, UD.post.night.95.latlon)
-UD.post.50.day.night.latlon <- rbind(UD.post.day.50.latlon, UD.post.night.50.latlon)
+UD.post.day.night.95.latlon <- rbind(UD.post.day.95.latlon, UD.post.night.95.latlon)
+UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, UD.post.night.50.latlon)
 ```
 
 

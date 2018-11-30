@@ -266,7 +266,7 @@ getSDwtmp<- function(begindate, enddate,
                            begindate, '_', enddate, ".csv")
   
   url.nc <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.nc?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
-                 begindate, "T00%3A00%3A00Z&time%3C=", 
+                 begindate, "T00%3A00%3A00Z&time%3C=",
                  enddate, "T20%3A00%3A00Z")
   url.csv <- paste0("https://upwell.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.csv?station%2Clongitude%2Clatitude%2Ctime%2Catmp%2Cwtmp%2Ctide&station%3E=%22SDBC1%22&time%3E=",
                    begindate, "T00%3A00%3A00Z&time%3C=", 
@@ -277,7 +277,7 @@ getSDwtmp<- function(begindate, enddate,
     download.file(url.nc,
                   destfile = outfilename.nc,
                   mode='wb')
-    
+
   }
   
   if (!file.exists(outfilename.csv)){
@@ -291,9 +291,9 @@ getSDwtmp<- function(begindate, enddate,
   outfile.nc.info <- file.info(outfilename.nc)
   outfile.csv.info <- file.info(outfilename.csv)
   
-  out.list <- list(url = list(nc = url.nc, csv = url.csv),
-                   filename = list(nc = outfilename.nc, csv = outfilename.csv),
-                   file.info = list(nc = outfile.nc.info, csv = outfile.csv.info))
+  out.list <- list(url = list(csv = url.csv, nc = url.nc),
+                   filename = list(csv = outfilename.csv, nc = outfilename.nc),
+                   file.info = list(csv = outfile.csv.info, nc = outfile.nc.info))
   
   return(out.list)
 }

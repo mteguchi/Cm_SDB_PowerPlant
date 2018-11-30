@@ -1,0 +1,103 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Analysis of HR vs. various covariates
+
+```{r echo=FALSE}
+rm(list = ls())
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(lme4)
+
+source("HR_analysis_fcns.R")
+
+```
+
+
+
+First bring in the HR data:
+```{r}
+data1 <- read.csv(file = "data/IDvsUDs_2018-11-01.csv")
+# all.data.frames <- readRDS(file = "RData/PreVsPost_DayNight.RDS")
+# KD.eachID.pre.combined <- all.data.frames[[1]]
+# KD.eachID.post.combined<- all.data.frames[[2]] 
+# KD.eachID.pre.day <- all.data.frames[[3]]
+# KD.eachID.pre.night <- all.data.frames[[4]]
+# KD.eachID.post.day <- all.data.frames[[5]] 
+# KD.eachID.post.night <- all.data.frames[[6]] 
+# UD.post.95.latlon <- all.data.frames[[7]] 
+# UD.post.50.latlon <- all.data.frames[[8]] 
+# UD.pre.95.latlon <- all.data.frames[[9]] 
+# UD.pre.50.latlon <- all.data.frames[[10]] 
+# UD.pre.day.95.latlon <- all.data.frames[[11]] 
+# UD.pre.day.50.latlon <- all.data.frames[[12]]
+# UD.pre.night.95.latlon <- all.data.frames[[13]] 
+# UD.pre.night.50.latlon <- all.data.frames[[14]] 
+# UD.post.day.95.latlon <- all.data.frames[[15]]
+# UD.post.day.50.latlon <- all.data.frames[[16]] 
+# UD.post.night.95.latlon <- all.data.frames[[17]]
+# UD.post.night.50.latlon <- all.data.frames[[18]]
+# UD.pre.day.night.95.latlon <- all.data.frames[[19]]
+# UD.pre.day.night.50.latlon <- all.data.frames[[20]]
+# UD.post.day.night.95.latlon <- all.data.frames[[21]]
+# UD.post.day.night.50.latlon <- all.data.frames[[22]]
+head(data1)
+```
+
+Get the water temp data:
+```{r}
+tmp14.mean <- tmp7.mean <- vector(mode = "numeric", length = nrow(data1))
+tmp14.min <- tmp7.min <- vector(mode = "numeric", length = nrow(data1))
+tmp14.max <- tmp7.max <- vector(mode = "numeric", length = nrow(data1))
+tmp14.sd <- tmp7.sd <- vector(mode = "numeric", length = nrow(data1))
+
+k <- 1
+for (k in 1:nrow(data1)){
+  date1 <- as.Date(data1$Capture_Date[k], format = "%m/%d/%Y")
+  tmp.7 <- tmp.summary(date1 - days(7), date1)
+  tmp.14 <- tmp.summary(date1 - days(14), date1)
+  
+  tmp7.mean[k] <- tmp.7$mean
+  tmp7.min[k] <- tmp.7$min
+  tmp7.max[k] <- tmp.7$max
+  tmp7.sd[k] <- tmp.7$SD
+  
+  tmp14.mean[k] <- tmp.14$mean
+  tmp14.min[k] <- tmp.14$min
+  tmp14.max[k] <- tmp.14$max
+  tmp14.sd[k] <- tmp.14$SD
+  
+}
+
+data1$tmp7.mean <- unlist(tmp7.mean)
+data1$tmp7.min <- unlist(tmp7.min)
+data1$tmp7.max <- unlist(tmp7.max)
+data1$tmp7.sd <- unlist(tmp7.sd)
+
+data1$tmp14.mean <- unlist(tmp14.mean)
+data1$tmp14.min <- unlist(tmp14.min)
+data1$tmp14.max <- unlist(tmp14.max)
+data1$tmp14.sd <- unlist(tmp14.sd)
+
+```
+
+Then use GLMM to look at how they affected the HR:
+
+```{r}
+
+fit.1 <- lm(area.50 ~ n.days + Mass_kg + period + tmp14.mean + tmp14.min + tmp14.max + tmp14.sd,
+            data = data1)
+summary(fit.1)
+```
+
+
