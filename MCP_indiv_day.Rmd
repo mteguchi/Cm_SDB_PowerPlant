@@ -475,7 +475,7 @@ p.3 <- ggplot(data = filter(area.df, PP == 0)) +
   #                color = as.factor(ID)),
   #            size = 4) + 
   labs(y = "Center of MCP (latitude)",
-       y = "Mean water temperature (C)") + 
+       x = "Mean water temperature (C)") + 
 
   theme(legend.position = "none")
 print(p.3)
@@ -830,6 +830,8 @@ p.5 <- ggplot(data = dplyr::filter(area.df, PP == 0)) +
   geom_path(aes(x = days, 
                 y = lat.center, 
                 color = as.factor(ID))) + 
+  labs(y = "Center of MCP (latitude)",
+       x = "Days since deployment") + 
   theme(legend.position = "none")
 
 print(p.5)
@@ -850,6 +852,8 @@ p.6 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
   geom_path(aes(x = days, 
                 y = lat.center, 
                 color = as.factor(ID))) +
+  labs(y = "Center of MCP (latitude)",
+       x = "Days since deployment") + 
   theme(legend.position = "none")
 
 print(p.6)
@@ -869,6 +873,8 @@ p.11 <- ggplot(data = dplyr::filter(area.df, PP == 1)) +
   geom_path(aes(y = days, 
                 x = lon.center, 
                 color = as.factor(ID))) + 
+  labs(x = "Center of MCP (longitude)",
+       y = "Days since deployment") + 
   theme(legend.position = "none")
 
 print(p.11)
@@ -950,6 +956,27 @@ if (save.fig)
 
 There is no particular pattern, except may be 152315 moving a bit north? 
 
+Just looking at the centers:
+
+```{r}
+ggplot(data = dplyr::filter(area.df, PP == 1)) +
+  geom_point(aes(x = lon.center,
+                 y = lat.center)) + 
+  geom_path(aes(x = lon.center,
+                y = lat.center)) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 3) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.12, -117.11),
+                     limits = c(-117.125, -117.10)) +
+  scale_y_continuous(breaks = c(32.61, 32.63),
+                     limits = c(32.608, 32.635)) + 
+  theme(legend.position = "none")
+```
+
+
 ```{r}
 mcp.pre.df <- do.call("rbind", mcp.pre)
 p.MCP.pre <- ggplot(data = mcp.pre.df) + 
@@ -963,9 +990,9 @@ p.MCP.pre <- ggplot(data = mcp.pre.df) +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65)) + 
+                     limits = c(32.60, 32.64)) + 
   theme(legend.position = "none")
 
 plot(p.MCP.pre)
@@ -974,6 +1001,24 @@ if (save.fig)
          filename = paste0("figures/MCPvsTimeByID_", n_days, "days_pre.png"),
          device = "png",
          dpi = 600)
+```
+
+```{r}
+ggplot(data = dplyr::filter(area.df, PP == 0)) +
+  geom_point(aes(x = lon.center,
+                 y = lat.center)) + 
+  geom_path(aes(x = lon.center,
+                y = lat.center)) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 2) + 
+  labs(x = "", y = "")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.12, -117.11),
+                     limits = c(-117.122, -117.10)) +
+  scale_y_continuous(breaks = c(32.61, 32.625),
+                     limits = c(32.608, 32.625)) + 
+  theme(legend.position = "none")
 ```
 
 

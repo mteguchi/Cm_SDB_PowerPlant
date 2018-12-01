@@ -95,9 +95,37 @@ Then use GLMM to look at how they affected the HR:
 
 ```{r}
 
-fit.1 <- lm(area.50 ~ n.days + Mass_kg + period + tmp14.mean + tmp14.min + tmp14.max + tmp14.sd,
+fit.1.50 <- lm(area.50 ~ n.days + Mass_kg + period + tmp14.mean + tmp14.min + tmp14.max + tmp14.sd,
             data = data1)
-summary(fit.1)
+summary(fit.1.50)
+```
+
+```{r}
+fit.2.50 <- lm(area.50 ~ n.days + Mass_kg + period + tmp7.mean + tmp7.min + tmp7.max + tmp7.sd,
+            data = data1)
+summary(fit.2.50)
+
 ```
 
 
+```{r}
+fit.3.50 <- lm(area.50 ~ n.days + Mass_kg + tmp7.mean + tmp7.min + tmp7.max + tmp7.sd,
+            data = data1)
+summary(fit.3.50)
+
+```
+
+
+```{r}
+fit.1.95 <- lm(area.95 ~ n.days + Mass_kg + period + tmp14.mean + tmp14.min + tmp14.max + tmp14.sd,
+            data = data1)
+summary(fit.1.95)
+
+```
+
+```{r}
+fit.2.95 <- lm(area.95 ~ n.days + Mass_kg + period + tmp7.mean + tmp7.min + tmp7.max + tmp7.sd,
+            data = data1)
+summary(fit.2.95)
+
+```
