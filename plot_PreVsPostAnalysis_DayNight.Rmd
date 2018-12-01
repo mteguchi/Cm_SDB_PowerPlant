@@ -495,27 +495,49 @@ plot(p.KDE.post.DayVsNight)
 
 
 ```{r}
+UD.pre.day.night.50.latlon$period <- "pre"
+UD.pre.day.night.95.latlon$period <- "pre"
+UD.post.day.night.50.latlon$period <- "post"
+UD.post.day.night.95.latlon$period <- "post"
+
+UD.pre.post.day.night.50 <- rbind(UD.pre.day.night.50.latlon,
+                                  UD.post.day.night.50.latlon)
+UD.pre.post.day.night.95 <- rbind(UD.pre.day.night.95.latlon,
+                                  UD.post.day.night.95.latlon)
+
+UD.pre.post.day.night.50$daynight.f <- factor(UD.pre.post.day.night.50$daynight,
+                                              levels = c("day", "night"))
+
+UD.pre.post.day.night.95$daynight.f <- factor(UD.pre.post.day.night.95$daynight,
+                                              levels = c("day", "night"))
+
+UD.pre.post.day.night.50$period.f <- factor(UD.pre.post.day.night.50$period,
+                                              levels = c("pre", "post"))
+
+UD.pre.post.day.night.95$period.f <- factor(UD.pre.post.day.night.95$period,
+                                              levels = c("pre", "post"))
+
 p.KDE.pre.post.DayVsNight <- ggplot() + 
-  geom_polygon(data = UD.pre.day.night.95.latlon,
+  geom_polygon(data = UD.pre.post.day.night.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgoldenrod1",
                alpha = 1.0) +
-  geom_polygon(data = UD.pre.day.night.50.latlon,
+  geom_polygon(data = UD.pre.post.day.night.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "gold",
                alpha = 1.0) +
   
-  geom_polygon(data = UD.post.day.night.95.latlon,
+  geom_polygon(data = UD.pre.post.day.night.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgreen",
                alpha = 0.4) +
-  geom_polygon(data = UD.post.day.night.50.latlon,
+  geom_polygon(data = UD.pre.post.day.night.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -523,18 +545,18 @@ p.KDE.pre.post.DayVsNight <- ggplot() +
                alpha = 0.4) +
   
   coord_map() + 
-  facet_grid(. ~ daynight) +
+  facet_grid(daynight.f ~ period.f) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+  scale_x_continuous(breaks = c(-117.13, -117.11, -117.09),
+                     limits = c(-117.13, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.60, 32.65))
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.DayVsNight,
-         filename = "figures/KDE_pre_post_all_DayVsNight.png",
+         filename = "figures/KDE_all_preVspost_DayVsNight.png",
          device = "png",
          dpi = 600)
 
