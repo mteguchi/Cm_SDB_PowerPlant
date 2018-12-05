@@ -41,6 +41,7 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
 
+# this file was created in PreVsPostAnalysis_DayNight.Rmd
 all.data.frames <- readRDS(file = "RData/PreVsPost_DayNight.RDS")
 KD.eachID.pre.combined <- all.data.frames[[1]]
 KD.eachID.post.combined<- all.data.frames[[2]] 
@@ -91,9 +92,9 @@ p.KDE.pre.combined <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
+                     limits = c(32.595, 32.65))
 plot(p.KDE.pre.combined)
 
 if (save.fig)
@@ -127,9 +128,9 @@ p.KDE.post.combined <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.08)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.595, 32.66))
 plot(p.KDE.post.combined)
 
 if (save.fig)
@@ -163,9 +164,9 @@ p.KDE.pre.day <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
+                     limits = c(32.595, 32.645))
 plot(p.KDE.pre.day)
 
 if (save.fig)
@@ -176,19 +177,21 @@ if (save.fig)
 
 ```
 
+Pre-day KDEs for 44366 has two "dots"... what's going on there? 12/4/2018 - has been fixed. It was caused by "rounding" the estimated h value for this animal. Changed it to "ceiling" which eliminated the tiny "dots". 12/4/2018.
+
 Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
 
 ```{r}
 
 
 p.KDE.pre.day.night <- ggplot() + 
-    geom_polygon(data = KD.eachID.pre.day$vert.95.df,
+  geom_polygon(data = KD.eachID.pre.day$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightcyan",
                alpha = 1.0) +
-
+  
   geom_polygon(data = KD.eachID.pre.day$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
@@ -215,9 +218,9 @@ p.KDE.pre.day.night <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.65))
+                     limits = c(32.595, 32.645))
 plot(p.KDE.pre.day.night)
 
 if (save.fig)
@@ -253,9 +256,9 @@ p.KDE.post.day <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.09)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.595, 32.655))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day,
@@ -313,13 +316,13 @@ p.KDE.post.day.night <- ggplot() +
                alpha = 0.3) +
   coord_map() + 
   facet_grid(. ~ ID) +
-  facet_wrap( ~ ID, nrow = 2) + 
+  facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.085)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.595, 32.655))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -355,9 +358,9 @@ p.KDE.pre.all <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.08)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.60, 32.64))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -403,9 +406,9 @@ p.KDE.pre.post.all <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.60, 32.65))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -441,9 +444,9 @@ p.KDE.pre.DayVsNight <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.60, 32.64))
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.DayVsNight,
@@ -480,9 +483,9 @@ p.KDE.post.DayVsNight <- ggplot() +
   labs(x = "", y = "")+ 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.15, -117.08)) +
+                     limits = c(-117.14, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.59, 32.66))
+                     limits = c(32.60, 32.65))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.DayVsNight,

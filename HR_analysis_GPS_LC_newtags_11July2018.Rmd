@@ -38,13 +38,13 @@ library(tidyverse)
 
 
 internet <- F #TRUE
-save.figure <- F
+save.figure <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
-
+grid.value <- 1000
 source("HR_analysis_fcns.R")
 
 ```
@@ -509,13 +509,13 @@ Section 3: Compute HRs
 # when trying to compute HR for each individual, some don't have enough data
 # extract those with at least 50 data points:
 
-pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = 300)
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid.value)
 ```
 
 Do the same with post dataset - choose those with at least min_n data points. 
 
 ```{r}
-post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid.value)
 
 ```
 
@@ -534,7 +534,7 @@ h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05)
 h.adhoc.pre <- HR.analysis(h.multiplier, 
                            pre.kd$kd.href, 
                            pre.kd$list.data, 
-                           grid = 300)
+                           grid = grid.value)
   
 plot(h.adhoc.pre$figure)
 
@@ -560,7 +560,7 @@ h.pre <- round(h.pre.1$h)
 
 pre.HR <- compute.area(h.pre, 
                        pre.kd$list.data, 
-                       grid = 300)
+                       grid = grid.value)
 
 writeOGR(obj = pre.HR$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_50.shp",
@@ -593,7 +593,7 @@ plotLSCV(post.kd$kd.LSCV)
 h.adhoc.post <- HR.analysis(h.multiplier, 
                             post.kd$kd.href, 
                             post.kd$list.data, 
-                            grid = 300)
+                            grid = grid.value)
   
 plot(h.adhoc.post$figure)
 
@@ -613,7 +613,7 @@ For post data, multiplier = 0.4 may be the smallest value with a contiguous 95% 
 h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
 
 h.post <- round(h.post.1$h) #round(post.kd$kd.href@h$h * 0.4)
-post.HR <- compute.area(h.post, post.kd$list.data, grid = 300)
+post.HR <- compute.area(h.post, post.kd$list.data, grid = grid.value)
 writeOGR(obj = post.HR$ver.50, 
          dsn = "shapefiles_July2018/post_HR_50.shp",
          layer="Post.50", 
@@ -637,7 +637,7 @@ Compare between night and day and pre and post:
 # pre day vs pre night:
 pre.all %>% filter(day1night2 == 1) -> pre.day
 
-pre.kd.day <- HR.analysis.step1(min_n, pre.day, tagproj, grid = 300)
+pre.kd.day <- HR.analysis.step1(min_n, pre.day, tagproj, grid = grid.value)
 
 plotLSCV(pre.kd.day$kd.LSCV)
 ```
@@ -646,7 +646,7 @@ plotLSCV(pre.kd.day$kd.LSCV)
 h.adhoc.pre.day <- HR.analysis(h.multiplier, 
                                pre.kd.day$kd.href, 
                                pre.kd.day$list.data, 
-                               grid = 300)
+                               grid = grid.value)
 plot(h.adhoc.pre.day$figure)
 
 if (save.figure)
@@ -666,7 +666,7 @@ h.pre.day <- round(h.pre.day.1$h) #round(pre.kd.day$kd.href@h$h * 0.7)
 # or use the same value as before
 
 # this computes HR for day, all animals combined and for individuals
-pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = 300)
+pre.HR.day <- compute.area(h.pre.day, pre.kd.day$list.data, grid = grid.value)
 writeOGR(obj = pre.HR.day$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_day_50.shp",
          layer="Pre.day.50", 
@@ -683,7 +683,7 @@ writeOGR(obj = pre.HR.day$ver.95,
 For night:
 ```{r}
 pre.all %>% filter(day1night2 == 2) -> pre.night
-pre.kd.night <- HR.analysis.step1(min_n, pre.night, tagproj, grid = 300)
+pre.kd.night <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid.value)
 plotLSCV(pre.kd.night$kd.LSCV)
 
 ```
@@ -692,7 +692,7 @@ plotLSCV(pre.kd.night$kd.LSCV)
 h.adhoc.pre.night <- HR.analysis(h.multiplier, 
                                  pre.kd.night$kd.href, 
                                  pre.kd.night$list.data, 
-                                 grid = 300)
+                                 grid = grid.value)
 plot(h.adhoc.pre.night$figure)
 if (save.figure)
   ggsave(filename = "figures/map_pre_h_adhoc_night.png",
@@ -711,7 +711,7 @@ h.pre.night <- round(h.pre.night.1$h) #round(pre.kd.night$kd.href@h$h * 0.5)
 
 pre.HR.night <- compute.area(h.pre.night, 
                              pre.kd.night$list.data, 
-                             grid = 300)
+                             grid = grid.value)
 
 writeOGR(obj = pre.HR.night$ver.50, 
          dsn = "shapefiles_July2018/pre_HR_night_50.shp",
@@ -731,7 +731,7 @@ Do the same with the post period
 # pre day vs pre night:
 post.all %>% filter(day1night2 == 1) -> post.day
 
-post.kd.day <- HR.analysis.step1(min_n, post.day, tagproj, grid = 300)
+post.kd.day <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid.value)
 
 plotLSCV(post.kd.day$kd.LSCV)
 ```
@@ -740,7 +740,7 @@ plotLSCV(post.kd.day$kd.LSCV)
 h.adhoc.post.day <- HR.analysis(h.multiplier, 
                                 post.kd.day$kd.href, 
                                 post.kd.day$list.data, 
-                                grid = 300)
+                                grid = grid.value)
 plot(h.adhoc.post.day$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_h_adhoc_day.png",
@@ -757,7 +757,7 @@ h.post.day.1 <- find.h.adhoc(post.kd.day$list.data$all.utm)
 h.post.day <- round(h.post.day.1$h)
 # or use the same value as before
 
-post.HR.day <- compute.area(h.post.day, post.kd.day$list.data, grid = 300)
+post.HR.day <- compute.area(h.post.day, post.kd.day$list.data, grid = grid.value)
 writeOGR(obj = post.HR.day$ver.50, 
          dsn = "shapefiles_July2018/post_HR_day_50.shp",
          layer="Post.day.50", 
@@ -775,7 +775,7 @@ writeOGR(obj = post.HR.day$ver.95,
 For night:
 ```{r}
 post.all %>% filter(day1night2 == 2) -> post.night
-post.kd.night <- HR.analysis.step1(min_n, post.night, tagproj, grid = 300)
+post.kd.night <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid.value)
 plotLSCV(post.kd.night$kd.LSCV)
 
 ```
@@ -784,7 +784,7 @@ plotLSCV(post.kd.night$kd.LSCV)
 h.adhoc.post.night <- HR.analysis(h.multiplier, 
                                   post.kd.night$kd.href, 
                                   post.kd.night$list.data, 
-                                  grid = 300)
+                                  grid = grid.value)
 plot(h.adhoc.post.night$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_h_adhoc_night.png",
@@ -802,7 +802,7 @@ h.post.night <- round(h.post.night.1$h)
 
 # or use the same value as before
 
-post.HR.night <- compute.area(h.post.night, post.kd.night$list.data, grid = 300)
+post.HR.night <- compute.area(h.post.night, post.kd.night$list.data, grid = grid.value)
 
 writeOGR(obj = post.HR.night$ver.50, 
          dsn = "shapefiles_July2018/post_HR_night_50.shp",
@@ -836,7 +836,7 @@ for (k in 1:length(pre.kd$list.data$eachID.utm)){
   h.pre.eachID[k] <- round(best.h$h)
   h.multip.pre.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
-                 kern = "bivnorm", grid = 300)
+                 kern = "bivnorm", grid = grid.value)
   UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
 }
@@ -858,7 +858,7 @@ for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
   h.pre.day.eachID[k] <- round(best.h$h)
   h.multip.pre.day.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.pre.day.eachID[k], 
-                 kern = "bivnorm", grid = 300)
+                 kern = "bivnorm", grid = grid.value)
   UD.95.pre.day.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.pre.day.eachID[[k]] <- getverticeshr(UD, 50)
 }
@@ -877,7 +877,7 @@ for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
   h.pre.night.eachID[k] <- round(best.h$h)
   h.multip.pre.night.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.pre.night.eachID[k], 
-                 kern = "bivnorm", grid = 300)
+                 kern = "bivnorm", grid = grid.value)
   UD.95.pre.night.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.pre.night.eachID[[k]] <- getverticeshr(UD, 50)
   
@@ -950,7 +950,7 @@ for (k in 1:length(post.kd$list.data$eachID.utm)){
   h.multip.post.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.post.eachID[k], 
                  kern = "bivnorm", 
-                 grid = 300)
+                 grid = grid.value)
   UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
 }
@@ -962,7 +962,7 @@ for (k in 1:length(post.kd.day$list.data$eachID.utm)){
   h.post.day.eachID[k] <- round(best.h$h)
   h.multip.post.day.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.post.day.eachID[k], 
-                 kern = "bivnorm", grid = 300)
+                 kern = "bivnorm", grid = grid.value)
   UD.95.post.day.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.post.day.eachID[[k]] <- getverticeshr(UD, 50)
 }
@@ -974,7 +974,7 @@ for (k in 1:length(post.kd.night$list.data$eachID.utm)){
   h.post.night.eachID[k] <- round(best.h$h)
   h.multip.post.night.eachID[k] <- best.h$h.multip
   UD <- kernelUD(dat.utm, h = h.post.night.eachID[k], 
-                 kern = "bivnorm", grid = 300)
+                 kern = "bivnorm", grid = grid.value)
   UD.95.post.night.eachID[[k]] <- getverticeshr(UD, 95)
   UD.50.post.night.eachID[[k]] <- getverticeshr(UD, 50)
   

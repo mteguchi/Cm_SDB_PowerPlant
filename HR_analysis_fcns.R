@@ -198,9 +198,9 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
     labs(x = "", y = "")+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
     scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                       limits = c(-117.15, -117.09))+
-    scale_y_continuous(breaks = c(32.62, 32.64, 32.66, 32.68),
-                       limits = c(32.60, 32.70))
+                       limits = c(-117.14, -117.09))+
+    scale_y_continuous(breaks = c(32.62, 32.64, 32.66),
+                       limits = c(32.60, 32.66))
 
   return(list(figure = p.h.adhoc,
               ver.95 = ver.95.adhoc.df,
@@ -249,6 +249,44 @@ find.h.adhoc <- function(utm.data, grid = 1000, extent = 1){
   return(list(v.95 = tmp.V,
               UD.95 = tmp.UD,
               h = h,
+              href = h1,
+              h.multip = h.multip - 0.05))
+}
+
+# This funciton finds a bandwidth value that makes 95% UD contiguous
+# Tried to use optimize function but it's not working... 
+find.h.optim <- function(utm.data, grid = 1000, extent = 1){
+
+  tmp.href <- kernelUD(utm.data, h = "href",
+                       kern = "bivnorm", grid = grid,
+                       extent = extent)
+  h1 <- tmp.href@h$h
+  
+  f <- function(x, h1, utm.data, grid = grid, extent = extent){
+    h <- h1 * x
+    tmp.UD <- kernelUD(utm.data, 
+                       h = h,
+                       kern = "bivnorm", 
+                       grid = grid,
+                       extent = extent)
+    tmp.V <- getverticeshr(tmp.UD, 95)
+    length(tmp.V@polygons[[1]]@Polygons)
+    
+  }
+
+  h.multip <- optimize(f = f, interval = c(0,1),
+                       h1 = h1, utm.data = utm.data, 
+                       grid = grid, extent = extent)
+  
+  tmp.UD <- kernelUD(utm.data, h = h1 * h.multip.tmp,
+                     kern = "bivnorm", 
+                     grid = grid,
+                     extent = extent)
+  tmp.V <- getverticeshr(tmp.UD, 95)
+    
+  return(list(v.95 = tmp.V,
+              UD.95 = tmp.UD,
+              h = h1 * h.multip,
               href = h1,
               h.multip = h.multip))
 }
@@ -337,12 +375,12 @@ UD.eachID <- function(kd.all, grid.value = 1000){
   UD.area <- data.frame(ID = NA, area.50 = NA, area.75 = NA, area.95 = NA)
   #UD.area <- vector(mode = "list", 
   #                  length = length(kd.all$list.data$eachID.utm))
-  
+  k <- 1
   for (k in 1:length(kd.all$list.data$eachID.utm)){
     
     dat.utm <- kd.all$list.data$eachID.utm[[k]]
     best.h <- find.h.adhoc(dat.utm)
-    h.eachID[k] <- round(best.h$h)
+    h.eachID[k] <- ceiling(best.h$h)
     h.multip.eachID[k] <- best.h$h.multip
     UD <- kernelUD(dat.utm, 
                    h = h.eachID[k], 

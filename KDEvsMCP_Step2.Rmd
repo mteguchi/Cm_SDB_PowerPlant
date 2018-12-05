@@ -17,12 +17,12 @@ ifelse(Sys.info()[1] == 'Linux',
 
 #Section 1: Load libraries and set wd
 #library(readxl)
-library(dplyr)
 library(adehabitatHR)
 library(rgdal)
 library(leaflet) 
 library(ggplot2)
 library(lubridate)
+library(dplyr)
 library(tidyverse)
 
 source("HR_analysis_fcns.R")

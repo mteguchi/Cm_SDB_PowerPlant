@@ -5,7 +5,7 @@ output: html_notebook
 
 This file contains code to compare pre and post periods by randomly extracting the same number of individuals as the pre period from the post period without replacement and compare the calculated HR areas. It also looks at the northern most latitude of 95% and 50% UDs.
 
-```{r}
+```{r message=FALSE}
 rm(list = ls())
 
 ifelse(Sys.info()[1] == 'Linux',
@@ -73,7 +73,7 @@ KD.eachID.post.combined <- UD.eachID(post.combined.kd)
 
 
 We then pull out just day time for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
-```{r}
+```{r message=FALSE}
 
 # pre and day time
 pre.all %>% filter(day1night2 == 1) -> pre.day
@@ -93,7 +93,7 @@ KD.eachID.pre.day <- UD.eachID(pre.day.kd)
 
 Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
 
-```{r}
+```{r message=FALSE}
 # pre and night time
 pre.all %>% filter(day1night2 == 2) -> pre.night
 pre.night.kd <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid)
@@ -106,7 +106,7 @@ KD.eachID.pre.night <- UD.eachID(pre.night.kd)
 
 Post period and daytime. 
 
-```{r}
+```{r message=FALSE}
 # post and day time
 post.all %>% filter(day1night2 == 1) -> post.day
 post.day.kd <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid)
@@ -120,7 +120,7 @@ KD.eachID.post.day <- UD.eachID(post.day.kd)
 
 Post period night time overlayed on top of daytime. 
 
-```{r}
+```{r message=FALSE}
 # post and night
 post.all %>% filter(day1night2 == 2) -> post.night
 post.night.kd <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid)
@@ -134,7 +134,7 @@ KD.eachID.post.night <- UD.eachID(post.night.kd)
 
 
 Combine all turtles together - day and night. 
-```{r}
+```{r message=FALSE}
 pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
 post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
 
@@ -187,7 +187,7 @@ UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, CRS("+proj=longlat")))
 
 Then split these into day and night.
 
-```{r}
+```{r message=FALSE}
 h.pre.1 <- find.h.adhoc(pre.day.kd$list.data$all.utm)
 h.pre.day <- round(h.pre.1$h)
 
@@ -240,7 +240,7 @@ UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, UD.pre.night.50.latlon
 
 
 
-```{r}
+```{r message=FALSE}
 h.post.1 <- find.h.adhoc(post.day.kd$list.data$all.utm)
 h.post.day <- round(h.post.1$h)
 
@@ -294,7 +294,7 @@ UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, UD.post.night.50.lat
 
 Save results. 
 
-```{r}
+```{r message=FALSE}
 #These are the only things needed for making plots
 save.list <- list(KD.eachID.pre.combined, KD.eachID.post.combined, KD.eachID.pre.day, 
                   KD.eachID.pre.night, KD.eachID.post.day, KD.eachID.post.night, 
