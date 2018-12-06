@@ -55,7 +55,7 @@ head(data1)
 ```
 
 Get the water temp data:
-```{r}
+```{r message=FALSE}
 tmp14.mean <- tmp7.mean <- vector(mode = "numeric", length = nrow(data1))
 tmp14.min <- tmp7.min <- vector(mode = "numeric", length = nrow(data1))
 tmp14.max <- tmp7.max <- vector(mode = "numeric", length = nrow(data1))

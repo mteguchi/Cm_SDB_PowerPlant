@@ -498,21 +498,36 @@ plot(p.KDE.post.DayVsNight)
 
 
 ```{r}
+UD.pre.50.latlon$daynight <- "day+night"
+UD.pre.95.latlon$daynight <- "day+night"
+UD.post.50.latlon$daynight <- "day+night"
+UD.post.95.latlon$daynight <- "day+night"
+
 UD.pre.day.night.50.latlon$period <- "pre"
 UD.pre.day.night.95.latlon$period <- "pre"
+UD.pre.50.latlon$period <- "pre"
+UD.pre.95.latlon$period <- "pre"
+
 UD.post.day.night.50.latlon$period <- "post"
 UD.post.day.night.95.latlon$period <- "post"
+UD.post.50.latlon$period <- "post"
+UD.post.95.latlon$period <- "post"
 
 UD.pre.post.day.night.50 <- rbind(UD.pre.day.night.50.latlon,
-                                  UD.post.day.night.50.latlon)
+                                  UD.post.day.night.50.latlon,
+                                  UD.pre.50.latlon,
+                                  UD.post.50.latlon)
+
 UD.pre.post.day.night.95 <- rbind(UD.pre.day.night.95.latlon,
-                                  UD.post.day.night.95.latlon)
+                                  UD.post.day.night.95.latlon,
+                                  UD.pre.95.latlon,
+                                  UD.post.95.latlon)
 
 UD.pre.post.day.night.50$daynight.f <- factor(UD.pre.post.day.night.50$daynight,
-                                              levels = c("day", "night"))
+                                              levels = c("day", "night", "day+night"))
 
 UD.pre.post.day.night.95$daynight.f <- factor(UD.pre.post.day.night.95$daynight,
-                                              levels = c("day", "night"))
+                                              levels = c("day", "night", "day+night"))
 
 UD.pre.post.day.night.50$period.f <- factor(UD.pre.post.day.night.50$period,
                                               levels = c("pre", "post"))

@@ -94,7 +94,7 @@ ID.pre.min_n <- filter(pre.summary,
 # how far along the first attempt was. 
 
 # select randomized results 
-file.names <- list.files(path = "Rdata/", pattern = "areas_combos_n")
+file.names <- list.files(path = "RData/", pattern = "areas_combos_n")
 
 # initialize empty lists for collecting info
 area50.list <- area95.list <- vector(mode = "list", length = length(file.names))
@@ -251,19 +251,20 @@ labs(x = "50% UD", y = "Number of individuals")
 Look at the differences between pre and post periods using 50% UDs.
 
 ```{r}
+# n = 6 is the second list item.
 p.d50.n6 <- ggplot(data = dif.50.list[[2]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.1) +
     labs(x = "Difference in area (50% UD)", y = "Count")
 
 ggsave(filename = "figures/preVsPost_n6.png",
-       plot = p.dif.dist,
+       plot = p.d50.n6,
        device = "png",
        dpi = 600)
 
 
 plot(p.d50.n6)
 
-
+p.gt0 <- sum(dif.50.list[[2]]$dif > 0)/1000
 ```
 
 So, the majority of the differences are above zero (94.5%), indicating that there was an increase in 50% UDs after the PP shut down. 

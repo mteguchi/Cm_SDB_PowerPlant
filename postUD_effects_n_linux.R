@@ -30,8 +30,10 @@ tagproj <- proj4string(tagprj)
 post.all <- read.csv("data/Post_GPS_LC_all_2018-09-18.csv")
 pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
 
-pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = 300)
-post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = 300)
+grid <- 1000
+
+pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
+post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
 
 h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
 ## Section 3.1.2
@@ -41,9 +43,9 @@ h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
 
 h.pre <- round(h.pre.1$h)
 
-pre.HR <- compute.area(h.pre, 
-                       pre.kd$list.data, 
-                       grid = 300)
+# pre.HR <- compute.area(h.pre, 
+#                        pre.kd$list.data, 
+#                        grid = grid)
 
 post.summary <- read.csv("data/post_sample_summary_2018-10-31.csv")
 ID.post.min_n <- filter(post.summary,
@@ -57,7 +59,6 @@ ID.pre.min_n <- filter(pre.summary,
 # This loop takes a long time... It was run once already so start from 
 # where it was left off. .RData file needs to be loaded to figure out
 # how far along the first attempt was. 
-grid <- 1000
 extent <- 1
 max.n <- dim(ID.post.min_n)[1] - 1
 min.n <- nrow(ID.pre.min_n)
