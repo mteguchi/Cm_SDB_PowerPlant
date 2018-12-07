@@ -24,6 +24,15 @@ library(ggridges)
 
 source("HR_analysis_fcns.R")
 
+SDBay.gis <- spTransform(readOGR(dsn = "GISfiles",
+                                           layer = "sd_bay",
+                                           verbose = FALSE),
+                                   CRS("+proj=longlat +datum=WGS84"))
+
+SDBay.df <- broom::tidy(SDBay.gis)
+water.color <- "lightblue"
+background.color <- "darkgray"
+
 # internet <- F #TRUE
 save.fig <- T
 
@@ -73,28 +82,37 @@ Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files
 ```{r, message=FALSE}
 
 p.KDE.pre.combined <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = KD.eachID.pre.combined$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "lightpink",
+               fill = "lightgoldenrod1",
                alpha = 1.0) +
 
   geom_polygon(data = KD.eachID.pre.combined$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "red4",
+               fill = "gold",
                alpha = 1.0) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
+                     limits = c(-117.145, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.65))
+                     limits = c(32.595, 32.665))
 plot(p.KDE.pre.combined)
 
 if (save.fig)
@@ -109,28 +127,37 @@ Next, post period data are loaded and UDs for day and night combined are compute
 ```{r, message=FALSE}
 
 p.KDE.post.combined <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = KD.eachID.post.combined$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "lightpink",
+               fill = "lightgreen",
                alpha = 1.0) +
 
   geom_polygon(data = KD.eachID.post.combined$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "red4",
+               fill = "green1",
                alpha = 1.0) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.08)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.66))
+                     limits = c(-117.145, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
+                     limits = c(32.595, 32.665))
 plot(p.KDE.post.combined)
 
 if (save.fig)
@@ -145,28 +172,37 @@ We then pull out just day time for the pre period. One turtle cannot be analyzed
 ```{r}
 
 p.KDE.pre.day <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = KD.eachID.pre.day$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "lightpink",
-               alpha = 1.0) +
+               fill = "lightcyan",
+               alpha = 0.8) +
 
   geom_polygon(data = KD.eachID.pre.day$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "red4",
-               alpha = 1.0) +
+               fill = "blue4",
+               alpha = 0.8) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
+                     limits = c(-117.145, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.645))
+                     limits = c(32.595, 32.665))
 plot(p.KDE.pre.day)
 
 if (save.fig)
@@ -185,6 +221,10 @@ Do the same for the nighttime for the pre period and plot on top of the daytime 
 
 
 p.KDE.pre.day.night <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = KD.eachID.pre.day$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
@@ -204,23 +244,28 @@ p.KDE.pre.day.night <- ggplot() +
                    group = group),
                color = "black",
                fill = "lightpink",
-               alpha = 0.3) +
+               alpha = 0.5) +
 
   geom_polygon(data = KD.eachID.pre.night$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "red4",
-               alpha = 0.3) +
+               alpha = 0.5) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) + 
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
+                     limits = c(-117.145, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.645))
+                     limits = c(32.595, 32.665))
 plot(p.KDE.pre.day.night)
 
 if (save.fig)
@@ -237,28 +282,37 @@ Post period and daytime.
 
 
 p.KDE.post.day <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = KD.eachID.post.day$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "lightpink",
+               fill = "lightcyan",
                alpha = 1.0) +
 
   geom_polygon(data = KD.eachID.post.day$vert.50.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
-               fill = "red4",
+               fill = "blue4",
                alpha = 1.0) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
+                     limits = c(-117.145, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.655))
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day,
@@ -273,10 +327,12 @@ plot(p.KDE.post.day)
 Post period night time overlayed on top of daytime. 
 
 ```{r}
-
-
 p.KDE.post.day.night <- ggplot() + 
-     geom_polygon(data = KD.eachID.post.day$vert.95.df,
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = KD.eachID.post.day$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -300,7 +356,7 @@ p.KDE.post.day.night <- ggplot() +
                    group = group),
                color = "black",
                fill = "lightpink",
-               alpha = 0.3) +
+               alpha = 0.5) +
   # geom_polygon(data = KD.eachID.post.night$vert.75.df,
   #              aes(x = long, y = lat,
   #                  group = group),
@@ -313,16 +369,21 @@ p.KDE.post.day.night <- ggplot() +
                    group = group),
                color = "black",
                fill = "red4",
-               alpha = 0.3) +
+               alpha = 0.5) +
   coord_map() + 
   facet_grid(. ~ ID) +
   facet_wrap( ~ ID, nrow = 3) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.085)) +
+                     limits = c(-117.145, -117.085)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.595, 32.655))
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -333,12 +394,108 @@ if (save.fig)
 plot(p.KDE.post.day.night)
 ```
 
+Make plots for all turtles, including pre and post periods.
+
+```{r}
+pre.day.vert.95 <- KD.eachID.pre.day$vert.95.df
+pre.night.vert.95 <- KD.eachID.pre.night$vert.95.df
+post.day.vert.95 <- KD.eachID.post.day$vert.95.df
+post.night.vert.95 <- KD.eachID.post.night$vert.95.df
+
+day.vert.95 <- rbind(pre.day.vert.95, post.day.vert.95)
+night.vert.95 <- rbind(pre.night.vert.95, post.night.vert.95)
+
+pre.day.vert.50 <- KD.eachID.pre.day$vert.50.df
+pre.night.vert.50 <- KD.eachID.pre.night$vert.50.df
+post.day.vert.50 <- KD.eachID.post.day$vert.50.df
+post.night.vert.50 <- KD.eachID.post.night$vert.50.df
+
+day.vert.50 <- rbind(pre.day.vert.50, post.day.vert.50)
+night.vert.50 <- rbind(pre.night.vert.50, post.night.vert.50)
+
+p.KDE.pre.post.day.night <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = day.vert.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightcyan",
+               alpha = 1.0) +
+  # geom_polygon(data = KD.eachID.post.day$vert.75.df,
+  #              aes(x = long, y = lat,
+  #                  group = group),
+  #              color = "black",
+  #              fill = "deepskyblue",
+  #              alpha = 0.7) +
+  
+  geom_polygon(data = day.vert.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "blue4",
+               alpha = 1.0) +
+  geom_polygon(data = night.vert.95,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "lightpink",
+               alpha = 0.3) +
+  # geom_polygon(data = KD.eachID.post.night$vert.75.df,
+  #              aes(x = long, y = lat,
+  #                  group = group),
+  #              color = "black",
+  #              fill = "indianred",
+  #              alpha = 0.3) +
+  
+  geom_polygon(data = night.vert.50,
+               aes(x = long, y = lat,
+                   group = group),
+               color = "black",
+               fill = "red4",
+               alpha = 0.3) +
+  coord_map() + 
+  facet_grid(. ~ ID) +
+  facet_wrap( ~ ID, nrow = 4) + 
+  labs(x = "", y = "")+ 
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+                     limits = c(-117.145, -117.085)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+                     limits = c(32.595, 32.665))  
+  # scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
+  #                    limits = c(-117.14, -117.085)) +
+  # scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
+  #                    limits = c(32.595, 32.655))
+
+if (save.fig)
+  ggsave(plot = p.KDE.pre.post.day.night,
+         filename = "figures/KDE_pre_post_day_night.png",
+         device = "png",
+         dpi = 600)
+
+plot(p.KDE.pre.post.day.night)
+
+```
+
+
 
 Combine all turtles together - day and night. 
 
 
 ```{r}
 p.KDE.pre.all <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = UD.pre.95.latlon,
                aes(x = long, y = lat,
                    group = group),
@@ -356,11 +513,16 @@ p.KDE.pre.all <- ggplot() +
   # facet_grid(. ~ ID) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.08)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.60, 32.64))
+                     limits = c(-117.145, -117.08)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -375,6 +537,10 @@ plot(p.KDE.pre.all)
 ```{r}
 
 p.KDE.pre.post.all <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = UD.pre.95.latlon,
                aes(x = long, y = lat,
                    group = group),
@@ -392,23 +558,28 @@ p.KDE.pre.post.all <- ggplot() +
                    group = group),
                color = "black",
                fill = "lightgreen",
-               alpha = 0.4) +
+               alpha = 0.6) +
   geom_polygon(data = UD.post.50.latlon,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "green1",
-               alpha = 0.4) +
+               alpha = 0.6) +
   
   coord_map() + 
   # facet_grid(. ~ ID) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.60, 32.65))
+                     limits = c(-117.145, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32,66),
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
@@ -426,6 +597,10 @@ Plot pre night vs day
 ```{r}
 
 p.KDE.pre.DayVsNight <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = UD.pre.day.night.95.latlon,
                aes(x = long, y = lat,
                    group = group),
@@ -442,11 +617,16 @@ p.KDE.pre.DayVsNight <- ggplot() +
   facet_grid(. ~ daynight) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.60, 32.64))
+                     limits = c(-117.145, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.DayVsNight,
@@ -465,6 +645,10 @@ Plot post night vs day
 
 
 p.KDE.post.DayVsNight <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = UD.post.day.night.95.latlon,
                aes(x = long, y = lat,
                    group = group),
@@ -481,11 +665,16 @@ p.KDE.post.DayVsNight <- ggplot() +
   facet_grid(. ~ daynight) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
-                     limits = c(-117.14, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.60, 32.65))
+                     limits = c(-117.145, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.post.DayVsNight,
@@ -536,6 +725,10 @@ UD.pre.post.day.night.95$period.f <- factor(UD.pre.post.day.night.95$period,
                                               levels = c("pre", "post"))
 
 p.KDE.pre.post.DayVsNight <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
   geom_polygon(data = UD.pre.post.day.night.95,
                aes(x = long, y = lat,
                    group = group),
@@ -566,11 +759,16 @@ p.KDE.pre.post.DayVsNight <- ggplot() +
   facet_grid(daynight.f ~ period.f) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   scale_x_continuous(breaks = c(-117.13, -117.11, -117.09),
-                     limits = c(-117.13, -117.09)) +
-  scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
-                     limits = c(32.60, 32.65))
+                     limits = c(-117.145, -117.09)) +
+  scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
+                     limits = c(32.595, 32.665))
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.DayVsNight,

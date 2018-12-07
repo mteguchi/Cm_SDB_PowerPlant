@@ -219,6 +219,13 @@ plot(p.dif.dist)
 
 This plot shows that 50% UDs have less variability than 95% UDs. Also, the means of 50% UDs at various sample sizes (the number of individuals) are closer to the 50% UD with all individuals than the means of 95% UDs. So, to make a comparison between the pre and post UDs with different sample sizes, we should use 50% UDs. 
 
+Even at sample sie of 5, the difference between the mean of 1000 UDs and the one from 16 samples was pretty small.
+```{r}
+mean.50.n5 <- area50.means[1, "mean.50"]
+dif.50.n5 <- post.HR$area.50 - mean.50.n5$mean.50 
+```
+
+
 Another way to look at the distributions - ridge plots. 
 
 ```{r}
