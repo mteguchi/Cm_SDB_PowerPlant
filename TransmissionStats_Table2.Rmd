@@ -7,6 +7,7 @@ output: html_notebook
 rm(list = ls())
 library(dplyr)
 library(tidyverse)
+save.file <- FALSE
 ```
 
 
@@ -155,16 +156,21 @@ all.summary <- rbind(pre.summary$summary.data,
   mutate(LC123 = LC1 + LC2 + LC3,
          ARGOS.accept = LC1 +  LC2 + LC3 - ARGOS.outside,
          GPS.accept = GPS - GPS.reject - GPS.outside,
-         n.data = ARGOS.accept + GPS.accept)
+         n.data = ARGOS.accept + GPS.accept,
+         ARGOS.prop = ARGOS.accept/LC123,
+         GPS.prop = GPS.accept/GPS)
 
-save.summary <- all.summary[, c("ID.f", "Date", "total.DIAG", "total.DS", 
-                               "LC123", "ARGOS.outside", "ARGOS.accept", 
-                               "GPS", "GPS.outside", "GPS.accept",
-                               "n.data")]
+save.summary <- all.summary[, c("ID.f", "Date", "total.DIAG", 
+                                "LC123", "ARGOS.accept",
+                                "GPS", "GPS.accept", 
+                                "n.data", "total.DS", 
+                                "ARGOS.outside",  "GPS.outside",
+                                "ARGOS.prop", "GPS.prop")]
 
-write.csv(save.summary,
-          file = paste0("data/transmissionSummary_", Sys.Date(), ".csv"),
-          row.names = FALSE)
+if (save.file)
+  write.csv(save.summary,
+            file = paste0("data/transmissionSummary_", Sys.Date(), ".csv"),
+            row.names = FALSE)
 
 ```
 

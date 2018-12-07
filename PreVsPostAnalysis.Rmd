@@ -204,7 +204,8 @@ p.dif.dist <- ggplot() +
   geom_hline(yintercept = post.HR$area.95,
              size = 1.5, color = "blue",
              linetype = 2) + 
-  
+  scale_x_continuous(breaks = c(5:15),
+                     limits = c(4.8,15.2)) +
   labs(x = "Number of individuals",
        y = "Estimated UDs")
   

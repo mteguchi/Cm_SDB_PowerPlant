@@ -2,18 +2,19 @@
 
 rm(list=ls())
 
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
 library(ggplot2)
 library(viridis)
 library(lubridate)
 library(RODBC)
 library(tidyverse)
 library(dplyr)
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
 
 save.fig <- F
-SWFSC <- T
+SWFSC <- F
 
 if (SWFSC){
   turtle <- odbcConnect(dsn = 'Turtle', uid = '', pwd = '')
@@ -40,28 +41,51 @@ if (SWFSC){
   turtle.SDB <- read.csv('data/turtle_SDB.csv')
 }
 
-file.date <- "2018-07-18"
-col.def <- cols(ID.f = col_integer(),
-                Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
-                n.days = col_double(),
-                n.relocations.all = col_integer(),
-                n.day.all = col_integer(),
-                n.night.all = col_integer(),
-                n.day = col_integer(),
-                n.night = col_integer(),
-                n.relocations = col_integer())
+file.date <- "2018-10-31"
+# for 2018-10-31 file, ID.f has been changed to ArgosID... 
+if (file.date != "2018-10-31"){
+  col.def <- cols(ID.f = col_integer(),
+                  Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  n.days = col_double(),
+                  n.relocations.all = col_integer(),
+                  n.day.all = col_integer(),
+                  n.night.all = col_integer(),
+                  n.day = col_integer(),
+                  n.night = col_integer(),
+                  n.relocations = col_integer())
+  
+  dat.table.pre <- readr::read_csv(paste0("data/pre_sample_summary_",
+                                          file.date, ".csv"),
+                                   col_types = col.def)
+  
+} else {
+  col.def <- cols(ArgosID = col_integer(),
+                  Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  n.days = col_double(),
+                  n.relocations.all = col_integer(),
+                  n.day.all = col_integer(),
+                  n.night.all = col_integer(),
+                  n.day = col_integer(),
+                  n.night = col_integer(),
+                  n.relocations = col_integer())
+  
+  dat.table.pre <- readr::read_csv(paste0("data/pre_sample_summary_",
+                                          file.date, ".csv"),
+                                   col_types = col.def)
+  
+  dat.table.pre %>% mutate(ID.f = as.factor(ArgosID)) -> dat.table.pre
+  
+}
 
-dat.table.pre <- readr::read_csv(paste0("data/pre_sample_summary_",
-                                        file.date, ".csv"),
-                                 col_types = col.def)
-
-dat.table.pre %>% mutate(date = as.Date(Date1, format = "%Y-%m-%d")) -> dat.table.pre
+dat.table.pre %>% mutate(date = as.Date(Date1, 
+                                        format = "%Y-%m-%d")) -> dat.table.pre
 
 # try to merge turtle.SDB and dat.table.pre:
 dat.list <- list()
 #k <- 7
 for (k in 1:nrow(dat.table.pre)){
-  tmp.turtle.SDB <- filter(turtle.SDB, Sat_Tag_ID == dat.table.pre$ID.f[k])
+  tmp.turtle.SDB <- filter(turtle.SDB, 
+                           Sat_Tag_ID == dat.table.pre$ID.f[k])
   if (nrow(tmp.turtle.SDB) == 1){
     tmp.turtle.SDB %>% transmute(ID.f = dat.table.pre$ID.f[k],
                                  Turtle_ID = Turtle_ID,
@@ -104,9 +128,13 @@ if (!file.exists(paste0("data/pre_sample_summary_size_",
             row.names = F)
 
 #Do the post period also:
-dat.table.post <- readr::read_csv(paste0("data/post_sample_summary_",
-                                        file.date, ".csv"),
-                                 col_types = col.def)
+dat.table.post <- readr::read_csv(paste0("data/pre_sample_summary_",
+                                         file.date, ".csv"),
+                                  col_types = col.def)
+
+if (file.date == "2018-10-31"){
+  dat.table.post %>% mutate(ID.f = as.factor(ArgosID)) -> dat.table.post
+}
 
 dat.table.post %>% mutate(date = as.Date(Date1, format = "%Y-%m-%d")) -> dat.table.post
 

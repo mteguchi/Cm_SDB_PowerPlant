@@ -4,12 +4,14 @@
 # extracts capture effort data from the database
 
 rm(list=ls())
-library(RODBC)
-library(tidyverse)
+
 ifelse(Sys.info()[1] == 'Linux',
        source('~/Documents/R/tools/TomosFunctions.R'),
        source('~/R/tools/TomosFunctions.R'))
-SWFSC <- T
+
+library(RODBC)
+library(tidyverse)
+SWFSC <- F
 
 if (SWFSC){
   turtle <- odbcConnect(dsn = 'Turtle', uid = '', pwd = '')

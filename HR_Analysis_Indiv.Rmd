@@ -27,6 +27,7 @@ source("HR_analysis_fcns.R")
 
 First bring in the HR data:
 ```{r}
+# this file was created in HR_analysis_GPS_LC_newtags.Rmd
 data1 <- read.csv(file = "data/IDvsUDs_2018-11-01.csv")
 # all.data.frames <- readRDS(file = "RData/PreVsPost_DayNight.RDS")
 # KD.eachID.pre.combined <- all.data.frames[[1]]
