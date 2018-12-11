@@ -6,7 +6,7 @@ output: html_notebook
 Computes a minimum convex polygon for each individual per day - is there a pattern in seaons or possibly temperature?
 
 
-```{r}
+```{r message=FALSE}
 rm(list = ls())
 #getwd()
 #list.files()
@@ -1168,6 +1168,8 @@ Visual analysis doesn't bring out any particular patterns... so let's try mixed-
 library(lme4)
 area.df %>% dplyr::select(-"date") %>%
   scale() %>% as.data.frame() -> area.df.center.scale
+
+area.df.center.scale$PP <- area.df$PP
 #library(mgcv)
 lat.fit.1 <- lmer(lat.center ~ PP + wtemp + wtemp_7 + wtemp_14 + SD_wtemp + (1 | ID), 
               data = area.df.center.scale)
@@ -1223,5 +1225,14 @@ fit.list <- list(lat = lat.fit.list,
 if (save.files)
   saveRDS(fit.list, file = paste0("RData/fit_list_", n_days, "days.rds"))
 
+```
+
+
+```{r}
+area.df.center.scale %>% filter(PP == 0) -> area.df.center.scale.pre
+lon.fit.pre <- lmer(lon.center ~ wtemp_14 + (1 | ID), 
+              data = area.df.center.scale.pre)
+
+summary(lon.fit.pre)
 ```
 

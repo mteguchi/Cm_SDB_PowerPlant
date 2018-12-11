@@ -1,0 +1,104 @@
+---
+title: "SDB map"
+output: html_notebook
+---
+
+This notebook makes the first figure - map of SDB. 
+
+```{r message=FALSE}
+rm(list = ls())
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+
+#library(readxl)
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(ggridges)
+library(sf)
+
+source("HR_analysis_fcns.R")
+
+SDBay.gis <- spTransform(readOGR(dsn = "GISfiles",
+                                 layer = "sd_bay",
+                                 verbose = FALSE),
+                         CRS("+proj=longlat +datum=WGS84"))
+
+SDBay.df <- broom::tidy(SDBay.gis)
+
+water.gis <- spTransform(readOGR(dsn = "GISfiles",
+                                 layer = "water",
+                                 verbose = FALSE),
+                         CRS("+proj=longlat +datum=WGS84"))
+
+water.df <- broom::tidy(water.gis)
+
+
+water.color <- "lightblue"
+background.color <- "darkgray"
+
+
+
+# internet <- F #TRUE
+save.fig <- T
+
+#N.end <- 32.69   # approx Coronado bridge
+N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
+```
+
+
+```{r}
+
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+box.coords <- data.frame(lon = c(-117.145, -117.09, -117.09, -117.145, -117.145),
+                         lat = c(32.665, 32.665, 32.595, 32.595, 32.665))
+
+# box.coords %>% st_as_sf(coords = c("longitude", "latitude"),
+#                         crs = 4326) %>%
+#   summarise(geometry = st_combine(geometry)) %>%
+#   st_cast("POLYGON") -> box.polygon
+
+p.map.1 <- ggplot() + 
+  geom_polygon(data = water.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = box.coords,
+               aes(x = lon, y = lat),
+               color = "black",
+               size = 1.2,
+               fill = NA) + 
+  coord_map(ylim = c(32.57, 32.75),
+            xlim = c(-117.3, -117.05)) + 
+  labs(x = "", y = "")+ 
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5))  
+
+ggsave(plot = p.map.1,
+         filename = "figures/SanDiegoBay_Figure1.png",
+         device = "png",
+         dpi = 600)
+
+p.map.1
+```
+
+
+
+

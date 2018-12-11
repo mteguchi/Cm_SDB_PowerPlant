@@ -5,7 +5,7 @@ output: html_notebook
 
 Analysis of HR vs. various covariates
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE}
 rm(list = ls())
 
 ifelse(Sys.info()[1] == 'Linux',
