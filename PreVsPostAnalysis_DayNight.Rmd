@@ -3,7 +3,7 @@ title: "Compare pre vs. post periods"
 output: html_notebook
 ---
 
-This file contains code to compare pre and post periods by randomly extracting the same number of individuals as the pre period from the post period without replacement and compare the calculated HR areas. It also looks at the northern most latitude of 95% and 50% UDs.
+Extract UDs for pre/post/day/night combinations. Also for each individual and combined together. Results of this analysis are saved and used in plot_PreVsPostAnalylsis_DayNight.Rmd to make plots. 
 
 ```{r message=FALSE}
 rm(list = ls())
@@ -35,7 +35,6 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 grid <- 1000
 extent <- 1
 
-
 source("HR_analysis_fcns.R")
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
@@ -49,58 +48,55 @@ Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files
 pre.all <- read.csv("data/Pre_GPS_LC_all_2018-09-18.csv")
 
 # first combined for pre
-pre.combined.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
-#h.pre.combined.1 <- find.h.adhoc(pre.combined.kd$list.data$all.utm)
-#h.pre.combined <- round(h.pre.day.1$h)
-KD.eachID.pre.combined <- UD.eachID(pre.combined.kd)
+pre.combined.kd <- HR.analysis.step1(min_n, pre.all, 
+                                     tagproj, grid = grid)
 
+# best h is computed for each ID in UD.eachID
+UD.eachID.pre.combined <- UD.eachID(pre.combined.kd)
 
 ```
-
 
 Next, post period data are loaded and UDs for day and night combined are computed.
 ```{r, message=FALSE}
 post.all <- read.csv("data/Post_GPS_LC_all_2018-09-18.csv")
 
 # first combined for pre
-post.combined.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
-#h.pre.combined.1 <- find.h.adhoc(pre.combined.kd$list.data$all.utm)
-#h.pre.combined <- round(h.pre.day.1$h)
-KD.eachID.post.combined <- UD.eachID(post.combined.kd)
+post.combined.kd <- HR.analysis.step1(min_n, post.all, 
+                                      tagproj, grid = grid)
 
+# best h is computed for each ID in UD.eachID
+UD.eachID.post.combined <- UD.eachID(post.combined.kd)
 
 ```
 
 
-We then pull out just day time for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
+We then pull out just daytime for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
 ```{r message=FALSE}
 
 # pre and day time
 pre.all %>% filter(day1night2 == 1) -> pre.day
-pre.day.kd <- HR.analysis.step1(min_n, pre.day, tagproj, grid = grid)
-# h.pre.day.1 <- find.h.adhoc(pre.day.kd$list.data$all.utm)
-# h.pre.day <- round(h.pre.day.1$h)
+pre.day.kd <- HR.analysis.step1(min_n, 
+                                pre.day, 
+                                tagproj, 
+                                grid = grid)
 
-# compute.area also provides areas for each individuals separately,
-# they will be different from that computed by UD.eachID because h values
-# are different in the latter - optimized for each individual. 
-#pre.day.HR <- compute.area(h.pre.day, 
-#                           pre.day.kd$list.data)
-
-KD.eachID.pre.day <- UD.eachID(pre.day.kd)
+# best h is computed for each ID in UD.eachID
+UD.eachID.pre.day <- UD.eachID(pre.day.kd)
 
 ```
 
-Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
+Do the same for the nighttime for the pre period.
 
 ```{r message=FALSE}
 # pre and night time
 pre.all %>% filter(day1night2 == 2) -> pre.night
-pre.night.kd <- HR.analysis.step1(min_n, pre.night, tagproj, grid = grid)
-# h.pre.night.1 <- find.h.adhoc(pre.night.kd$list.data$all.utm)
-# h.pre.night <- round(h.pre.night.1$h)
-# pre.night.HR <- compute.area(h.pre.night, pre.night.kd$list.data)
-KD.eachID.pre.night <- UD.eachID(pre.night.kd)
+pre.night.kd <- HR.analysis.step1(min_n, 
+                                  pre.night, 
+                                  tagproj, 
+                                  grid = grid)
+
+# best h is computed for each ID in UD.eachID
+UD.eachID.pre.night <- UD.eachID(pre.night.kd)
 
 ```
 
@@ -109,186 +105,168 @@ Post period and daytime.
 ```{r message=FALSE}
 # post and day time
 post.all %>% filter(day1night2 == 1) -> post.day
-post.day.kd <- HR.analysis.step1(min_n, post.day, tagproj, grid = grid)
-# h.post.day.1 <- find.h.adhoc(post.day.kd$list.data$all.utm)
-# h.post.day <- round(h.post.day.1$h)
-# post.day.HR <- compute.area(h.post.day, post.day.kd$list.data)
-KD.eachID.post.day <- UD.eachID(post.day.kd)
+post.day.kd <- HR.analysis.step1(min_n, 
+                                 post.day, 
+                                 tagproj, 
+                                 grid = grid)
 
+# best h is computed for each ID in UD.eachID
+UD.eachID.post.day <- UD.eachID(post.day.kd)
 
 ```
 
-Post period night time overlayed on top of daytime. 
+Post period nighttime.
 
 ```{r message=FALSE}
 # post and night
 post.all %>% filter(day1night2 == 2) -> post.night
 post.night.kd <- HR.analysis.step1(min_n, post.night, tagproj, grid = grid)
-# h.post.night.1 <- find.h.adhoc(post.night.kd$list.data$all.utm)
-# h.post.night <- round(h.post.night.1$h)
-# post.night.HR <- compute.area(h.post.night, post.night.kd$list.data)
-KD.eachID.post.night <- UD.eachID(post.night.kd)
 
+# best h is computed for each ID in UD.eachID
+UD.eachID.post.night <- UD.eachID(post.night.kd)
 
 ```
 
 
 Combine all turtles together - day and night. 
 ```{r message=FALSE}
-pre.kd <- HR.analysis.step1(min_n, pre.all, tagproj, grid = grid)
-post.kd <- HR.analysis.step1(min_n, post.all, tagproj, grid = grid)
+pre.kd <- HR.analysis.step1(min_n, 
+                            pre.all, 
+                            tagproj, 
+                            grid = grid)
 
+post.kd <- HR.analysis.step1(min_n, 
+                             post.all, 
+                             tagproj, 
+                             grid = grid)
+
+# find the best h for all individuals combined
 h.pre.1 <- find.h.adhoc(pre.kd$list.data$all.utm)
-h.pre <- round(h.pre.1$h)
-
+h.pre <- ceiling(h.pre.1$h)
 UD.pre <- kernelUD(pre.kd$list.data$all.utm, 
                    h = h.pre, 
                    kern = "bivnorm", 
                    grid = grid)
 
-# UD.pre.tmp <- kernel.area(UD.pre,
-#                           percent = c(50, 95),
-#                           unin = c("m"),
-#                           unout = c("km2"),
-#                           standardize = FALSE)
-    
 UD.pre.95 <- getverticeshr(UD.pre, 95)
 UD.pre.50 <- getverticeshr(UD.pre, 50)
     
-UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, CRS("+proj=longlat")))
-UD.pre.50.latlon <- broom::tidy(spTransform(UD.pre.50, CRS("+proj=longlat")))
+UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, 
+                                            CRS("+proj=longlat")))
+UD.pre.50.latlon <- broom::tidy(spTransform(UD.pre.50, 
+                                            CRS("+proj=longlat")))
 
 # work on the post period
 h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
 
-h.post <- round(h.post.1$h)
+h.post <- ceiling(h.post.1$h)
 
 UD.post <- kernelUD(post.kd$list.data$all.utm, 
                     h = h.post, 
                     kern = "bivnorm", 
                     grid = grid)
 
-# UD.post.tmp <- kernel.area(UD.post,
-#                            percent = c(50, 95),
-#                            unin = c("m"),
-#                            unout = c("km2"),
-#                            standardize = FALSE)
-
 UD.post.95 <- getverticeshr(UD.post, 95)
 UD.post.50 <- getverticeshr(UD.post, 50)
     
-UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, CRS("+proj=longlat")))
-UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, CRS("+proj=longlat")))
+UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, 
+                                             CRS("+proj=longlat")))
+UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, 
+                                             CRS("+proj=longlat")))
 
 
 ```
 
 
-
-Then split these into day and night.
+Then compute UDs separatrely for day and night.
 
 ```{r message=FALSE}
 h.pre.1 <- find.h.adhoc(pre.day.kd$list.data$all.utm)
-h.pre.day <- round(h.pre.1$h)
+h.pre.day <- ceiling(h.pre.1$h)
 
 UD.pre.day <- kernelUD(pre.day.kd$list.data$all.utm, 
-                   h = h.pre.day, 
-                   kern = "bivnorm", 
-                   grid = grid)
+                       h = h.pre.day, 
+                       kern = "bivnorm", 
+                       grid = grid)
 
-# UD.pre.tmp <- kernel.area(UD.pre,
-#                           percent = c(50, 95),
-#                           unin = c("m"),
-#                           unout = c("km2"),
-#                           standardize = FALSE)
-    
 UD.pre.day.95 <- getverticeshr(UD.pre.day, 95)
 UD.pre.day.50 <- getverticeshr(UD.pre.day, 50)
     
-UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95, CRS("+proj=longlat")))
+UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95,
+                                                CRS("+proj=longlat")))
 UD.pre.day.95.latlon$daynight <- "day"
-UD.pre.day.50.latlon <- broom::tidy(spTransform(UD.pre.day.50, CRS("+proj=longlat")))
+UD.pre.day.50.latlon <- broom::tidy(spTransform(UD.pre.day.50,
+                                                CRS("+proj=longlat")))
 UD.pre.day.50.latlon$daynight <- "day"
 
-
 h.pre.1 <- find.h.adhoc(pre.night.kd$list.data$all.utm)
-h.pre.night <- round(h.pre.1$h)
+h.pre.night <- ceiling(h.pre.1$h)
 
 UD.pre.night <- kernelUD(pre.night.kd$list.data$all.utm, 
-                   h = h.pre.night, 
-                   kern = "bivnorm", 
-                   grid = grid)
+                         h = h.pre.night, 
+                         kern = "bivnorm", 
+                         grid = grid)
 
-# UD.pre.tmp <- kernel.area(UD.pre,
-#                           percent = c(50, 95),
-#                           unin = c("m"),
-#                           unout = c("km2"),
-#                           standardize = FALSE)
-    
 UD.pre.night.95 <- getverticeshr(UD.pre.night, 95)
 UD.pre.night.50 <- getverticeshr(UD.pre.night, 50)
     
-UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95, CRS("+proj=longlat")))
+UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95,
+                                                  CRS("+proj=longlat")))
 UD.pre.night.95.latlon$daynight <- "night"
-UD.pre.night.50.latlon <- broom::tidy(spTransform(UD.pre.night.50, CRS("+proj=longlat")))
+UD.pre.night.50.latlon <- broom::tidy(spTransform(UD.pre.night.50,
+                                                  CRS("+proj=longlat")))
 UD.pre.night.50.latlon$daynight <- "night"
 
-UD.pre.day.night.95.latlon <- rbind(UD.pre.day.95.latlon, UD.pre.night.95.latlon)
-UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, UD.pre.night.50.latlon)
+UD.pre.day.night.95.latlon <- rbind(UD.pre.day.95.latlon, 
+                                    UD.pre.night.95.latlon)
+UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, 
+                                    UD.pre.night.50.latlon)
 ```
 
-
-
+For the post period
 
 ```{r message=FALSE}
 h.post.1 <- find.h.adhoc(post.day.kd$list.data$all.utm)
-h.post.day <- round(h.post.1$h)
+h.post.day <- ceiling(h.post.1$h)
 
 UD.post.day <- kernelUD(post.day.kd$list.data$all.utm, 
-                   h = h.post.day, 
-                   kern = "bivnorm", 
-                   grid = grid)
+                        h = h.post.day, 
+                        kern = "bivnorm", 
+                        grid = grid)
 
-# UD.pre.tmp <- kernel.area(UD.pre,
-#                           percent = c(50, 95),
-#                           unin = c("m"),
-#                           unout = c("km2"),
-#                           standardize = FALSE)
-    
 UD.post.day.95 <- getverticeshr(UD.post.day, 95)
 UD.post.day.50 <- getverticeshr(UD.post.day, 50)
     
-UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95, CRS("+proj=longlat")))
+UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95,
+                                                 CRS("+proj=longlat")))
 UD.post.day.95.latlon$daynight <- "day"
-UD.post.day.50.latlon <- broom::tidy(spTransform(UD.post.day.50, CRS("+proj=longlat")))
+UD.post.day.50.latlon <- broom::tidy(spTransform(UD.post.day.50,
+                                                 CRS("+proj=longlat")))
 UD.post.day.50.latlon$daynight <- "day"
 
-
 h.post.1 <- find.h.adhoc(post.night.kd$list.data$all.utm)
-h.post.night <- round(h.post.1$h)
+h.post.night <- ceiling(h.post.1$h)
 
 UD.post.night <- kernelUD(post.night.kd$list.data$all.utm, 
-                   h = h.post.night, 
-                   kern = "bivnorm", 
-                   grid = grid)
+                          h = h.post.night, 
+                          kern = "bivnorm", 
+                          grid = grid)
 
-# UD.pre.tmp <- kernel.area(UD.pre,
-#                           percent = c(50, 95),
-#                           unin = c("m"),
-#                           unout = c("km2"),
-#                           standardize = FALSE)
-    
 UD.post.night.95 <- getverticeshr(UD.post.night, 95)
 UD.post.night.50 <- getverticeshr(UD.post.night, 50)
     
-UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95, CRS("+proj=longlat")))
+UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95,
+                                                   CRS("+proj=longlat")))
 UD.post.night.95.latlon$daynight <- "night"
-UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50, CRS("+proj=longlat")))
+UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50,
+                                                   CRS("+proj=longlat")))
 UD.post.night.50.latlon$daynight <- "night"
 
 
-UD.post.day.night.95.latlon <- rbind(UD.post.day.95.latlon, UD.post.night.95.latlon)
-UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, UD.post.night.50.latlon)
+UD.post.day.night.95.latlon <- rbind(UD.post.day.95.latlon, 
+                                     UD.post.night.95.latlon)
+UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, 
+                                     UD.post.night.50.latlon)
 ```
 
 
@@ -296,14 +274,28 @@ Save results.
 
 ```{r message=FALSE}
 #These are the only things needed for making plots
-save.list <- list(KD.eachID.pre.combined, KD.eachID.post.combined, KD.eachID.pre.day, 
-                  KD.eachID.pre.night, KD.eachID.post.day, KD.eachID.post.night, 
-                  UD.post.95.latlon, UD.post.50.latlon, UD.pre.95.latlon, 
-                  UD.pre.50.latlon, UD.pre.day.95.latlon, UD.pre.day.50.latlon,
-                  UD.pre.night.95.latlon, UD.pre.night.50.latlon, UD.post.day.95.latlon,
-                  UD.post.day.50.latlon, UD.post.night.95.latlon, UD.post.night.50.latlon,
-                  UD.pre.day.night.95.latlon, UD.pre.day.night.50.latlon,
-                  UD.post.day.night.95.latlon, UD.post.day.night.50.latlon)
+save.list <- list(UD.eachID.pre.daynight = UD.eachID.pre.combined, 
+                  UD.eachID.post.daynight = UD.eachID.post.combined,
+                  UD.eachID.pre.day = UD.eachID.pre.day, 
+                  UD.eachID.pre.night = UD.eachID.pre.night, 
+                  UD.eachID.post.day = UD.eachID.post.day, 
+                  UD.eachID.post.night = UD.eachID.post.night, 
+                  UD95.allID.post.daynight = UD.post.95.latlon, 
+                  UD50.allID.post.daynight = UD.post.50.latlon, 
+                  UD95.allID.pre.daynight = UD.pre.95.latlon, 
+                  UD50.allID.pre.daynight = UD.pre.50.latlon, 
+                  UD95.allID.pre.day = UD.pre.day.95.latlon, 
+                  UD50.allID.pre.day = UD.pre.day.50.latlon,
+                  UD95.allID.pre.night = UD.pre.night.95.latlon, 
+                  UD50.allID.pre.night = UD.pre.night.50.latlon, 
+                  UD95.allID.post.day = UD.post.day.95.latlon,
+                  UD50.allID.post.day = UD.post.day.50.latlon, 
+                  UD95.allID.post.night = UD.post.night.95.latlon, 
+                  UD50.allID.post.night = UD.post.night.50.latlon,
+                  UD95.allID.pre.day.night = UD.pre.day.night.95.latlon, 
+                  UD50.allID.pre.day.night = UD.pre.day.night.50.latlon,
+                  UD95.allID.post.day.night = UD.post.day.night.95.latlon, 
+                  UD50.allID.post.day.night = UD.post.day.night.50.latlon)
 
 saveRDS(save.list, file = "RData/PreVsPost_DayNight.RDS")
 

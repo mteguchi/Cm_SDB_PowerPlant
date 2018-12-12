@@ -39,10 +39,21 @@ water.gis <- spTransform(readOGR(dsn = "GISfiles",
 
 water.df <- broom::tidy(water.gis)
 
+eelgrass.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                 layer = "SD_Baywide_Eelgrass_2008",
+                                 verbose = FALSE),
+                         CRS("+proj=longlat +datum=WGS84"))
+eelgrass.2008.df <- broom::tidy(eelgrass.2008)
+
+eelgrass.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                 layer = "SD_Baywide_Eelgrass_2014_Final",
+                                 verbose = FALSE),
+                         CRS("+proj=longlat +datum=WGS84"))
+eelgrass.2014.df <- broom::tidy(eelgrass.2014)
 
 water.color <- "lightblue"
 background.color <- "darkgray"
-
+eelgrass.color <- "lightgreen"
 
 
 # internet <- F #TRUE
@@ -55,9 +66,9 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 
 ```{r}
 
-tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
-                  layer = "tag_065_project")
-tagproj <- proj4string(tagprj)
+# tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+#                   layer = "tag_065_project")
+# tagproj <- proj4string(tagprj)
 
 box.coords <- data.frame(lon = c(-117.145, -117.09, -117.09, -117.145, -117.145),
                          lat = c(32.665, 32.665, 32.595, 32.595, 32.665))
@@ -67,7 +78,7 @@ box.coords <- data.frame(lon = c(-117.145, -117.09, -117.09, -117.145, -117.145)
 #   summarise(geometry = st_combine(geometry)) %>%
 #   st_cast("POLYGON") -> box.polygon
 
-p.map.1 <- ggplot() + 
+p.map.1.2008 <- ggplot() + 
   geom_polygon(data = water.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
@@ -76,13 +87,17 @@ p.map.1 <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+  geom_polygon(data = eelgrass.2008.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color,
+               color = "darkgreen") +
   geom_polygon(data = box.coords,
                aes(x = lon, y = lat),
                color = "black",
                size = 1.2,
                fill = NA) + 
   coord_map(ylim = c(32.57, 32.75),
-            xlim = c(-117.3, -117.05)) + 
+            xlim = c(-117.27, -117.08)) + 
   labs(x = "", y = "")+ 
   theme(panel.border = element_rect(color = "black", fill = NA),
         panel.grid.major = element_blank(),
@@ -91,13 +106,53 @@ p.map.1 <- ggplot() +
                                         colour = background.color),
         axis.text.x = element_text(angle = 90, vjust = 0.5))  
 
-ggsave(plot = p.map.1,
-         filename = "figures/SanDiegoBay_Figure1.png",
+if (save.fig)
+  ggsave(plot = p.map.1.2008,
+         filename = "figures/SanDiegoBay_Figure1_2008.png",
          device = "png",
          dpi = 600)
 
-p.map.1
+p.map.1.2008
 ```
+
+```{r}
+p.map.1.2014 <- ggplot() + 
+  geom_polygon(data = water.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black") +
+  geom_polygon(data = eelgrass.2014.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color,
+               color = "darkgreen") +
+  geom_polygon(data = box.coords,
+               aes(x = lon, y = lat),
+               color = "black",
+               size = 1.2,
+               fill = NA) + 
+  coord_map(ylim = c(32.57, 32.75),
+            xlim = c(-117.27, -117.08)) + 
+  labs(x = "", y = "")+ 
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = background.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5))  
+
+if (save.fig)
+  ggsave(plot = p.map.1.2014,
+         filename = "figures/SanDiegoBay_Figure1_2014.png",
+         device = "png",
+         dpi = 600)
+
+p.map.1.2014
+```
+
 
 
 
