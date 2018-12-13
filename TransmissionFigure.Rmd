@@ -1,0 +1,148 @@
+---
+title: "Transmission summary"
+output: html_notebook
+---
+
+```{r}
+rm(list = ls())
+
+# to change some of tick labels bold, this function can be used. 
+# found here: https://stackoverflow.com/questions/39694490/highlighting-individual-axis-labels-in-bold-using-ggplot2
+colorado <- function(src, boulder) {
+  if (!is.factor(src)) src <- factor(src)                   # make sure it's a factor
+  src_levels <- levels(src)                                 # retrieve the levels in their order
+  brave <- boulder %in% src_levels                          # make sure everything we want to make bold is actually in the factor levels
+  if (all(brave)) {                                         # if so
+    b_pos <- purrr::map_int(boulder, ~which(.==src_levels)) # then find out where they are
+    b_vec <- rep("plain", length(src_levels))               # make'm all plain first
+    b_vec[b_pos] <- "bold"                                  # make our targets bold
+    b_vec                                                   # return the new vector
+  } else {
+    stop("All elements of 'boulder' must be in src")
+  }
+}
+
+
+```
+
+
+These code chunks create transmission figure.
+
+Get the data. 
+```{r echo=FALSE, message=FALSE}
+ID.names <- function(name){
+  x <- unlist(strsplit(name, '_'))[1]
+  return(x)
+}
+dname <- "data/files_Jul2018_withNewTags/pre/"
+pre.files <- dir(path = dname, 
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
+
+pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
+
+col_def <- cols(ID = col_integer(),
+                ArgosID = col_integer(),
+                Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                TransmissionDateTime = col_datetime(format = "%m-%d-%Y %H:%M:%S"),
+                LC = col_integer(),
+                Residual = col_double(),
+                Lat1 = col_double(),
+                Lon1 = col_double(),
+                inside = col_integer(),
+                UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                Date2 = col_date(format = "%Y/%m/%d"),
+                LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                LocalSunset =  col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                day1night2 = col_integer(),
+                row = col_integer(),
+                include = col_integer(),
+                hr = col_integer())
+
+pre.raw <- do.call(rbind, 
+                   lapply(pre.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                            col_types = col_def))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
+  group_by(ID.f) %>%
+  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+
+pre.raw %>%
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> pre.all
+
+dname <- "data/files_Jul2018_withNewTags/post/"
+post.files <- dir(path = dname, 
+                 pattern = "_inout_DayNight_4hrs_2018-07-26.csv")
+
+post.IDs <- unlist(lapply(post.files, FUN = ID.names))
+
+post.raw <- do.call(rbind, 
+                   lapply(post.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, x),
+                                                            col_types = col_def))) %>%
+  mutate(ID.f = as.factor(ArgosID)) %>%
+  group_by(ID.f) %>%
+  mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+
+post.raw %>% 
+  filter(include == 1 & inside == 1) %>%
+  filter(Lat1 < N.end) -> post.all
+
+```
+
+
+Then combine pre and post.
+```{r message=FALSE}
+
+pre.post.all <- rbind(pre.all, post.all) %>%
+  mutate(Argos_GPS = ifelse(Message_Type == "DIAG" | Message_Type == "DS", "Argos", "GPS")) %>%
+  mutate(ID.f2 = factor(ArgosID, levels = rev(c(52675, 37616, 37623, 52674, 79786,
+                                            44366, 78500, 44359, 126065, 126066,
+                                            126070, 12606905, 126064, 126067, 12607106,
+                                            126068, 12606907, 12607107, 151378, 151381,
+                                            151375, 152322, 152323, 152314, 152313,
+                                            151377, 151380, 152319, 151384, 152315))))
+
+
+
+```
+
+Them make a plot.
+
+```{r}
+p.1 <- ggplot(data = pre.post.all) + 
+  geom_point(aes(x = DaysSinceFirst, 
+                 y = ID.f2, 
+                 color = as.factor(day1night2),
+                 shape = Argos_GPS),
+             size = 2) + 
+  annotate("rect", 
+           xmin = 0, xmax = Inf,
+           ymin = 24, ymax = 30,
+           alpha = 0.3)+
+  scale_shape_manual(values = c(16, 3)) + 
+  scale_color_manual(values = c("gold3", "blue3" )) + 
+  labs(x = "Days since deployment", y = "") +   
+  theme(#legend.title = element_text(size = 10, hjust = 0.5),
+    legend.text = element_text(size = 12, vjust = 0),
+    #legend.position = c(0.2, 0.5),
+    legend.position = "none",
+    axis.text.y = element_text(face = colorado(pre.post.all$ID.f2,
+                                               c(52674, 79786, 126066, 126067,
+                                                 151378, 152322, 152313, 151377,
+                                                 151380))))
+
+print(p.1)
+```
+
+
+Then save the picture.
+
+```{r}
+ggsave(filename = "figures/transmission_summary.png",
+       device = "png", dpi = 600,
+       plot = p.1)
+```
+
+

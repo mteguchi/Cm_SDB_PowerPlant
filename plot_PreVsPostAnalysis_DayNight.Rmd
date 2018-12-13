@@ -44,8 +44,6 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 grid <- 1000
 extent <- 1
 
-
-source("HR_analysis_fcns.R")
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
@@ -60,13 +58,13 @@ KD.eachID.pre.night <- all.data.frames$UD.eachID.pre.night
 KD.eachID.post.day <- all.data.frames$UD.eachID.post.day 
 KD.eachID.post.night <- all.data.frames$UD.eachID.post.night
 UD.post.95.latlon <- all.data.frames$UD95.allID.post.daynight 
-UD.post.50.latlon <- all.data.framesUD50.allID.post.daynight 
-UD.pre.95.latlon <- all.data.framesUD95.allID.pre.daynight 
+UD.post.50.latlon <- all.data.frames$UD50.allID.post.daynight 
+UD.pre.95.latlon <- all.data.frames$UD95.allID.pre.daynight 
 UD.pre.50.latlon <- all.data.frames$UD50.allID.pre.daynight 
 UD.pre.day.95.latlon <- all.data.frames$UD95.allID.pre.day 
 UD.pre.day.50.latlon <- all.data.frames$UD50.allID.pre.day
 UD.pre.night.95.latlon <- all.data.frames$UD95.allID.pre.night
-UD.pre.night.50.latlon <- all.data.framesUD50.allID.pre.night 
+UD.pre.night.50.latlon <- all.data.frames$UD50.allID.pre.night 
 UD.post.day.95.latlon <- all.data.frames$UD95.allID.post.day
 UD.post.day.50.latlon <- all.data.frames$UD50.allID.post.day 
 UD.post.night.95.latlon <- all.data.frames$UD95.allID.post.night 

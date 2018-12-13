@@ -819,7 +819,7 @@ writeOGR(obj = post.HR.night$ver.95,
 ```
 
 Extract UDs for each individual. Starting with pre:
-```{r}
+```{r message=FALSE}
 pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
                           Area.50 = t(as.matrix(pre.HR$area.byID.50)),
                           Area.95 = t(as.matrix(pre.HR$area.byID.95))) 
@@ -932,7 +932,7 @@ pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
 ```
 
 Now for post:
-```{r}
+```{r message=FALSE}
 h.post.eachID <- h.multip.post.eachID <- vector()
 UD.95.post.eachID <- UD.50.post.eachID <- list()
 
