@@ -207,14 +207,14 @@ p.dif.dist <- ggplot() +
   scale_x_continuous(breaks = c(5:15),
                      limits = c(4.8,15.2)) +
   labs(x = "Number of individuals",
-       y = "Estimated UDs")
+       y = bquote('Estimated UDs (' *km^2*')'))
   
 ggsave(filename = "figures/preVsPost_effect_n.png",
        plot = p.dif.dist,
        device = "png",
        dpi = 600)
 
-plot(p.dif.dist)
+print(p.dif.dist)
 ```
 
 This plot shows that 50% UDs have less variability than 95% UDs. Also, the means of 50% UDs at various sample sizes (the number of individuals) are closer to the 50% UD with all individuals than the means of 95% UDs. So, to make a comparison between the pre and post UDs with different sample sizes, we should use 50% UDs. 
@@ -261,7 +261,9 @@ Look at the differences between pre and post periods using 50% UDs.
 ```{r}
 # n = 6 is the second list item.
 p.d50.n6 <- ggplot(data = dif.50.list[[2]]) + 
-    geom_histogram(aes(x = dif), binwidth = 0.1) +
+    geom_histogram(aes(x = dif), binwidth = 0.1,
+                   fill = "gray",
+                   col = "black") +
     labs(x = "Difference in area (50% UD)", y = "Count")
 
 ggsave(filename = "figures/preVsPost_n6.png",
@@ -270,7 +272,7 @@ ggsave(filename = "figures/preVsPost_n6.png",
        dpi = 600)
 
 
-plot(p.d50.n6)
+print(p.d50.n6)
 
 p.gt0 <- sum(dif.50.list[[2]]$dif > 0)/1000
 ```
