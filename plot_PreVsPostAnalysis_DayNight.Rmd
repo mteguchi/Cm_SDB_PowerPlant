@@ -34,7 +34,7 @@ water.color <- "lightblue"
 background.color <- "darkgray"
 
 # internet <- F #TRUE
-save.fig <- T
+save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
