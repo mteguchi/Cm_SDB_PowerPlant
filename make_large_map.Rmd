@@ -1,0 +1,119 @@
+---
+title: "Making a map"
+output: html_notebook
+---
+
+```{r}
+rm(list=ls())
+
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/tools/TomosFunctions.R'),
+       source('~/R/tools/TomosFunctions.R'))
+library(tidyverse)
+
+water.color <- "lightblue"
+land.color <- "darkgray"
+#land.color <- '#333333'
+
+sSDB.center <- c(32.63, -117.12)
+Revilla.box <- data.frame(lon = c(-111, -112, -113, -111, -111),
+                          lat = c(19 + 18/60, 19, 18, 18, 19))
+Revilla.center <- c(18 + 35/60, -113)
+#Socorro.center <- c(18 + 48/60, -111)
+#Clarion.center <- c(18 + 21/60, -114 - 43/60)
+TresMarias.center <- c(21.5, -106.5)
+Michoacan.center <- c(18, -102.35)
+
+# box.coords <- data.frame(lon = c(-117.145, -117.09, -117.09, -117.145, -117.145),
+#                          lat = c(32.665, 32.665, 32.595, 32.595, 32.665))
+
+```
+
+This notebook is used to create a large map - eastern Pacific for green turtle papers. First get the coast line - the original file was given by Rich Cosgrove some years ago. I use two functions getCoastLine.R and latlon2sp.R, which are in tomosFunctions.R (in tools project). 
+
+
+```{r}
+# convert the lat/lon into northing/easting
+# An arbitrary center point was created here.
+approx.center <- data.frame(X=-110.0, Y=25.0)
+sp::coordinates(approx.center) <- c("X", "Y")
+sp::proj4string(approx.center) <- sp::CRS("+proj=longlat +datum=WGS84")
+center.UTM <- sp::spTransform(approx.center,
+                              sp::CRS("+proj=utm +zone=10 ellps=WGS84"))
+
+
+coast.line <- getCoastLine(paste0(dirSelector()$Rdir,
+                                  'Oceans and Maps/coast/coast_Epac.txt'),
+                           lon.limits = c(-123, -100),
+                           lat.limits = c(15, 36))
+
+coast.line.df <- do.call(rbind, coast.line)
+colnames(coast.line.df) <- c('X', 'Y', 'idx')
+coast.line.Sp <- latlon2sp(coast.line.df, center.UTM)
+
+US_MX_border <- sp::spTransform(rgdal::readOGR(dsn = paste0(dirSelector()$Rdir,
+                                                            "Oceans and Maps/International_Boundary/shp"),
+                                               layer = "International_Boundary_Final",
+                                               verbose = FALSE),
+                                sp::CRS("+proj=longlat +datum=WGS84"))
+US_MX_border.df <- broom::tidy(US_MX_border) %>%
+  filter(long < -100)
+```
+
+Try plotting the area and see how it llooks
+
+```{r}
+p1 <- ggplot() +  
+  geom_polygon(data = data.frame(lon = c(-123, -100, -100, -123, -123),
+                                 lat = c(36, 36, 15, 15, 36)),
+               aes(x = lon, y = lat),
+               color = "gray60",
+               fill = water.color,
+               alpha = 0.6) + 
+  geom_polygon(fill = land.color,
+               data = coast.line.df,
+               aes(x=X, y=Y, group = idx),
+               alpha = 0.7) + 
+  geom_path(data = US_MX_border.df,
+            aes(x = long, y = lat, group = group),
+            color = "gray100",
+            size = 0.5)+
+  geom_point(aes(x = sSDB.center[2], 
+                 y = sSDB.center[1]),
+             color = "red",
+             size = 2.5,
+             fill = NA) + 
+  geom_polygon(aes(x = Revilla.box$lon, 
+                 y = Revilla.box$lat),
+             color = "red2",
+             size = 1.0,
+             fill = NA) + 
+  geom_point(aes(x = TresMarias.center[2], 
+                 y = TresMarias.center[1]),
+             color = "red2",
+             size = 2.5,
+             fill = NA) + 
+  
+  geom_point(aes(x = Michoacan.center[2], 
+                 y = Michoacan.center[1]),
+             color = "red2",
+             size = 2.5,
+             fill = NA) + 
+  coord_map() +
+  ylab(expression(paste("Latitude (", degree, "N)"))) +
+  xlab(expression(paste("Longitude (", degree, "W)", sep=""))) 
+  theme(panel.background = element_rect(fill = water.color))  # theme(plot.title = element_text(hjust = 0.5),
+  #       legend.title = element_text(size = 12, hjust = 0.5),
+  #       legend.text = element_text(size = 10, vjust = 0),
+  #       axis.title = element_text(size = 12),
+  #       axis.text = element_text(size = 12),
+  #       legend.position = c(0.1, 0.7))
+
+print(p1)
+
+ggsave(filename = "figures/large_map.png",
+       plot = p1,
+       device = "png",
+       dpi = 600)
+```
+

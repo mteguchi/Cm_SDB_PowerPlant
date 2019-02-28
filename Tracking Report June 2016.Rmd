@@ -1,0 +1,249 @@
+---
+title: "Satellite telemetry of green turtles"
+author: "Tomo Eguchi"
+date: '`r Sys.Date()`'
+output: word_document
+---
+
+```{r setup, cache=F, echo=F, message=FALSE}
+rm(list=ls())
+sysInfo <- Sys.info()
+ifelse(sysInfo[1] == 'Linux',
+       source('~/Documents/R/TomosFunctions.R'),
+       source('~/R/TomosFunctions.R'))
+```
+
+```{r getdata, cache=TRUE, echo=F, message=FALSE}
+library(dplyr)
+library(data.table)  # for combining data.frames.
+# this one is for getting sun rise and sunset time
+library(StreamMetabolism)
+
+# change this directory and extension as needed
+# these are raw data files.
+runDate <- "2016-07-25"
+data.dir <- 'D:/TomosFolders/turtles/greens/SDBay/SDBayTelemetry/Telemetry2015/'
+all.files <- as.list(list.files(data.dir, pattern = "_15Jul2016.txt"))
+all.data <- lapply(all.files,
+                   FUN = function(x) read.csv(paste0(data.dir, x)))
+
+LCs<-c("1","2","3")
+
+#filters each Argos tag for nums (LC 1,2,3) and GPS, which eliminates Argos A,B,Z,0
+## | represents or
+
+filtered.data <- lapply(all.data,
+                        FUN = function(x){
+                          filter(x, LC == LCs[1] |
+                                   LC == LCs[2] |
+                                   LC == LCs[3] |
+                                   Message_Type=="GPS")})
+
+#Create a vector that binds all pre tag data into one dataframe
+data.all <- rbindlist(filtered.data)
+data.all$ArgosID <- as.factor(data.all$ArgosID)
+
+#dayNight, classify each relocation as day or night
+# finds day/night of each data point for pre closure
+
+#""  "0" "1" "2" "3" "A" "B" "Z"
+##this next step gets rid of those hidden levels and puts in NA
+##if you dont want that then this isnt the right way to do this
+levels(data.all$LC)[levels(data.all$LC) %in% c("","A","B","Z")]<-NA
+
+
+##convert all variables of interest to same type (character)
+data.all$Message_Type<-as.character(data.all$Message_Type)
+data.all$Residual<-as.character(data.all$Residual)
+data.all$LC<-as.character(data.all$LC)
+
+##now replace NA's with Message_Type
+data.all$Residual[is.na(data.all$Residual)]<-data.all$Message_Type[is.na(data.all$Residual)]
+data.all$LC[is.na(data.all$LC)]<-data.all$Message_Type[is.na(data.all$LC)]
+
+dat.all1 <- subset(data.all,
+                   select = c("ArgosID",
+                              "Message_Type",
+                              "TransmissionDateTime",
+                              "LC",
+                              "Residual",
+                              "Lat1", "Lon1"))
+
+#View(datPre1), datPre1 subset looks good
+
+dat.all1$Date <- as.POSIXct(strptime(dat.all1$TransmissionDateTime,
+                                     "%m/%d/%Y %H:%M"))
+dat.all1$Date2 <- as.character(dat.all1$Date, format = "%Y/%m/%d")
+
+dat <- na.omit(dat.all1)
+
+#View(dat), looks good
+
+rise <- set <- vector(mode = "numeric", length = dim(dat)[1])
+
+#dim(dat)[1]
+for (k in 1:dim(dat)[1]){
+  tmp <- sunrise.set(lat = dat$Lat1[k],
+                     long = dat$Lon1[k],
+                     date = dat$Date[k],
+                     timezone = "America/Los_Angeles")
+
+  rise[k] <- tmp$sunrise
+  set[k] <- tmp$sunset
+}
+
+dat$sunrise <- as.POSIXct(x=rise, origin = "1970-01-01 00:00.00 UTC")
+dat$sunset <- as.POSIXct(x=set, origin = "1970-01-01 00:00.00 UTC")
+
+dat$daynight <- ifelse((dat$Date>dat$sunrise & dat$Date < dat$sunset),
+                       1, 2)
+
+uniqIDs <- unique(dat$ArgosID)
+#View(uniqIDs)
+
+for (k in 1:length(uniqIDs)){
+  outfile <- paste0(data.dir, uniqIDs[k], '_DayNight_',
+                    format(Sys.Date(), "%Y-%m-%d"), '.csv')
+  if (!file.exists(outfile)){
+    datTmp <- dat[dat$ArgosID == uniqIDs[k],]
+    write.csv(datTmp, file = outfile, quote = F, row.names=F)  
+  }
+  
+}
+
+
+library(sp)
+
+# use point.in.polygon in sp package
+
+SDBay <- read.csv("data/SDBay_polygon.csv")
+
+data.files <- dir(data.dir, paste0("_DayNight_", runDate, ".csv"))
+
+for (k in 1:length(data.files)){
+  fileout <- paste0(data.dir,
+                          unlist(strsplit(data.files[k],
+                                          '_DayNight_'))[1],
+                          "_DayNight_inout_",
+                          unlist(strsplit(data.files[k],
+                                          '_DayNight_'))[2])
+  if (!file.exists(fileout)){
+    dat.one <- read.table(paste0(data.dir, data.files[k]), header = T,
+                          sep = ",")
+    in.out <- vector(mode = "numeric", length = dim(dat.one)[1])
+    for (k1 in 1:length(in.out)){
+      in.out[k1] <- point.in.polygon(dat.one$Lon1[k1], dat.one$Lat1[k1],
+                                     SDBay$long, SDBay$lat)
+    }
+    dat.one$inside <- in.out
+    
+    write.csv(dat.one,
+              file = fileout,
+              quote = F, row.names = F)
+    
+  }
+
+  #plot(SDBay$long, SDBay$lat, type = 'l')
+  #points(dat$Lon1[in.out == 1], dat$Lat1[in.out == 1], col = 'green')
+  #points(dat$Lon1[in.out == 0], dat$Lat1[in.out == 0], col = 'red')
+}
+
+
+all.files <- dir(data.dir, "_DayNight_inout_")
+
+# max residual value
+res.limit <- 35.0
+
+for (k0 in 1:length(all.files)){
+  id <- unlist(strsplit(all.files[k0], '_'))
+
+  fileout <- paste0(data.dir, id[1], "_DayNight_inout_4hrs_",
+                    format(Sys.Date(), "%Y-%m-%d"), ".csv")
+
+  #fileout <- "37616_DayNight_4hrs.csv"
+  if (!file.exists(fileout)){
+      dat1 <- read.csv(paste0(data.dir, all.files[k0]))
+
+  # create hours column:
+  tmp <- strsplit(as.character(dat1$Date), ' ')
+  tmp2 <- lapply(tmp,
+                 FUN = function(x) x[2])
+  tmp3 <- lapply(tmp2,
+                 FUN = function(x) unlist(strsplit(x, ':'))[1])
+
+  dat1$hr <- as.numeric(unlist(tmp3))
+
+  write(x = colnames(dat1), file = fileout,
+        sep = ",", ncolumns = dim(dat1)[2])
+
+  # we need to know which dates we have
+  # use Y/m/d column
+  uniq.dates <- levels(dat1$Date2)
+  for (k in 1:length(uniq.dates)){
+    tmp1 <- dat1[dat1$Date2 == uniq.dates[k],]
+    # then split into four-hr segments:
+    # 0-4, 4-8, 8-12, 12-16, 16-20, 20-24
+    for (k1 in 1:6){
+      tmp2 <- tmp1[tmp1$hr >= ((k1-1) * 4) & tmp1$hr < (k1*4), ]
+      if (dim(tmp2)[1] != 0){
+        if (length(grep("GPS", tmp2$LC)) > 1){
+          tmp2.1 <- tmp2[grep("GPS", tmp2$LC),]
+          res.num <- as.numeric(tmp2.1$Residual)
+          ifelse(res.num <= res.limit,
+                 tmp3 <- tmp2.1[res.num == min(res.num),],
+                 tmp3 <- NA)
+          
+        } else {
+          LC.num <- as.numeric(tmp2$LC)
+          tmp3 <- tmp2[LC.num == max(LC.num),]
+        }
+        
+        if (length(tmp3) > 1){
+          write.table(tmp3[1,], file = fileout, sep = ",",
+                      append = T, quote = F, col.names = F,
+                      row.names = F)
+          
+        }
+      }
+    }
+    
+  }
+    
+  }
+
+
+}
+
+# maps are made in maps_15Jul2016.R
+```
+
+
+
+#Methods
+```{r sampleSize, cache=T, echo=F, message=FALSE}
+ndays <- vector(mode = "numeric", length = length(uniqIDs))
+init.days <- vector(mode = "list", length = length(uniqIDs))
+for (k in 1:length(uniqIDs)){
+  dat.tmp <- subset(dat, ArgosID == uniqIDs[k])
+  
+  dat.tmp$DOY <- YMD2DOY(dat.tmp$Date)
+  ndays[k] <- length(unique(dat.tmp$DOY))
+  init.days[[k]] <- dat.tmp$Date[1] # need to convert into Julian date
+  
+}
+```
+We deployed ```r length(unique(data.all$ArgosID))``` GPS transmitters between 27 August 2015 and 15 December 2015. received location data from  ```r length(uniqIDs)``` transmitters. Durations of transmission ranged from ```r min(ndays)``` to ```r max(ndays)``` days. We retained only high-quality ARGOS locations (error < 1 km, or the location class of 1, 2, or 3) or GPS locations. Data points that landed on land were excluded from further analyses and plotting. We then extracted the best location within each four-hour period for each transmitter; 0000 to 0400, 0400 to 0800, 0800 to 1200, 1200 to 1600, 1600 to 2000, and 2000 to 0000. 
+
+
+#Results
+One turtle (ARGOS ID: 152322) showed a migration trip to Revillagigedos Islands (Isla Clarion; Figure x). 
+
+![Monthly track of 152322. Red dots indicate locations in the month, whereas yellow dots indicate locations during the previous month. ](images/152322_byMonth.png)
+
+For other turtles, six stayed in the south bay (Figure y) whereas one forayed into the middle bay (Figure z). 
+
+<!-- ![Locations of six green turtles tagged with satellite transmitters. Red dots indicate locations determined through the GPS, whereas yellow dots indicate those determined through ARGOS satellites. Data were filtered to retain the maximum of one location per four hours. See text for how data were filtered.](images/plots/slide1.png) -->
+
+
+<!-- ![Locations of one green turtle tagged with a GPS-enabled satellite transmitter. Red dots indicate locations determined through the GPS, whereas yellow dots indicate those determined through ARGOS satellites. Data were filtered to retain the maximum of one location per four hours. See text for how data were filtered.](images/plots/slide2.png) -->
+
