@@ -41,7 +41,7 @@ sp::proj4string(approx.center) <- sp::CRS("+proj=longlat +datum=WGS84")
 center.UTM <- sp::spTransform(approx.center,
                               sp::CRS("+proj=utm +zone=10 ellps=WGS84"))
 
-
+center.latlon = data.frame(lat = approx.center$Y, lon = approx.center$X)
 coast.line <- getCoastLine(paste0(dirSelector()$Rdir,
                                   'Oceans and Maps/coast/coast_Epac.txt'),
                            lon.limits = c(-123, -100),
@@ -49,7 +49,7 @@ coast.line <- getCoastLine(paste0(dirSelector()$Rdir,
 
 coast.line.df <- do.call(rbind, coast.line)
 colnames(coast.line.df) <- c('X', 'Y', 'idx')
-coast.line.Sp <- latlon2sp(coast.line.df, center.UTM)
+coast.line.Sp <- latlon2sp(coast.line.df, center.latlon)
 
 US_MX_border <- sp::spTransform(rgdal::readOGR(dsn = paste0(dirSelector()$Rdir,
                                                             "Oceans and Maps/International_Boundary/shp"),
