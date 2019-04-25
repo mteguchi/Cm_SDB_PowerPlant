@@ -209,7 +209,7 @@ p.dif.dist <- ggplot() +
   labs(x = "Number of individuals",
        y = bquote('Estimated UDs (' *km^2*')'))
   
-ggsave(filename = "figures/preVsPost_effect_n.png",
+ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
        plot = p.dif.dist,
        device = "png",
        dpi = 600)
@@ -266,7 +266,7 @@ p.d50.n6 <- ggplot(data = dif.50.list[[2]]) +
                    col = "black") +
     labs(x = "Difference in area (50% UD)", y = "Count")
 
-ggsave(filename = "figures/preVsPost_n6.png",
+ggsave(filename = paste0("figures/preVsPost_n6_", Sys.Date(), ".png"),
        plot = p.d50.n6,
        device = "png",
        dpi = 600)

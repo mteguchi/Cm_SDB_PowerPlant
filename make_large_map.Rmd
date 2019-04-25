@@ -51,6 +51,10 @@ coast.line.df <- do.call(rbind, coast.line)
 colnames(coast.line.df) <- c('X', 'Y', 'idx')
 coast.line.Sp <- latlon2sp(coast.line.df, center.latlon)
 
+# the following shape file was obttained from here: #https://gis.stackexchange.com/questions/153514/us-mexican-border-data
+# note that the USGS link is broken but direct link "here" is available. 
+# http://txpub.usgs.gov/BEHI/Data_download/Boundaries_Layers/International_Boundary_shp.zip
+
 US_MX_border <- sp::spTransform(rgdal::readOGR(dsn = paste0(dirSelector()$Rdir,
                                                             "Oceans and Maps/International_Boundary/shp"),
                                                layer = "International_Boundary_Final",
