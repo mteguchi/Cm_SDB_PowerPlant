@@ -34,7 +34,7 @@ library(StreamMetabolism)
 
 # The date the first few chunks were run to find inside/outside, day/night, and split into 4-hr blocks. 
 run.date <- "2019-11-01"
-save.figure <- F
+save.figure <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -907,6 +907,7 @@ if (save.figure)
 ```
 
 
+START FROM HERE ON 2019-11-4.
 
 Extract UDs for each individual. Starting with pre:
 ```{r message=FALSE}
