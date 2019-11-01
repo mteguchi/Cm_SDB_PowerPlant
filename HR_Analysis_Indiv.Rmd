@@ -92,7 +92,7 @@ data1$tmp14.sd <- unlist(tmp14.sd)
 
 ```
 
-Then use GLMM to look at how they affected the HR:
+Then use GLMM to look at how they affected the HR. 
 
 ```{r}
 

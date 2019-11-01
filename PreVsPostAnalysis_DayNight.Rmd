@@ -35,7 +35,7 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 grid <- 1000
 extent <- 1
 
-source("HR_analysis_fcns.R")
+#source("HR_analysis_fcns.R")
 tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
