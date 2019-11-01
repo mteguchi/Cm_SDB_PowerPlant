@@ -76,7 +76,7 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
 # for 50 and 95% UDs
 HR.bvnorm.fcn <- function(all.utm,
                           byID.utm,
-                          h="href",
+                          h= "href",
                           hlim=c(0.03, 1.5),
                           grid=1000, extent = 1){
 
@@ -140,8 +140,8 @@ HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=1000){
 
   kd.LSCV <- kernelUD(list.data$all.utm,
                       h="LSCV",
-                      hlim = c(0.03, 1.5),
-                      grid=300,
+                      hlim = c(0.01, 5.5),
+                      grid = grid,
                       kern = "bivnorm")
   return(list(kd.href = kd.href,
               kd.LSCV = kd.LSCV,
@@ -200,7 +200,7 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
     scale_x_continuous(breaks = c(-117.14, -117.12, -117.10),
                        limits = c(-117.14, -117.09))+
     scale_y_continuous(breaks = c(32.62, 32.64, 32.66),
-                       limits = c(32.60, 32.66))
+                       limits = c(32.59, 32.66))
 
   return(list(figure = p.h.adhoc,
               ver.95 = ver.95.adhoc.df,
@@ -211,6 +211,8 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
 # the output from make.HR.dataset, and grid value. It uses HR.bvnorm.fcn.
 # Returns 50 and 95% areas and vertices, which are used to plot UDs.
 compute.area <- function(h, list.data, grid=1000){
+  #h.multiplier * kd.href@h$h
+  
   HR <- HR.bvnorm.fcn(list.data$all.utm,
                       list.data$byID.utm,
                       h = h,
@@ -429,6 +431,204 @@ UD.eachID <- function(kd.all, grid.value = 1000){
                    area = UD.area,
                    h = h.eachID,
                    h.multip = h.multip.eachID)
+  return(out.list)
+}
+
+get.summary.1 <- function(dname, date.format = "%m-%d-%Y %H:%M:%S"){
+  raw.files <- dir(path = dname, 
+                   pattern = "_inout_DayNight.csv")
+  
+  GPS.files <- dir(path = dname, 
+                   pattern = "_inside_DayNight_4hrs_GPS.csv")
+  
+  ARGOS.files <- dir(path = dname, 
+                     pattern = "_inside_DayNight_4hrs_ARGOS.csv")
+  
+  raw.IDs <- unlist(lapply(raw.files, FUN = ID.names))
+  
+  col_def <- cols(ID = col_integer(),
+                  ArgosID = col_integer(),
+                  Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                  TransmissionDateTime = col_datetime(format = date.format),
+                  UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  LC = col_integer(),
+                  Residual = col_double(),
+                  Lat1 = col_double(),
+                  Lon1 = col_double(),
+                  inside = col_integer(),
+                  LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  Date2 = col_date(format = "%Y/%m/%d"),
+                  LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  LocalSunset =  col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  day1night2 = col_integer())
+  
+  raw <- do.call(rbind, 
+                 lapply(raw.files,
+                        FUN = function(x) readr::read_csv(file = paste0(dname, "/", x),
+                                                          col_types = col_def))) %>%
+    mutate(ID.f = as.factor(ArgosID)) %>%
+    group_by(ID.f) %>%
+    mutate(hr = hour(LocalDateTime)) %>%
+    mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+  
+  GPS.IDs <- unlist(lapply(GPS.files, FUN = ID.names))
+  ARGOS.IDs <- unlist(lapply(ARGOS.files, FUN = ID.names))
+  
+  col_def <- cols(ID = col_integer(),
+                  ArgosID = col_integer(),
+                  Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
+                  TransmissionDateTime = col_datetime(format = date.format),
+                  UTCDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  LC = col_integer(),
+                  Residual = col_double(),
+                  Lat1 = col_double(),
+                  Lon1 = col_double(),
+                  inside = col_integer(),
+                  LocalDateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  Date2 = col_date(format = "%Y/%m/%d"),
+                  LocalSunrise = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  LocalSunset =  col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                  day1night2 = col_integer(),
+                  hr = col_integer())
+  
+  GPS <- do.call(rbind, 
+                 lapply(GPS.files,
+                        FUN = function(x) readr::read_csv(file = paste0(dname, "/", x),
+                                                          col_types = col_def))) %>%
+    mutate(ID.f = as.factor(ArgosID)) %>%
+    group_by(ID.f) %>%
+    mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+  
+  ARGOS <- do.call(rbind, 
+                   lapply(ARGOS.files,
+                          FUN = function(x) readr::read_csv(file = paste0(dname, "/", x),
+                                                            col_types = col_def))) %>%
+    mutate(ID.f = as.factor(ArgosID)) %>%
+    group_by(ID.f) %>%
+    mutate(DaysSinceFirst = as.double((LocalDateTime - min(LocalDateTime))/(60*60*24)))
+  
+  raw %>%
+    group_by(ArgosID) %>%
+    mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+           night1 = ifelse(day1night2 == 2, 1, 0)) %>%
+    summarise(Date1 = min(LocalDateTime), 
+              n.days = max(DaysSinceFirst),
+              n.relocations.all = n(),
+              total.DIAG = sum(Message_Type == "DIAG"),
+              total.DS = sum(Message_Type == "DS"),
+              LC1 = sum(LC == 1, na.rm = T),
+              LC2 = sum(LC == 2, na.rm = T),
+              LC3 = sum(LC == 3, na.rm = T),
+              ARGOS.outside = sum((Message_Type != "GPS" & inside == 0), na.rm = T),
+              GPS = sum(Message_Type == "GPS", na.rm = T),
+              GPS.reject = sum(Residual > res.limit, na.rm = T),
+              GPS.outside = sum((Message_Type == "GPS" & inside == 0), na.rm = T),
+              inside = sum(inside),
+              n.day.all = sum(day1),
+              n.night.all = sum(night1)) %>%
+    arrange(Date1) %>%
+    mutate(LC123 = LC1 + LC2 + LC3,
+           ARGOS.accept = LC123 - ARGOS.outside,
+           GPS.accept = GPS - GPS.reject - GPS.outside,
+           n.data = ARGOS.accept + GPS.accept) -> raw.summary
+  
+  GPS %>%
+    group_by(ArgosID) %>%
+    mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+           night1 = ifelse(day1night2 == 2, 1, 0)) %>%
+    summarise(Date1 = min(LocalDateTime), 
+              n.days = max(DaysSinceFirst),
+              n.relocations.all = n(),
+              n.day.all = sum(day1),
+              n.night.all = sum(night1)) %>%
+    arrange(Date1) -> GPS.summary
+  
+  ID.min_n.GPS <- filter(GPS.summary,
+                         n.relocations.all > (min_n - 1))
+  
+  ARGOS  %>%
+    group_by(ArgosID) %>%
+    mutate(day1 = ifelse(day1night2 == 1, 1, 0),
+           night1 = ifelse(day1night2 == 2, 1, 0)) %>%
+    summarise(Date1 = min(LocalDateTime), 
+              n.days = max(DaysSinceFirst),
+              n.relocations.all = n(),
+              total.DIAG = sum(Message_Type == "DIAG"),
+              total.DS = sum(Message_Type == "DS"),
+              LC1 = sum(LC == 1, na.rm = T),
+              LC2 = sum(LC == 2, na.rm = T),
+              LC3 = sum(LC == 3, na.rm = T),
+              n.day.all = sum(day1),
+              n.night.all = sum(night1)) %>%
+    arrange(Date1) -> ARGOS.summary
+  
+  ID.min_n.ARGOS <- filter(ARGOS.summary,
+                           n.relocations.all > (min_n - 1))
+  
+  out.list <- list(ARGOS = ARGOS,
+                   GPS = GPS,
+                   raw = raw,
+                   ARGOS.summary = ARGOS.summary,
+                   GPS.summary = GPS.summary,
+                   raw.summary = raw.summary,
+                   ID.min_n.ARGOS = ID.min_n.ARGOS,
+                   ID.min_n.GPS = ID.min_n.GPS)
+  
+  return(out.list)
+}
+
+#kd.input should be the output of HR.analysis.step1. 
+run.HR.analysis <- function(kd.input, file.part, grid.value, h.multiplier, shape.file.dir){
+  file.1 <- paste0("RData/h_adhoc_", file.part, ".rds")
+  file.2 <- paste0("RData/h_", file.part, ".rds")
+  file.3 <- paste0("RData/HR_", file.part, ".rds")
+  
+  if (!file.exists(file.1)){
+    h.adhoc <- HR.analysis(h.multiplier, 
+                           kd.input$kd.href, 
+                           kd.input$list.data, 
+                           grid = grid.value)
+    saveRDS(h.adhoc,
+            file = file.1)
+  } else {
+    h.adhoc <- readRDS(file = file.1)
+  }
+  
+  if (!file.exists(file.2)){
+    h.1 <- find.h.adhoc(kd.input$list.data$all.utm)
+    saveRDS(h.1, 
+            file = file.2)  
+  } else {
+    h.1 <- readRDS(file = file.2)
+  }
+  
+  h <- round(h.1$h)
+  
+  if (!file.exists(file.3)){
+    HR <- compute.area(h, 
+                       kd.input$list.data, 
+                       grid = grid.value)
+    saveRDS(HR, file = file.3)
+    
+  } else {
+    HR <- readRDS(file.3)
+  }
+  
+  writeOGR(obj = HR$ver.50, 
+           dsn = paste0(shape.file.dir, file.part, "_HR_50.shp"),
+           layer= paste0(file.part, ".50"), 
+           driver="ESRI Shapefile", 
+           overwrite_layer=TRUE)
+  
+  writeOGR(obj = HR$ver.95, 
+           dsn = paste0(shape.file.dir, file.part,"_HR_95.shp"),
+           layer="Pre.GPS.95", 
+           driver="ESRI Shapefile", 
+           overwrite_layer=TRUE)
+  
+  out.list <- list(h.adhoc = h.adhoc,
+                   h.1 = h.1,
+                   HR = HR)
   return(out.list)
 }
 
