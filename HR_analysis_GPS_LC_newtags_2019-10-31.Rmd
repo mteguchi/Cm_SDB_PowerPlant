@@ -34,7 +34,7 @@ library(StreamMetabolism)
 
 # The date the first few chunks were run to find inside/outside, day/night, and split into 4-hr blocks. 
 run.date <- "2019-11-01"
-save.figure <- T
+save.figure <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -616,16 +616,16 @@ Section 3: Compute HRs
 # when trying to compute HR for each individual, some don't have enough data
 # extract those with at least 50 data points:
 
-pre.kd.GPS <- HR.analysis.step1(min_n, pre.summary$GPS, tagproj, grid = grid.value)
-pre.kd.ARGOS <- HR.analysis.step1(min_n, pre.summary$ARGOS, tagproj, grid = grid.value)
+pre.GPS.kd <- HR.analysis.step1(min_n, pre.summary$GPS, tagproj, grid = grid.value)
+pre.ARGOS.kd <- HR.analysis.step1(min_n, pre.summary$ARGOS, tagproj, grid = grid.value)
 ```
 The algorithm does not converge for ARGOS data.
 
 Do the same with post dataset - choose those with at least min_n data points. 
 
 ```{r}
-post.kd.GPS <- HR.analysis.step1(min_n, post.summary$GPS, tagproj, grid = grid.value)
-post.kd.ARGOS <- HR.analysis.step1(min_n, post.summary$ARGOS, tagproj, grid = grid.value)
+post.GPS.kd <- HR.analysis.step1(min_n, post.summary$GPS, tagproj, grid = grid.value)
+post.ARGOS.kd <- HR.analysis.step1(min_n, post.summary$ARGOS, tagproj, grid = grid.value)
 ```
 
 The algorithm does not converge for ARGOS data.
@@ -634,7 +634,7 @@ Then the home range analysis starts here. First we need to figure out the smooth
 
 First, least-squares cross validation on the pre data:
 ```{r}
-plotLSCV(pre.kd.GPS$kd.LSCV)
+plotLSCV(pre.GPS.kd$kd.LSCV)
 
 ```
 
@@ -645,18 +645,18 @@ Looking at these plots, multiplier = 0.4 may be the smallest value with a contig
 ```{r}
 h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
 
-pre.GPS <- run.HR.analysis(pre.kd.GPS, 
-                           "pre_GPS", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
+pre.GPS.HR <- run.HR.analysis(pre.GPS.kd, 
+                              "pre_GPS", 
+                              grid.value, 
+                              h.multiplier, 
+                              shape.file.dir = "shapefiles_Nov2019/")
 
-
-plot(pre.GPS$h.adhoc$figure)
+# This HR is with the h value with the adhoc method
+plot(pre.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
   ggsave(filename = "figures/map_pre_GPS_h_adhoc.png",
-         plot = pre.GPS$h.adhoc$figure,
+         plot = pre.GPS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
 
@@ -667,7 +667,7 @@ if (save.figure)
 Try the same process with ARGOS data. 
 
 ```{r}
-plotLSCV(pre.kd.ARGOS$kd.LSCV)
+plotLSCV(pre.ARGOS.kd$kd.LSCV)
 
 ```
 
@@ -676,16 +676,16 @@ This doesn't look good... Yikes!
 I see there is a problem in plotting because of the boundary is a bit too small... Extending the southern end of the limits in the function fixed it.  The multiplier of 0.7 makes a contiguous 95% HR. 
 
 ```{r}
-pre.ARGOS <- run.HR.analysis(pre.kd.ARGOS, 
-                           "pre_ARGOS", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
-plot(pre.ARGOS$h.adhoc$figure)
+pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd, 
+                             "pre_ARGOS", 
+                             grid.value, 
+                             h.multiplier, 
+                             shape.file.dir = "shapefiles_Nov2019/")
+plot(pre.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
   ggsave(filename = "figures/map_pre_ARGOS_h_adhoc.png",
-         plot = pre.ARGOS$h.adhoc$figure,
+         plot = pre.ARGOS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
@@ -699,22 +699,22 @@ Do the same for the post data - here we need to look at subsampling individuals.
 First, least-squares cross validation on the pre data:
 First, least-squares cross validation on the pre data:
 ```{r}
-plotLSCV(post.kd.GPS$kd.LSCV)
+plotLSCV(post.GPS.kd$kd.LSCV)
 
 ```
 
 Looking at the GPS data, referecne or optimum bandwidth is ~255 (see post.kd.GPS\$kd.href@h), whereas the LSCV comes back with h = 34.6 (Post.kd.GPS\$kd.LSCV@h). According to Kie (2013), we should decrease href in increments of 0.10 and the best value is the smallest increment of href that 1. resulted in a contiguous rather than disjoint 95% kernel home-range polygon, and 2. contained no lacuna within the home range. 
 ```{r}
-post.GPS <- run.HR.analysis(post.kd.GPS, 
-                           "post_GPS", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
-plot(post.GPS$h.adhoc$figure)
+post.GPS.HR <- run.HR.analysis(post.GPS.kd, 
+                               "post_GPS", 
+                               grid.value, 
+                               h.multiplier, 
+                               shape.file.dir = "shapefiles_Nov2019/")
+plot(post.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
   ggsave(filename = "figures/map_post_GPS_h_adhoc.png",
-         plot = post.GPS$h.adhoc$figure,
+         plot = post.GPS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
 
@@ -723,7 +723,7 @@ if (save.figure)
 Try the same process with ARGOS data:
 
 ```{r}
-plotLSCV(post.kd.ARGOS$kd.LSCV)
+plotLSCV(post.ARGOS.kd$kd.LSCV)
 
 ```
 
@@ -732,16 +732,16 @@ This doesn't look good... Yikes!
 
 
 ```{r}
-post.ARGOS <- run.HR.analysis(post.kd.ARGOS, 
-                           "post_ARGOS", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
-plot(post.ARGOS$h.adhoc$figure)
+post.ARGOS.HR <- run.HR.analysis(post.ARGOS.kd, 
+                                 "post_ARGOS", 
+                                 grid.value, 
+                                 h.multiplier, 
+                                 shape.file.dir = "shapefiles_Nov2019/")
+plot(post.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
   ggsave(filename = "figures/map_post_ARGOS_h_adhoc.png",
-         plot = post.ARGOS$h.adhoc$figure,
+         plot = post.ARGOS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
@@ -760,17 +760,17 @@ plotLSCV(pre.GPS.kd.day$kd.LSCV)
 ```
 
 ```{r}
-pre.GPS.day <- run.HR.analysis(pre.GPS.kd.day, 
-                           "pre_GPS_day", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
+pre.GPS.HR.day <- run.HR.analysis(pre.GPS.kd.day, 
+                                  "pre_GPS_day", 
+                                  grid.value, 
+                                  h.multiplier, 
+                                  shape.file.dir = "shapefiles_Nov2019/")
 
-plot(pre.GPS.day$h.adhoc$figure)
+plot(pre.GPS.HR.day$h.adhoc$figure)
 
 if (save.figure)
   ggsave(filename = "figures/map_pre_GPS_h_adhoc_day.png",
-         plot = pre.GPS.day$h.adhoc$figure,
+         plot = pre.GPS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
 
@@ -789,10 +789,10 @@ plotLSCV(pre.GPS.kd.night$kd.LSCV)
 
 ```{r}
 pre.GPS.night <- run.HR.analysis(pre.GPS.kd.night, 
-                           "pre_GPS_night", 
-                           grid.value, 
-                           h.multiplier, 
-                           shape.file.dir = "shapefiles_Nov2019/")
+                                 "pre_GPS_night", 
+                                 grid.value, 
+                                 h.multiplier, 
+                                 shape.file.dir = "shapefiles_Nov2019/")
 
 plot(pre.GPS.night$h.adhoc$figure)
 
@@ -816,16 +816,16 @@ plotLSCV(post.GPS.kd.day$kd.LSCV)
 ```
 
 ```{r}
-post.GPS.day <- run.HR.analysis(post.GPS.kd.day, 
+post.GPS.HR.day <- run.HR.analysis(post.GPS.kd.day, 
                                 "post_GPS_day", 
                                 grid.value, 
                                 h.multiplier, 
                                 shape.file.dir = "shapefiles_Nov2019/")
 
-plot(post.GPS.day$h.adhoc$figure)
+plot(post.GPS.HR.day$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_GPS_h_adhoc_day.png",
-         plot = post.GPS.day$h.adhoc$figure,
+         plot = post.GPS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
@@ -841,16 +841,16 @@ plotLSCV(post.GPS.kd.night$kd.LSCV)
 ```
 
 ```{r}
-post.GPS.night <- run.HR.analysis(post.GPS.kd.night, 
-                                "post_GPS_night", 
-                                grid.value, 
-                                h.multiplier, 
-                                shape.file.dir = "shapefiles_Nov2019/")
+post.GPS.HR.night <- run.HR.analysis(post.GPS.kd.night, 
+                                     "post_GPS_night", 
+                                     grid.value, 
+                                     h.multiplier, 
+                                     shape.file.dir = "shapefiles_Nov2019/")
 
-plot(post.GPS.night$h.adhoc$figure)
+plot(post.GPS.HR.night$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_GPS_h_adhoc_night.png",
-         plot = post.GPS.night$h.adhoc$figure,
+         plot = post.GPS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
@@ -867,16 +867,16 @@ plotLSCV(post.ARGOS.kd.day$kd.LSCV)
 ```
 
 ```{r}
-post.ARGOS.day <- run.HR.analysis(post.ARGOS.kd.day, 
+post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day, 
                                 "post_ARGOS_day", 
                                 grid.value, 
                                 h.multiplier, 
                                 shape.file.dir = "shapefiles_Nov2019/")
 
-plot(post.ARGOS.day$h.adhoc$figure)
+plot(post.ARGOS.HR.day$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_ARGOS_h_adhoc_day.png",
-         plot = post.ARGOS.day$h.adhoc$figure,
+         plot = post.ARGOS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
@@ -892,302 +892,105 @@ plotLSCV(post.ARGOS.kd.night$kd.LSCV)
 ```
 
 ```{r}
-post.ARGOS.night <- run.HR.analysis(post.ARGOS.kd.night, 
+post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night, 
                                 "post_ARGOS_night", 
                                 grid.value, 
                                 h.multiplier, 
                                 shape.file.dir = "shapefiles_Nov2019/")
 
-plot(post.ARGOS.night$h.adhoc$figure)
+plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/map_post_ARGOS_h_adhoc_night.png",
-         plot = post.ARGOS.night$h.adhoc$figure,
+         plot = post.ARGOS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
 ```
 
 
-START FROM HERE ON 2019-11-4.
-
 Extract UDs for each individual. Starting with pre:
 ```{r message=FALSE}
-pre.HR.byID <- data.frame(ID = pre.kd$list.data$unique.ID,
-                          Area.50 = t(as.matrix(pre.HR$area.byID.50)),
-                          Area.95 = t(as.matrix(pre.HR$area.byID.95))) 
 
-h.multip.pre.eachID <- h.pre.eachID <- vector(mode = "numeric", 
-                                              length = length(pre.kd$list.data$eachID.utm))
-
-UD.95.pre.eachID <- UD.50.pre.eachID <- vector(mode = "list", 
-                                               length = length(pre.kd$list.data$eachID.utm))
-for (k in 1:length(pre.kd$list.data$eachID.utm)){
-  
-  dat.utm <- pre.kd$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.pre.eachID[k] <- round(best.h$h)
-  h.multip.pre.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.pre.eachID[k], 
-                 kern = "bivnorm", grid = grid.value)
-  UD.95.pre.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.pre.eachID[[k]] <- getverticeshr(UD, 50)
+if (!file.exists("RData/pre_GPS_UD_byID.rds")){
+  pre.GPS.UD.byID <- UD.eachID(pre.GPS.kd, grid.value = grid.value)
+  saveRDS(pre.GPS.UD.byID, file = "RData/pre_GPS_UD_byID.rds")  
+} else {
+  pre.GPS.UD.byID <- readRDS("RData/pre_GPS_UD_byID.rds")
 }
 
-# day data
-pre.day.HR.byID <- data.frame(ID = pre.kd.day$list.data$unique.ID,
-                              Area.50 = t(as.matrix(pre.HR.day$area.byID.50)),
-                              Area.95 = t(as.matrix(pre.HR.day$area.byID.95))) 
-
-h.multip.pre.day.eachID <- h.pre.day.eachID <- vector(mode = "numeric", 
-                           length = length(pre.kd.day$list.data$eachID.utm))
-
-UD.95.pre.day.eachID <- UD.50.pre.day.eachID <- vector(mode = "list", 
-                           length = length(pre.kd.day$list.data$eachID.utm))
-for (k in 1:length(pre.kd.day$list.data$eachID.utm)){
-  # day:
-  dat.utm <- pre.kd.day$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.pre.day.eachID[k] <- round(best.h$h)
-  h.multip.pre.day.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.pre.day.eachID[k], 
-                 kern = "bivnorm", grid = grid.value)
-  UD.95.pre.day.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.pre.day.eachID[[k]] <- getverticeshr(UD, 50)
+if (!file.exists("RData/pre_GPS_UD_day_byID.rds")){
+  pre.GPS.UD.day.byID <- UD.eachID(pre.GPS.kd.day, grid.value = grid.value)
+  saveRDS(pre.GPS.UD.day.byID, file = "RData/pre_GPS_UD_day_byID.rds")  
+} else {
+  pre.GPS.UD.day.byID <- readRDS("RData/pre_GPS_UD_day_byID.rds")
 }
 
-# night data
-h.multip.pre.night.eachID <- h.pre.night.eachID <- vector(mode = "numeric", 
-                           length = length(pre.kd.night$list.data$eachID.utm))
-
-UD.95.pre.night.eachID <- UD.50.pre.night.eachID <- vector(mode = "list", 
-                           length = length(pre.kd.night$list.data$eachID.utm))
-
-for (k in 1:length(pre.kd.night$list.data$eachID.utm)){
-  # night:
-  dat.utm <- pre.kd.night$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.pre.night.eachID[k] <- round(best.h$h)
-  h.multip.pre.night.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.pre.night.eachID[k], 
-                 kern = "bivnorm", grid = grid.value)
-  UD.95.pre.night.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.pre.night.eachID[[k]] <- getverticeshr(UD, 50)
-  
+if (!file.exists("RData/pre_GPS_UD_night_byID.rds")){
+  pre.GPS.UD.night.byID <- UD.eachID(pre.GPS.kd.night, grid.value = grid.value)
+  saveRDS(pre.GPS.UD.night.byID, file = "RData/pre_GPS_UD_night_byID.rds")  
+} else {
+  pre.GPS.UD.night.byID <- readRDS("RData/pre_GPS_UD_night_byID.rds")
 }
 
-tmp.pre.95 <- lapply(UD.95.pre.eachID, 
-                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
 
-tmp.pre.50 <- lapply(UD.50.pre.eachID, 
-                     FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-tmp.pre.day.95 <- lapply(UD.95.pre.day.eachID, 
-                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.pre.day.50 <- lapply(UD.50.pre.day.eachID, 
-                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-tmp.pre.night.95 <- lapply(UD.95.pre.night.eachID, 
-                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.pre.night.50 <- lapply(UD.50.pre.night.eachID, 
-                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-for (k in 1:length(tmp.pre.95)){
-  tmp.pre.50[[k]] <- mutate(tmp.pre.50[[k]], 
-                            ID = pre.kd$list.data$unique.ID[k])
-  tmp.pre.95[[k]] <- mutate(tmp.pre.95[[k]], 
-                            ID = pre.kd$list.data$unique.ID[k])
-}
-
-pre.eachID.ver.95.df <- do.call("rbind", tmp.pre.95)
-pre.eachID.ver.50.df <- do.call("rbind", tmp.pre.50)
-
-for (k in 1:length(tmp.pre.day.95)){
-  tmp.pre.day.50[[k]] <- mutate(tmp.pre.day.50[[k]], 
-                                ID = pre.kd.day$list.data$unique.ID[k])
-  tmp.pre.day.95[[k]] <- mutate(tmp.pre.day.95[[k]], 
-                                ID = pre.kd.day$list.data$unique.ID[k])
-}
-
-pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
-pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
-
-for (k in 1:length(tmp.pre.night.95)){
-  tmp.pre.night.50[[k]] <- mutate(tmp.pre.night.50[[k]], 
-                                  ID = pre.kd.night$list.data$unique.ID[k])
-  tmp.pre.night.95[[k]] <- mutate(tmp.pre.night.95[[k]], 
-                                  ID = pre.kd.night$list.data$unique.ID[k])
-}
-
-pre.day.eachID.ver.95.df <- do.call("rbind", tmp.pre.day.95)
-pre.day.eachID.ver.50.df <- do.call("rbind", tmp.pre.day.50)
 
 ```
 
 Now for post:
 ```{r message=FALSE}
-h.post.eachID <- h.multip.post.eachID <- vector()
-UD.95.post.eachID <- UD.50.post.eachID <- list()
 
-h.post.night.eachID <- h.multip.post.night.eachID <- vector()
-UD.95.post.night.eachID <- UD.50.post.night.eachID <- list()
-
-h.post.day.eachID <- h.multip.post.day.eachID <- vector()
-UD.95.post.day.eachID <- UD.50.post.day.eachID <- list()
-
-# first find appropriate bandwidth for each individual:
-for (k in 1:length(post.kd$list.data$eachID.utm)){
-  dat.utm <- post.kd$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.post.eachID[k] <- round(best.h$h)
-  h.multip.post.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.post.eachID[k], 
-                 kern = "bivnorm", 
-                 grid = grid.value)
-  UD.95.post.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.post.eachID[[k]] <- getverticeshr(UD, 50)
+if (!file.exists("RData/post_GPS_UD_byID.rds")){
+  post.GPS.UD.byID <- UD.eachID(post.GPS.kd, grid.value = grid.value)
+  saveRDS(post.GPS.UD.byID, file = "RData/post_GPS_UD_byID.rds")  
+} else {
+  post.GPS.UD.byID <- readRDS("RData/post_GPS_UD_byID.rds")
 }
 
-for (k in 1:length(post.kd.day$list.data$eachID.utm)){
-  # day:
-  dat.utm <- post.kd.day$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.post.day.eachID[k] <- round(best.h$h)
-  h.multip.post.day.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.post.day.eachID[k], 
-                 kern = "bivnorm", grid = grid.value)
-  UD.95.post.day.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.post.day.eachID[[k]] <- getverticeshr(UD, 50)
+if (!file.exists("RData/post_GPS_UD_day_byID.rds")){
+  post.GPS.UD.day.byID <- UD.eachID(post.GPS.kd.day, grid.value = grid.value)
+  saveRDS(post.GPS.UD.day.byID, file = "RData/post_GPS_UD_day_byID.rds")  
+} else {
+  post.GPS.UD.day.byID <- readRDS("RData/post_GPS_UD_day_byID.rds")
 }
 
-for (k in 1:length(post.kd.night$list.data$eachID.utm)){
-  # night:
-  dat.utm <- post.kd.night$list.data$eachID.utm[[k]]
-  best.h <- find.h.adhoc(dat.utm)
-  h.post.night.eachID[k] <- round(best.h$h)
-  h.multip.post.night.eachID[k] <- best.h$h.multip
-  UD <- kernelUD(dat.utm, h = h.post.night.eachID[k], 
-                 kern = "bivnorm", grid = grid.value)
-  UD.95.post.night.eachID[[k]] <- getverticeshr(UD, 95)
-  UD.50.post.night.eachID[[k]] <- getverticeshr(UD, 50)
-  
+if (!file.exists("RData/post_GPS_UD_night_byID.rds")){
+  post.GPS.UD.night.byID <- UD.eachID(post.GPS.kd.night, grid.value = grid.value)
+  saveRDS(post.GPS.UD.night.byID, file = "RData/post_GPS_UD_night_byID.rds")  
+} else {
+  post.GPS.UD.night.byID <- readRDS("RData/post_GPS_UD_night_byID.rds")
 }
 
-tmp.post.95 <- lapply(UD.95.post.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.post.50 <- lapply(UD.50.post.eachID, 
-                 FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-tmp.post.day.95 <- lapply(UD.95.post.day.eachID, 
-                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.post.day.50 <- lapply(UD.50.post.day.eachID, 
-                         FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-tmp.post.night.95 <- lapply(UD.95.post.night.eachID, 
-                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-tmp.post.night.50 <- lapply(UD.50.post.night.eachID, 
-                           FUN = function(x) broom::tidy(spTransform(x, CRS("+proj=longlat"))))
-
-
-for (k in 1:length(tmp.post.95)){
-  tmp.post.50[[k]] <- mutate(tmp.post.50[[k]], 
-                             ID = post.kd$list.data$unique.ID[k])
-  tmp.post.95[[k]] <- mutate(tmp.post.95[[k]], 
-                             ID = post.kd$list.data$unique.ID[k])
-}
-
-post.eachID.ver.95.df <- do.call("rbind", tmp.post.95) 
-post.eachID.ver.50.df <- do.call("rbind", tmp.post.50)
-
-for (k in 1:length(tmp.post.day.95)){
-  tmp.post.day.50[[k]] <- mutate(tmp.post.day.50[[k]], 
-                                 ID = post.kd.day$list.data$unique.ID[k])
-  tmp.post.day.95[[k]] <- mutate(tmp.post.day.95[[k]], 
-                                 ID = post.kd.day$list.data$unique.ID[k])
-}
-
-post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
-post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
-
-for (k in 1:length(tmp.post.night.95)){
-  tmp.post.night.50[[k]] <- mutate(tmp.post.night.50[[k]], 
-                                   ID = post.kd.night$list.data$unique.ID[k])
-  tmp.post.night.95[[k]] <- mutate(tmp.post.night.95[[k]], 
-                                   ID = post.kd.night$list.data$unique.ID[k])
-}
-
-post.day.eachID.ver.95.df <- do.call("rbind", tmp.post.day.95)
-post.day.eachID.ver.50.df <- do.call("rbind", tmp.post.day.50)
 
 ```
 
 Bring in the body size information. This was done in deployment_table.R script and manually modified for missing data - some measurements were not collected when the tags were deployed so data from the closest captures were used.  Data were entered manually for three turtles in the Excel file: 52675 (all measurements) from 2007-01-23, 44366 (SCL and CCL) from 2009-02-26, and 126065 (Mass) from 2011-03-08).   
+
+Somehow, only 6 post animals get UD computed... need to look into why that is 2019-11-04...  
 ```{r}
 dat.table <- read.csv("data/all_sample_summary_size_2018-07-24.csv")
 
-pre.areas.95 <- unlist(lapply(lapply(UD.95.pre.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-pre.areas.50 <- unlist(lapply(lapply(UD.50.pre.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
+pre.areas.df <- data.frame(ID.f = pre.GPS.kd$list.data$unique.ID,
+                           area.50 = pre.GPS.UD.byID$area$area.50,
+                           area.95 = pre.GPS.UD.byID$area$area.95)
 
-pre.day.areas.95 <- unlist(lapply(lapply(UD.95.pre.day.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-pre.day.areas.50 <- unlist(lapply(lapply(UD.50.pre.day.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
+pre.day.areas.df <- data.frame(ID.f = pre.GPS.kd.day$list.data$unique.ID,
+                               area.day.50 = pre.GPS.UD.day.byID$area$area.50,
+                               area.day.95 = pre.GPS.UD.day.byID$area$area.95)
 
-pre.night.areas.95 <- unlist(lapply(lapply(UD.95.pre.night.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-pre.night.areas.50 <- unlist(lapply(lapply(UD.50.pre.night.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
+pre.night.areas.df <- data.frame(ID.f = pre.GPS.kd.night$list.data$unique.ID,
+                                 area.night.50 = pre.GPS.UD.night.byID$area$area.50,
+                                 area.night.95 = pre.GPS.UD.night.byID$area$area.95)
 
-pre.areas.df <- data.frame(ID.f = pre.kd$list.data$unique.ID,
-                           area.50 = pre.areas.50/1000000,
-                           area.95 = pre.areas.95/1000000)
+post.areas.df <- data.frame(ID.f = post.GPS.kd$list.data$unique.ID,
+                            area.50 = post.GPS.UD.byID$area$area.50,
+                            area.95 = post.GPS.UD.byID$area$area.95)
 
-pre.day.areas.df <- data.frame(ID.f = pre.kd.day$list.data$unique.ID,
-                               area.day.50 = pre.day.areas.50/1000000,
-                               area.day.95 = pre.day.areas.95/1000000)
+post.day.areas.df <- data.frame(ID.f = post.GPS.kd.day$list.data$unique.ID,
+                                area.day.50 = post.GPS.UD.day.byID$area$area.50,
+                                area.day.95 = post.GPS.UD.day.byID$area$area.95)
 
-pre.night.areas.df <- data.frame(ID.f = pre.kd.night$list.data$unique.ID,
-                           area.night.50 = pre.night.areas.50/1000000,
-                           area.night.95 = pre.night.areas.95/1000000)
-
-post.areas.95 <- unlist(lapply(lapply(UD.95.post.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-post.areas.50 <- unlist(lapply(lapply(UD.50.post.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-
-post.day.areas.95 <- unlist(lapply(lapply(UD.95.post.day.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-post.day.areas.50 <- unlist(lapply(lapply(UD.50.post.day.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-
-post.night.areas.95 <- unlist(lapply(lapply(UD.95.post.night.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-post.night.areas.50 <- unlist(lapply(lapply(UD.50.post.night.eachID, 
-                                      FUN = extract.areas),
-                               FUN = function(x) x$total.area))
-
-post.areas.df <- data.frame(ID.f = post.kd$list.data$unique.ID,
-                           area.50 = post.areas.50/1000000,
-                           area.95 = post.areas.95/1000000)
-
-post.day.areas.df <- data.frame(ID.f = post.kd.day$list.data$unique.ID,
-                           area.day.50 = post.day.areas.50/1000000,
-                           area.day.95 = post.day.areas.95/1000000)
-
-post.night.areas.df <- data.frame(ID.f = post.kd.night$list.data$unique.ID,
-                           area.night.50 = post.night.areas.50/1000000,
-                           area.night.95 = post.night.areas.95/1000000)
+post.night.areas.df <- data.frame(ID.f = post.GPS.kd.night$list.data$unique.ID,
+                                  area.night.50 = post.GPS.UD.night.byID$area$area.50,
+                                  area.night.95 = post.GPS.UD.night.byID$area$area.95)
 
 areas.df <- rbind(pre.areas.df, post.areas.df)
 areas.night.df <- rbind(pre.night.areas.df, post.night.areas.df)
@@ -1206,6 +1009,9 @@ ggplot(data = dat.table) +
                  y = area.50/1000000,
                  color = period)) 
 ```
+
+
+
 
 Plotting starts here:
 Make a plot for pre using all data:

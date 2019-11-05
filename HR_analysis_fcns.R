@@ -73,9 +73,10 @@ make.HR.dataset <- function(data.all, ID.min_n, tagproj){
 
 # A function to compute UDs using all data and for each individual. Returns a list
 # of estimated bandwidth, kernel density estimates as well as areas
-# for 50 and 95% UDs
+# for 50 and 95% UDs - removed byID output because h values need to be changed
+# for each individual to compute the most appropriate HRs (2019-11-04). 
+
 HR.bvnorm.fcn <- function(all.utm,
-                          byID.utm,
                           h= "href",
                           hlim=c(0.03, 1.5),
                           grid=1000, extent = 1){
@@ -93,18 +94,18 @@ HR.bvnorm.fcn <- function(all.utm,
                           unout = c("km2"),
                           standardize = FALSE)
 
-  byID.kd <- kernelUD(byID.utm,
-                      h = all.kd@h$h ,
-                      hlim = hlim,
-                      grid = grid,
-                      extent = extent,
-                      kern = "bivnorm")
-
-  Area.byID <- kernel.area(byID.kd,
-                           percent = c(50, 95),
-                           unin = c("m"),
-                           unout = c("km2"),
-                           standardize = FALSE)
+  # byID.kd <- kernelUD(byID.utm,
+  #                     h = all.kd@h$h ,
+  #                     hlim = hlim,
+  #                     grid = grid,
+  #                     extent = extent,
+  #                     kern = "bivnorm")
+  # 
+  # Area.byID <- kernel.area(byID.kd,
+  #                          percent = c(50, 95),
+  #                          unin = c("m"),
+  #                          unout = c("km2"),
+  #                          standardize = FALSE)
 
   bw <- all.kd@h$h ##bandwidth estimate
   #Area.50 <- Area.all["50"]
@@ -115,9 +116,9 @@ HR.bvnorm.fcn <- function(all.utm,
 
   return(list(bw = bw,
               all.kd = all.kd,
-              byID.kd = byID.kd,
-              area.all = Area.all,
-              area.byID = Area.byID))
+              #byID.kd = byID.kd,
+              area.all = Area.all))
+              #area.byID = Area.byID))
 }
 
 # A function to conduct the first step of UD analysis. It takes a full dataset
@@ -210,11 +211,12 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
 # A function to compute 50 and 95% UD areas. INputs are bandwidth (h),
 # the output from make.HR.dataset, and grid value. It uses HR.bvnorm.fcn.
 # Returns 50 and 95% areas and vertices, which are used to plot UDs.
-compute.area <- function(h, list.data, grid=1000){
+# removed byID output because I changed the HR.bvnorm.fcn() above (2019-11-04)
+compute.area <- function(h, all.utm, grid=1000){
   #h.multiplier * kd.href@h$h
   
-  HR <- HR.bvnorm.fcn(list.data$all.utm,
-                      list.data$byID.utm,
+  HR <- HR.bvnorm.fcn(all.utm,
+                      #list.data$byID.utm,
                       h = h,
                       hlim=c(0.03, 1.5),
                       grid=grid, extent = 1)
@@ -223,11 +225,11 @@ compute.area <- function(h, list.data, grid=1000){
   return(list(area.50 = HR$area.all["50"],
               area.95 = HR$area.all["95"],
               ver.50 = getverticeshr(HR$all.kd, 50),
-              ver.95 = getverticeshr(HR$all.kd, 95),
-              area.byID.50 = HR$area.byID["50",],
-              area.byID.95 = HR$area.byID["95",],
-              ver.byID.50 = getverticeshr(HR$byID.kd, 50),
-              ver.byID.95 = getverticeshr(HR$byID.kd, 95)))
+              ver.95 = getverticeshr(HR$all.kd, 95)))
+              # area.byID.50 = HR$area.byID["50",],
+              # area.byID.95 = HR$area.byID["95",],
+              # ver.byID.50 = getverticeshr(HR$byID.kd, 50),
+              # ver.byID.95 = getverticeshr(HR$byID.kd, 95)))
 }
 
 # This funciton finds a bandwidth value that makes 95% UD contiguous
@@ -632,3 +634,45 @@ run.HR.analysis <- function(kd.input, file.part, grid.value, h.multiplier, shape
   return(out.list)
 }
 
+extract.UD.eachID <- function(.kd, .data, data.name, grid.value){
+  HR.byID <- data.frame(ID = .kd$list.data$unique.ID,
+                        Area.50 = t(as.matrix(.data$HR$area.byID.50)),
+                        Area.95 = t(as.matrix(.data$HR$area.byID.95))) 
+  
+  out.filename <- paste0("RData/HR_", data.name, "_eachID.rds")
+  
+  if (!file.exists(out.filename)){
+    h.multip <- h <- vector(mode = "numeric", 
+                            length = length(.kd$list.data$eachID.utm))
+    
+    UD.95 <- UD.50 <- vector(mode = "list", 
+                             length = length(.kd$list.data$eachID.utm))
+    for (k in 1:length(.kd$list.data$eachID.utm)){
+      
+      dat.utm <- .kd$list.data$eachID.utm[[k]]
+      best.h <- find.h.adhoc(dat.utm)
+      h[k] <- round(best.h$h)
+      h.multip[k] <- best.h$h.multip
+      UD <- kernelUD(dat.utm, h = h[k], 
+                     kern = "bivnorm", grid = grid.value)
+      UD.95[[k]] <- getverticeshr(UD, 95)
+      UD.50[[k]] <- getverticeshr(UD, 50)
+    }
+    
+    out.list <- list(UD.95 = UD.95,
+                     UD.50 = UD.50,
+                     h.multip = h.multip,
+                     h = h)  
+    
+    saveRDS(out.list,
+            file = out.filename)
+  } else {
+    
+    out.list <- readRDS(out.filename)
+  }
+  
+  return(out.list)  
+}
+
+
+  
