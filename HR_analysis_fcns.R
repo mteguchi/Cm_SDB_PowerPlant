@@ -144,6 +144,7 @@ HR.analysis.step1 <- function(min_n = 50, data.df, tagproj, grid=1000){
                       hlim = c(0.01, 5.5),
                       grid = grid,
                       kern = "bivnorm")
+  
   return(list(kd.href = kd.href,
               kd.LSCV = kd.LSCV,
               IDs = ID.min_n_day,
@@ -436,6 +437,12 @@ UD.eachID <- function(kd.all, grid.value = 1000){
   return(out.list)
 }
 
+
+ID.names <- function(name){
+  x <- unlist(strsplit(name, '_'))[1]
+  return(x)
+}
+
 get.summary.1 <- function(dname, date.format = "%m-%d-%Y %H:%M:%S"){
   raw.files <- dir(path = dname, 
                    pattern = "_inout_DayNight.csv")
@@ -586,6 +593,7 @@ run.HR.analysis <- function(kd.input, file.part, grid.value, h.multiplier, shape
   file.3 <- paste0("RData/HR_", file.part, ".rds")
   
   if (!file.exists(file.1)){
+    # this function uses only $all.utm so no individual HRs are computed.
     h.adhoc <- HR.analysis(h.multiplier, 
                            kd.input$kd.href, 
                            kd.input$list.data, 
@@ -608,7 +616,7 @@ run.HR.analysis <- function(kd.input, file.part, grid.value, h.multiplier, shape
   
   if (!file.exists(file.3)){
     HR <- compute.area(h, 
-                       kd.input$list.data, 
+                       kd.input$list.data$all.utm, 
                        grid = grid.value)
     saveRDS(HR, file = file.3)
     

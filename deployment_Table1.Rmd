@@ -21,7 +21,7 @@ This notebook creates Table 1. It brings in the file IDvsUDs_2018-11-01.csv, whi
 
 ```{r}
 
-data1 <- read.csv(file = "data/IDvsUDs_2018-11-01.csv")
+data1 <- read.csv(file = "data/IDvsUDs_2019-11-06.csv")
 
 data1 %>% dplyr::select(ID.f, Capture_Date, n.days, n.relocations,
                  n.relocations.all, n.day, n.day.all,

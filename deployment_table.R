@@ -2,10 +2,6 @@
 
 rm(list=ls())
 
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
-
 library(ggplot2)
 library(viridis)
 library(lubridate)
@@ -14,14 +10,14 @@ library(tidyverse)
 library(dplyr)
 
 save.fig <- F
-SWFSC <- F
+SWFSC <- T
 
 if (SWFSC){
   turtle <- odbcConnect(dsn = 'Turtle', uid = '', pwd = '')
 
   # get SD Bay results:
-  turtle.SDB <- sqlQuery(turtle, 'select * from tbl_SD_Bay') %>%
-    select(NMFS_Tag, Turtle_ID, Year_caught,
+  turtle.SDB <- sqlQuery(turtle, 'select * from tbl_SD_Bay') %>% 
+    dplyr::select(NMFS_Tag, Turtle_ID, Year_caught,
            Month_caught, Day_caught, Caught_Dead,
            PIT_Tag_LFF, PIT_Tag_RFF, Inconel_Tag_LFF,
            Inconel_Tag_RFF, Sex, Weight_kg,
@@ -41,7 +37,7 @@ if (SWFSC){
   turtle.SDB <- read.csv('data/turtle_SDB.csv')
 }
 
-file.date <- "2018-10-31"
+file.date <- "2019-11-01"
 # for 2018-10-31 file, ID.f has been changed to ArgosID... 
 if (file.date != "2018-10-31"){
   col.def <- cols(ID.f = col_integer(),
@@ -128,7 +124,7 @@ if (!file.exists(paste0("data/pre_sample_summary_size_",
             row.names = F)
 
 #Do the post period also:
-dat.table.post <- readr::read_csv(paste0("data/pre_sample_summary_",
+dat.table.post <- readr::read_csv(paste0("data/post_sample_summary_",
                                          file.date, ".csv"),
                                   col_types = col.def)
 
