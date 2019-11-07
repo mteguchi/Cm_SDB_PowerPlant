@@ -654,10 +654,10 @@ For ARGOS data , the multiplier of 0.7 makes a contiguous 95% HR (pre.ARGOS.HR$h
 
 ```{r}
 pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd, 
-                             "pre_ARGOS", 
-                             grid.value, 
-                             h.multiplier, 
-                             shape.file.dir = "shapefiles_Nov2019/")
+                                "pre_ARGOS", 
+                                grid.value, 
+                                h.multiplier, 
+                                shape.file.dir = "shapefiles_Nov2019/")
 plot(pre.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
@@ -668,12 +668,10 @@ if (save.figure)
 ```
 
 
-ARGOS data are not quite the same - h is 216! 
-
+ARGOS data are not quite the same. 
 
 Do the same for the post data - here we need to look at subsampling individuals. First, use all data.
 
-First, least-squares cross validation on the pre data:
 First, least-squares cross validation on the pre data:
 ```{r}
 plotLSCV(post.GPS.kd$kd.LSCV)
@@ -723,8 +721,10 @@ Compare between night and day and pre and post:
 ```{r}
 # pre day vs pre night:
 pre.summary$GPS %>% filter(day1night2 == 1) -> pre.GPS.day
-
 pre.GPS.kd.day <- HR.analysis.step1(min_n, pre.GPS.day, tagproj, grid = grid.value)
+
+pre.summary$ARGOS %>% filter(day1night2 == 1) -> pre.ARGOS.day
+pre.ARGOS.kd.day <- HR.analysis.step1(min_n, pre.ARGOS.day, tagproj, grid = grid.value)
 
 plotLSCV(pre.GPS.kd.day$kd.LSCV)
 ```
@@ -748,23 +748,46 @@ if (save.figure)
 
 multiplier = 0.5 may be good. See pre.GPS.HR.day$h.1.
 
-START FROM HERE ON 11/7/2019.  TEXT NEEDS TO BE FIXED AND ARGOS-BASED HR NEED TO BE COMPUTED.  I THINK GPS-BASED HR ANALYSES ARE DONE. 
+For ARGOS data,
+
+```{r}
+pre.ARGOS.HR.day <- run.HR.analysis(pre.ARGOS.kd.day, 
+                                    "pre_ARGOS_day", 
+                                    grid.value, 
+                                    h.multiplier, 
+                                    shape.file.dir = "shapefiles_Nov2019/")
+
+plot(pre.ARGOS.HR.day$h.adhoc$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_pre_ARGOS_h_adhoc_day.png",
+         plot = pre.ARGOS.HR.day$h.adhoc$figure,
+         device = "png",
+         dpi = 600)
+
+```
+
+For the ARGOS data, h = 216.1 and the minimum muliplier is 0.7. 
+
 
 For night:
 ```{r}
 pre.summary$GPS %>% filter(day1night2 == 2) -> pre.GPS.night
-
 pre.GPS.kd.night <- HR.analysis.step1(min_n, pre.GPS.night, tagproj, grid = grid.value)
+
+pre.summary$ARGOS %>% filter(day1night2 == 2) -> pre.ARGOS.night
+pre.ARGOS.kd.night <- HR.analysis.step1(min_n, pre.ARGOS.night, tagproj, grid = grid.value)
+
 plotLSCV(pre.GPS.kd.night$kd.LSCV)
 
 ```
 
 ```{r}
 pre.GPS.HR.night <- run.HR.analysis(pre.GPS.kd.night, 
-                                 "pre_GPS_night", 
-                                 grid.value, 
-                                 h.multiplier, 
-                                 shape.file.dir = "shapefiles_Nov2019/")
+                                    "pre_GPS_night", 
+                                    grid.value, 
+                                    h.multiplier, 
+                                    shape.file.dir = "shapefiles_Nov2019/")
 
 plot(pre.GPS.HR.night$h.adhoc$figure)
 
@@ -777,12 +800,35 @@ if (save.figure)
 
 multiplier = 0.55 may be good. See h.pre.night.1.
 
+
+```{r}
+pre.ARGOS.HR.night <- run.HR.analysis(pre.ARGOS.kd.night, 
+                                    "pre_ARGOS_night", 
+                                    grid.value, 
+                                    h.multiplier, 
+                                    shape.file.dir = "shapefiles_Nov2019/")
+
+plot(pre.ARGOS.HR.night$h.adhoc$figure)
+
+if (save.figure)
+  ggsave(filename = "figures/map_pre_ARGOS_h_adhoc_night.png",
+         plot = pre.ARGOS.HR.night$h.adhoc$figure,
+         device = "png",
+         dpi = 600)
+```
+
+For the night, esimated h is 238.3 and the minimum multiplier is 0.75.  
+
 Do the same with the post period
 ```{r}
 # pre day vs pre night:
 post.summary$GPS %>% filter(day1night2 == 1) -> post.GPS.day
 
 post.GPS.kd.day <- HR.analysis.step1(min_n, post.GPS.day, tagproj, grid = grid.value)
+
+post.summary$ARGOS %>% filter(day1night2 == 1) -> post.ARGOS.day
+
+post.ARGOS.kd.day <- HR.analysis.step1(min_n, post.ARGOS.day, tagproj, grid = grid.value)
 
 plotLSCV(post.GPS.kd.day$kd.LSCV)
 ```
@@ -804,10 +850,32 @@ if (save.figure)
 
 multiplier = 0.45 may be good. See h.post.day.1. 
 
+
+```{r}
+post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day, 
+                                "post_ARGOS_day", 
+                                grid.value, 
+                                h.multiplier, 
+                                shape.file.dir = "shapefiles_Nov2019/")
+
+plot(post.ARGOS.HR.day$h.adhoc$figure)
+if (save.figure)
+  ggsave(filename = "figures/map_post_ARGOS_h_adhoc_day.png",
+         plot = post.ARGOS.HR.day$h.adhoc$figure,
+         device = "png",
+         dpi = 600)
+```
+
+Estimated h is 147.5 and the minimum multiplier is 0.5. 
+
 For night:
 ```{r}
 post.summary$GPS %>% filter(day1night2 == 2) -> post.GPS.night
 post.GPS.kd.night <- HR.analysis.step1(min_n, post.GPS.night, tagproj, grid = grid.value)
+
+post.summary$ARGOS %>% filter(day1night2 == 2) -> post.ARGOS.night
+post.ARGOS.kd.night <- HR.analysis.step1(min_n, post.ARGOS.night, tagproj, grid = grid.value)
+
 plotLSCV(post.GPS.kd.night$kd.LSCV)
 
 ```
@@ -827,48 +895,14 @@ if (save.figure)
          dpi = 600)
 ```
 
-multiplier = 0.6 may be good. See h.post.night.1. 
-
-With ARGOS data
-```{r}
-post.summary$ARGOS %>% filter(day1night2 == 1) -> post.ARGOS.day
-
-post.ARGOS.kd.day <- HR.analysis.step1(min_n, post.ARGOS.day, tagproj, grid = grid.value)
-
-plotLSCV(post.ARGOS.kd.day$kd.LSCV)
-```
-
-```{r}
-post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day, 
-                                "post_ARGOS_day", 
-                                grid.value, 
-                                h.multiplier, 
-                                shape.file.dir = "shapefiles_Nov2019/")
-
-plot(post.ARGOS.HR.day$h.adhoc$figure)
-if (save.figure)
-  ggsave(filename = "figures/map_post_ARGOS_h_adhoc_day.png",
-         plot = post.ARGOS.HR.day$h.adhoc$figure,
-         device = "png",
-         dpi = 600)
-```
-
-multiplier = 0.45 may be good. See h.post.day.1. 
-
-For night:
-```{r}
-post.summary$ARGOS %>% filter(day1night2 == 2) -> post.ARGOS.night
-post.ARGOS.kd.night <- HR.analysis.step1(min_n, post.ARGOS.night, tagproj, grid = grid.value)
-plotLSCV(post.ARGOS.kd.night$kd.LSCV)
-
-```
+multiplier = 0.5 may be good. See post.GPS.HR.night$h.1  
 
 ```{r}
 post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night, 
-                                "post_ARGOS_night", 
-                                grid.value, 
-                                h.multiplier, 
-                                shape.file.dir = "shapefiles_Nov2019/")
+                                       "post_ARGOS_night", 
+                                       grid.value, 
+                                       h.multiplier, 
+                                       shape.file.dir = "shapefiles_Nov2019/")
 
 plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)
@@ -878,8 +912,47 @@ if (save.figure)
          dpi = 600)
 ```
 
+See post.ARGOS.HR.night$h.1 
+Estimated h is 229.8 and the minimum multiplier of 0.85.
 
-Extract UDs for each individual. Starting with pre:
+Combine results together to compare pre and post UDs.  
+
+```{r}
+UD.df <- data.frame(period = rep(c("pre", "pre", "pre", "post", "post", "post"), 4),
+                    day_night = rep(c("all", "day", "night"), 8),
+                    UD = rep(c(rep(50, 6), rep(95, 6)), 2),
+                    source = c(rep("GPS", 12), rep("ARGOS", 12)),
+                    area = c(pre.GPS.HR$HR$area.50, 
+                             pre.GPS.HR.day$HR$area.50, 
+                             pre.GPS.HR.night$HR$area.50,
+                             post.GPS.HR$HR$area.50, 
+                             post.GPS.HR.day$HR$area.50, 
+                             post.GPS.HR.night$HR$area.50,
+                             pre.GPS.HR$HR$area.95, 
+                             pre.GPS.HR.day$HR$area.95, 
+                             pre.GPS.HR.night$HR$area.95,
+                             post.GPS.HR$HR$area.95, 
+                             post.GPS.HR.day$HR$area.95, 
+                             post.GPS.HR.night$HR$area.95,
+                             pre.ARGOS.HR$HR$area.50, 
+                             pre.ARGOS.HR.day$HR$area.50, 
+                             pre.ARGOS.HR.night$HR$area.50,
+                             post.ARGOS.HR$HR$area.50, 
+                             post.ARGOS.HR.day$HR$area.50, 
+                             post.ARGOS.HR.night$HR$area.50,
+                             pre.ARGOS.HR$HR$area.95, 
+                             pre.ARGOS.HR.day$HR$area.95, 
+                             pre.ARGOS.HR.night$HR$area.95,
+                             post.ARGOS.HR$HR$area.95, 
+                             post.ARGOS.HR.day$HR$area.95, 
+                             post.ARGOS.HR.night$HR$area.95))
+
+```
+
+
+
+Next individual-specific analyses. 
+Extract UDs for each individual. Starting with pre with GPS data:
 ```{r message=FALSE}
 
 if (!file.exists("RData/pre_GPS_UD_byID.rds")){
@@ -904,8 +977,36 @@ if (!file.exists("RData/pre_GPS_UD_night_byID.rds")){
 }
 
 
+```
+
+And ARGOS data:
+
+```{r message=FALSE}
+
+if (!file.exists("RData/pre_ARGOS_UD_byID.rds")){
+  pre.ARGOS.UD.byID <- UD.eachID(pre.ARGOS.kd, grid.value = grid.value)
+  saveRDS(pre.ARGOS.UD.byID, file = "RData/pre_ARGOS_UD_byID.rds")  
+} else {
+  pre.ARGOS.UD.byID <- readRDS("RData/pre_ARGOS_UD_byID.rds")
+}
+
+if (!file.exists("RData/pre_ARGOS_UD_day_byID.rds")){
+  pre.ARGOS.UD.day.byID <- UD.eachID(pre.ARGOS.kd.day, grid.value = grid.value)
+  saveRDS(pre.ARGOS.UD.day.byID, file = "RData/pre_ARGOS_UD_day_byID.rds")  
+} else {
+  pre.ARGOS.UD.day.byID <- readRDS("RData/pre_ARGOS_UD_day_byID.rds")
+}
+
+if (!file.exists("RData/pre_ARGOS_UD_night_byID.rds")){
+  pre.ARGOS.UD.night.byID <- UD.eachID(pre.ARGOS.kd.night, grid.value = grid.value)
+  saveRDS(pre.ARGOS.UD.night.byID, file = "RData/pre_ARGOS_UD_night_byID.rds")  
+} else {
+  pre.ARGOS.UD.night.byID <- readRDS("RData/pre_ARGOS_UD_night_byID.rds")
+}
+
 
 ```
+
 
 Now for post:
 ```{r message=FALSE}
@@ -933,6 +1034,34 @@ if (!file.exists("RData/post_GPS_UD_night_byID.rds")){
 
 
 ```
+
+and with ARGOS data
+```{r message=FALSE}
+
+if (!file.exists("RData/post_ARGOS_UD_byID.rds")){
+  post.ARGOS.UD.byID <- UD.eachID(post.ARGOS.kd, grid.value = grid.value)
+  saveRDS(post.ARGOS.UD.byID, file = "RData/post_ARGOS_UD_byID.rds")  
+} else {
+  post.ARGOS.UD.byID <- readRDS("RData/post_ARGOS_UD_byID.rds")
+}
+
+if (!file.exists("RData/post_ARGOS_UD_day_byID.rds")){
+  post.ARGOS.UD.day.byID <- UD.eachID(post.ARGOS.kd.day, grid.value = grid.value)
+  saveRDS(post.ARGOS.UD.day.byID, file = "RData/post_ARGOS_UD_day_byID.rds")  
+} else {
+  post.ARGOS.UD.day.byID <- readRDS("RData/post_ARGOS_UD_day_byID.rds")
+}
+
+if (!file.exists("RData/post_ARGOS_UD_night_byID.rds")){
+  post.ARGOS.UD.night.byID <- UD.eachID(post.ARGOS.kd.night, grid.value = grid.value)
+  saveRDS(post.ARGOS.UD.night.byID, file = "RData/post_ARGOS_UD_night_byID.rds")  
+} else {
+  post.ARGOS.UD.night.byID <- readRDS("RData/post_ARGOS_UD_night_byID.rds")
+}
+
+
+```
+
 
 Bring in the body size information. This was done in deployment_table_Nov2019.R script and manually modified for missing data - some measurements were not collected when the tags were deployed so data from the closest captures were used.  Data were entered manually for three turtles in the Excel file: 52675 (all measurements) from 2007-01-23, 44366 (SCL and CCL) from 2009-02-26, and 126065 (Mass) from 2011-03-08).   Also, sat tag IDs were modified. 
 126069 -> 12606905 5/13/2014
@@ -965,7 +1094,7 @@ turtle.SDB <- readr::read_csv("data/turtle_SDB_corrected.csv",
   filter(Capture_Date > as.Date("2007-01-01")) -> turtle.SDB
 ```
 
-Then combine it with pre data;
+Then combine it with pre data.  Get GPS summary;
 
 ```{r}
 file.date <- "2019-11-01"
@@ -979,16 +1108,22 @@ col.def <- cols(ArgosID = col_integer(),
 readr::read_csv(paste0("data/pre_sample_GPS_summary.csv"),
                 col_types = col.def)  %>% 
   mutate(date = as.Date(Date1, 
-                        format = "%Y-%m-%d")) -> dat.table.pre
+                        format = "%Y-%m-%d")) %>% 
+  transmute(ArgosID = ArgosID,
+            n.days.GPS = n.days,
+            n.relocations.all.GPS = n.relocations.all,
+            n.day.all.GPS = n.day.all,
+            n.night.all.GPS = n.night.all,
+            date.GPS = date) -> dat.table.pre.GPS
 
-# try to merge turtle.SDB and dat.table.pre:
+# try to merge turtle.SDB and dat.table.pre.GPS:
 dat.list <- list()
 k <- 1
-for (k in 1:nrow(dat.table.pre)){
+for (k in 1:nrow(dat.table.pre.GPS)){
   tmp.turtle.SDB <- filter(turtle.SDB, 
-                           ArgosID == dat.table.pre$ArgosID[k])
+                           ArgosID == dat.table.pre.GPS$ArgosID[k])
   if (nrow(tmp.turtle.SDB) == 1){
-    tmp.turtle.SDB %>% transmute(ArgosID = dat.table.pre$ArgosID[k],
+    tmp.turtle.SDB %>% transmute(ArgosID = dat.table.pre.GPS$ArgosID[k],
                                  Turtle_ID = Turtle_ID,
                                  Capture_Date = as.Date(Capture_Date,
                                                         format = "%Y-%m-%d"),
@@ -999,9 +1134,9 @@ for (k in 1:nrow(dat.table.pre)){
                                  CCL_cm = Cur_Carapace_Length_cm,
                                  CCW_cm = Cur_Carapace_Width_cm) -> dat.list[[k]]
   } else {
-    tmp.turtle.SDB %>% filter(Year_caught == year(dat.table.pre$Date1[k])) -> tmp.turtle.SDB
+    tmp.turtle.SDB %>% filter(Year_caught == year(dat.table.pre.GPS$date.GPS[k])) -> tmp.turtle.SDB
     if (nrow(tmp.turtle.SDB == 1)){
-      tmp.turtle.SDB %>% transmute(ArgosID = dat.table.pre$ArgosID[k],
+      tmp.turtle.SDB %>% transmute(ArgosID = dat.table.pre.GPS$ArgosID[k],
                                    Turtle_ID = Turtle_ID,
                                    Capture_Date = as.Date(Capture_Date,
                                                           format = "%Y-%m-%d"),
@@ -1015,10 +1150,49 @@ for (k in 1:nrow(dat.table.pre)){
   }
 }
 
-dat.pre.morph <- do.call("rbind", dat.list)
+dat.pre.GPS.morph <- do.call("rbind", dat.list)
 
-dat.table.pre <- full_join(dat.table.pre, dat.pre.morph, by = "ArgosID")%>%
-  mutate(period = "pre")
+dat.table.pre <- full_join(dat.table.pre.GPS, dat.pre.GPS.morph, by = "ArgosID")
+# 
+# if (!file.exists("data/pre_sample_summary_size.csv"))
+#   write.csv(dat.table.pre,
+#             "data/pre_sample_summary_size.csv",
+#             quote = F,
+#             row.names = F)
+```
+
+Get ARGOS data summary:
+
+```{r}
+col.def <- cols(ArgosID = col_integer(),
+                Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                n.days = col_double(),
+                n.relocations.all = col_integer(),
+                total.DIAG = col_integer(),
+                total.DS = col_integer(),
+                LC1 = col_integer(),
+                LC2 = col_integer(),
+                LC3 = col_integer(),
+                n.day.all = col_integer(),
+                n.night.all = col_integer())
+
+readr::read_csv(paste0("data/pre_sample_ARGOS_summary.csv"),
+                col_types = col.def)  %>% 
+  transmute(ArgosID = ArgosID,
+            n.days.ARGOS = n.days,
+            n.relocations.all.ARGOS = n.relocations.all,
+            total.DIAG = total.DIAG,
+            total.DS = total.DS,
+            LC1 = LC1,
+            LC2 = LC2, 
+            LC3 = LC3,
+            n.day.all.ARGOS = n.day.all,
+            n.night.all.ARGOS = n.night.all,
+            date.ARGOS = as.Date(Date1, 
+                                 format = "%Y-%m-%d")) -> dat.table.pre.ARGOS
+
+dat.table.pre %>% full_join(dat.table.pre.ARGOS, by = "ArgosID") %>%
+  mutate(period = "pre") -> dat.table.pre
 
 if (!file.exists("data/pre_sample_summary_size.csv"))
   write.csv(dat.table.pre,
@@ -1030,20 +1204,33 @@ if (!file.exists("data/pre_sample_summary_size.csv"))
 
 Do the same for the post period. 
 ```{r}
+
+col.def <- cols(ArgosID = col_integer(),
+                Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                n.days = col_double(),
+                n.relocations.all = col_integer(),
+                n.day.all = col_integer(),
+                n.night.all = col_integer())
+
 readr::read_csv(paste0("data/post_sample_GPS_summary.csv"),
                 col_types = col.def)  %>% 
-  mutate(date = as.Date(Date1, 
-                        format = "%Y-%m-%d")) -> dat.table.post
+  transmute(ArgosID = ArgosID,
+            n.days.GPS = n.days,
+            n.relocations.all.GPS = n.relocations.all,
+            n.day.all.GPS = n.day.all,
+            n.night.all.GPS = n.night.all,
+            date.GPS = as.Date(Date1, 
+                        format = "%Y-%m-%d"))  -> dat.table.post.GPS
 
 # try to merge turtle.SDB and dat.table.post:
 dat.list <- list()
 k <- 1
-for (k in 1:nrow(dat.table.post)){
+for (k in 1:nrow(dat.table.post.GPS)){
   tmp.turtle.SDB <- filter(turtle.SDB, 
-                           ArgosID == dat.table.post$ArgosID[k])
+                           ArgosID == dat.table.post.GPS$ArgosID[k])
   
   if (nrow(tmp.turtle.SDB) == 1){
-    tmp.turtle.SDB %>% transmute(ArgosID = dat.table.post$ArgosID[k],
+    tmp.turtle.SDB %>% transmute(ArgosID = dat.table.post.GPS$ArgosID[k],
                                  Turtle_ID = Turtle_ID,
                                  Capture_Date = as.Date(Capture_Date,
                                                         format = "%Y-%m-%d"),
@@ -1054,9 +1241,9 @@ for (k in 1:nrow(dat.table.post)){
                                  CCL_cm = Cur_Carapace_Length_cm,
                                  CCW_cm = Cur_Carapace_Width_cm) -> dat.list[[k]]
   } else {
-    tmp.turtle.SDB %>% filter(Year_caught == year(dat.table.post$Date1[k])) -> tmp.turtle.SDB
+    tmp.turtle.SDB %>% filter(Year_caught == year(dat.table.post.GPS$date.GPS[k])) -> tmp.turtle.SDB
     if (nrow(tmp.turtle.SDB == 1)){
-      tmp.turtle.SDB %>% transmute(ArgosID = dat.table.post$ArgosID[k],
+      tmp.turtle.SDB %>% transmute(ArgosID = dat.table.post.GPS$ArgosID[k],
                                    Turtle_ID = Turtle_ID,
                                    Capture_Date = as.Date(Capture_Date,
                                                           format = "%Y-%m-%d"),
@@ -1070,10 +1257,49 @@ for (k in 1:nrow(dat.table.post)){
   }
 }
 
-dat.post.morph <- do.call("rbind", dat.list)
+dat.post.GPS.morph <- do.call("rbind", dat.list)
 
-dat.table.post <- full_join(dat.table.post, dat.post.morph, by = "ArgosID")%>%
-  mutate(period = "post")
+dat.table.post <- full_join(dat.table.post.GPS, dat.post.GPS.morph, by = "ArgosID")
+
+# if (!file.exists("data/post_sample_summary_size.csv"))
+#   write.csv(dat.table.post,
+#             "data/post_sample_summary_size.csv",
+#             quote = F,
+#             row.names = F)
+```
+
+Also for ARGOS data
+
+```{r}
+col.def <- cols(ArgosID = col_integer(),
+                Date1 = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+                n.days = col_double(),
+                n.relocations.all = col_integer(),
+                total.DIAG = col_integer(),
+                total.DS = col_integer(),
+                LC1 = col_integer(),
+                LC2 = col_integer(),
+                LC3 = col_integer(),
+                n.day.all = col_integer(),
+                n.night.all = col_integer())
+
+readr::read_csv(paste0("data/post_sample_ARGOS_summary.csv"),
+                col_types = col.def)  %>% 
+  transmute(ArgosID = ArgosID,
+            n.days.ARGOS = n.days,
+            n.relocations.all.ARGOS = n.relocations.all,
+            total.DIAG = total.DIAG,
+            total.DS = total.DS,
+            LC1 = LC1,
+            LC2 = LC2, 
+            LC3 = LC3,
+            n.day.all.ARGOS = n.day.all,
+            n.night.all.ARGOS = n.night.all,
+            date.ARGOS = as.Date(Date1, 
+                                 format = "%Y-%m-%d")) -> dat.table.post.ARGOS
+
+dat.table.post %>% full_join(dat.table.post.ARGOS, by = "ArgosID") %>%
+  mutate(period = "post") -> dat.table.post
 
 if (!file.exists("data/post_sample_summary_size.csv"))
   write.csv(dat.table.post,
@@ -1082,54 +1308,68 @@ if (!file.exists("data/post_sample_summary_size.csv"))
             row.names = F)
 ```
 
+Then combine them teogther
 
-NOt sure why some individuals' UDs are not computed even though there are > 50 data points... Need to look into these 2019-11-06  
 ```{r}
-dat.table <- rbind(dat.table.pre, dat.table.post) %>% 
-  mutate(ID.f = ArgosID)
+dat.table <- rbind(dat.table.pre, dat.table.post) 
 
-pre.areas.df <- data.frame(ID.f = pre.GPS.kd$list.data$unique.ID,
-                           area.50 = pre.GPS.UD.byID$area$area.50,
-                           area.95 = pre.GPS.UD.byID$area$area.95)
+GPS.areas.df <- rbind(pre.GPS.UD.byID$area, 
+                      post.GPS.UD.byID$area) %>%
+  transmute(ArgosID = ID,
+            area.50.all.GPS = area.50,
+            area.75.all.GPS = area.75,
+            area.95.all.GPS = area.95)
 
-pre.day.areas.df <- data.frame(ID.f = pre.GPS.kd.day$list.data$unique.ID,
-                               area.day.50 = pre.GPS.UD.day.byID$area$area.50,
-                               area.day.95 = pre.GPS.UD.day.byID$area$area.95)
+GPS.areas.night.df <- rbind(pre.GPS.UD.night.byID$area, 
+                            post.GPS.UD.night.byID$area)%>%
+  transmute(ArgosID = ID,
+            area.50.night.GPS = area.50,
+            area.75.night.GPS = area.75,
+            area.95.night.GPS = area.95)
 
-pre.night.areas.df <- data.frame(ID.f = pre.GPS.kd.night$list.data$unique.ID,
-                                 area.night.50 = pre.GPS.UD.night.byID$area$area.50,
-                                 area.night.95 = pre.GPS.UD.night.byID$area$area.95)
+GPS.areas.day.df <- rbind(pre.GPS.UD.day.byID$area, 
+                          post.GPS.UD.day.byID$area)%>%
+  transmute(ArgosID = ID,
+            area.50.day.GPS = area.50,
+            area.75.day.GPS = area.75,
+            area.95.day.GPS = area.95)
 
-post.areas.df <- data.frame(ID.f = post.GPS.kd$list.data$unique.ID,
-                            area.50 = post.GPS.UD.byID$area$area.50,
-                            area.95 = post.GPS.UD.byID$area$area.95)
+ARGOS.areas.df <- rbind(pre.ARGOS.UD.byID$area, 
+                        post.ARGOS.UD.byID$area) %>%
+  transmute(ArgosID = ID,
+            area.50.all.ARGOS = area.50,
+            area.75.all.ARGOS = area.75,
+            area.95.all.ARGOS = area.95)
 
-post.day.areas.df <- data.frame(ID.f = post.GPS.kd.day$list.data$unique.ID,
-                                area.day.50 = post.GPS.UD.day.byID$area$area.50,
-                                area.day.95 = post.GPS.UD.day.byID$area$area.95)
+ARGOS.areas.night.df <- rbind(pre.ARGOS.UD.night.byID$area, 
+                              post.ARGOS.UD.night.byID$area)%>%
+  transmute(ArgosID = ID,
+            area.50.night.ARGOS = area.50,
+            area.75.night.ARGOS = area.75,
+            area.95.night.ARGOS = area.95)
 
-post.night.areas.df <- data.frame(ID.f = post.GPS.kd.night$list.data$unique.ID,
-                                  area.night.50 = post.GPS.UD.night.byID$area$area.50,
-                                  area.night.95 = post.GPS.UD.night.byID$area$area.95)
+ARGOS.areas.day.df <- rbind(pre.ARGOS.UD.day.byID$area, 
+                            post.ARGOS.UD.day.byID$area)%>%
+  transmute(ArgosID = ID,
+            area.50.day.ARGOS = area.50,
+            area.75.day.ARGOS = area.75,
+            area.95.day.ARGOS = area.95)
 
-areas.df <- rbind(pre.areas.df, post.areas.df)
-areas.night.df <- rbind(pre.night.areas.df, post.night.areas.df)
-areas.day.df <- rbind(pre.day.areas.df, post.day.areas.df)
-
-dat.table <- left_join(dat.table, areas.df, by = "ID.f") %>%
-  left_join(., areas.night.df, by = "ID.f") %>%
-  left_join(., areas.day.df, by = "ID.f")
+dat.table <- left_join(dat.table, GPS.areas.df, by = "ArgosID") %>%
+  left_join(GPS.areas.night.df, by = "ArgosID") %>%
+  left_join(GPS.areas.day.df, by = "ArgosID") %>% 
+  left_join(ARGOS.areas.df, by = "ArgosID") %>%
+  left_join(ARGOS.areas.night.df, by = "ArgosID") %>%
+  left_join(ARGOS.areas.day.df, by = "ArgosID")
 
 write.csv(dat.table, file = "data/IDvsUDs.csv", 
           quote = F, row.names = F)
 
-ggplot(data = dat.table) +
-  geom_point(aes(x = Mass_kg, 
-                 y = area.50,
-                 color = period)) 
+# ggplot(data = dat.table) +
+#   geom_point(aes(x = area.95.all.GPS,
+#                  y = area.95.all.ARGOS,
+#                  color = period))
 ```
-
-Check one that didn't have UDs for day and night combined when there were sufficient sample sizes (n > 49). ArgosID 152322 spent some time north of 32.66N, therefore those data points were removed, resulting in only 40 available data points in the end.  So, the turtle needed to be removed from further analyses. 
 
 
 Plotting starts here:
@@ -1410,58 +1650,6 @@ map.post.night.HR <- map.sdbay.zm +
 plot(map.post.night.HR)
 ```
 
-Simple plots with day/night for the pre:
-Plot the data points to see what they look like:
-
-```{r}
-map.pre.day.night <- map.sdbay.zm + 
-  geom_polygon(data = SDBay.df,
-               aes(x = long, y = lat)) +
-               #fill = "blue",alpha = 0.6) + 
-  geom_polygon(data = SDBay.eelg.2008.df,
-               aes(x = long,
-                   y = lat,
-                   group = group),
-               fill = "green",
-               alpha = 0.5) +
-  geom_point(data = pre.summary$GPS,
-             aes(x = Lon1, y = Lat1, 
-                 color = as.factor(day1night2)),
-             alpha = 0.5)+ 
-  xlab('Longitude') + ylab('Latitude') + 
-  scale_color_discrete(labels = c("Day", "Night"),
-                       name = NULL) + 
-
-  theme(legend.title = NULL,
-        legend.text = element_text(size = 8, vjust = 0))
-        #legend.position = "none")
-
-plot(map.pre.day.night)
-
-```
-
-```{r}
-map.post.day.night <- map.sdbay.zm + 
-  geom_polygon(data = SDBay.df,
-               aes(x = long, y = lat)) +
-               #fill = "blue",alpha = 0.6) + 
-  geom_polygon(data = SDBay.eelg.2008.df,
-               aes(x = long,
-                   y = lat,
-                   group = group),
-               fill = "green",
-               alpha = 0.5) +
-  geom_point(data = post.summary$GPS,
-             aes(x = Lon1, y = Lat1, 
-                 color = as.factor(day1night2)),
-             alpha = 0.5)+ 
-  xlab('Longitude') + ylab('Latitude') + 
-  scale_color_discrete(labels = c("Day", "Night"),
-                       name = NULL) 
-
-plot(map.post.day.night)
-
-```
 
 
 UDs for individual turtles:
@@ -1595,7 +1783,103 @@ if (save.figure){
          device = "png")
 }
 
-save(list = ls(),
-     file = paste0("RData/output_HR_analysis_GPS_", Sys.Date(), ".RData"))
+# too big to save in a file - can be done but unnecessary.
+# save(list = ls(),
+#      file = paste0("RData/output_HR_analysis_GPS_LC_", Sys.Date(), ".RData"))
 #plot(map.post.HR)
 ```
+
+Now, I need to look at the effects of various things on the HR sizes.  Maybe good to remove everything else and start fresh here.
+
+The first comparison is the main one; pre vs. post, where using day and night data together.  I use only GPS data first. 
+
+```{r}
+rm(list=ls())
+library(lme4)
+library(tidyverse)
+library(mgcv)
+
+dat.table <- read.csv(file = "data/IDvsUDs.csv") 
+
+dat.table %>% 
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
+                n.day.all.GPS, n.night.all.GPS,
+                Sex, CCL_cm, 
+                period, area.50.all.GPS) %>%
+  na.omit() -> table.area.50.GPS
+
+lm.fit.all.50 <- lm(formula = area.50.all.GPS ~ period + CCL_cm + n.days.GPS + n.relocations.all.GPS,
+                    data = table.area.50.GPS)
+
+summary(lm.fit.all.50)
+```
+
+The model indicates no significant effects of the period (uncertainty is too big). Longer deployments result in larger UDs, whereas larger turtles tend to have smaller UDs. 
+
+Second, I use day and night data as separate but drop the combined data.  To account for individuals, they are treated as random effects. There are only 6 individuals available fro this analysis.  
+
+```{r}
+dat.table %>%
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, n.day.all.GPS, n.night.all.GPS,
+         Sex, CCL_cm, 
+         period, area.50.night.GPS, area.50.day.GPS) %>%
+  na.omit() -> area.50.day.night.GPS
+
+area.50.day.night.GPS.long <- gather(area.50.day.night.GPS,
+                                     day_night, area, area.50.night.GPS, area.50.day.GPS) 
+
+lmm.fit.all.50 <- lmer(formula = area ~ day_night + period + CCL_cm + (1|ArgosID),
+                      data = area.50.day.night.GPS.long)
+
+summary(lmm.fit.all.50)
+```
+
+UDs are smaller during the night than the day and for the pre period than the post period. Effects of CCL is minimal in this analysis.  
+
+How about the 95% UDs?
+
+```{r}
+dat.table %>% 
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
+                n.day.all.GPS, n.night.all.GPS,
+                Sex, CCL_cm, 
+                period, area.95.all.GPS) %>%
+  na.omit() -> table.area.95.GPS
+
+lm.fit.all.95 <- lm(formula = area.95.all.GPS ~ period + CCL_cm + n.days.GPS + n.relocations.all.GPS,
+                    data = table.area.95.GPS)
+
+summary(lm.fit.all.95)
+
+
+```
+
+Longer data series result in larger 95% UDs, smaller turtles have larger UDs, but not significant effect of pre vs. post. 
+
+Also, random effects model for 95% UDs.
+
+```{r}
+
+dat.table %>%
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, n.day.all.GPS, n.night.all.GPS,
+         Sex, CCL_cm, 
+         period, area.95.night.GPS, area.95.day.GPS) %>%
+  na.omit() -> area.95.day.night.GPS
+
+area.95.day.night.GPS.long <- gather(area.95.day.night.GPS,
+                                     day_night, area, area.95.night.GPS, area.95.day.GPS) 
+
+lmm.fit.all.95 <- lmer(formula = area ~ day_night + period + CCL_cm + (1|ArgosID),
+                      data = area.95.day.night.GPS.long)
+
+summary(lmm.fit.all.95)
+
+```
+
+Nothing really comes out as significant effects because of large uncertainty.  Using individual-based UDs is difficult because of the small sample sizes.  
+
+I think adding Argos data help this issue... To justify, we need to look at how adding Argos locations to GPS data doesn't change the results.
+
+
+
+
