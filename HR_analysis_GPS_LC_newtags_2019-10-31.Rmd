@@ -326,6 +326,18 @@ if (!file.exists("data/pre_sample_ARGOS_summary.csv"))
             row.names = F,
             quote = F)
 
+if (!file.exists("data/pre_GPS_all.csv"))
+  write.csv(pre.summary$GPS,
+            "data/pre_GPS_all.csv",
+            row.names = F,
+            quote = F)
+
+if (!file.exists("data/pre_ARGOS_all.csv"))
+  write.csv(pre.summary$ARGOS,
+            "data/pre_ARGOS_all.csv",
+            row.names = F,
+            quote = F)
+
 ```
 
 Plot the data points to see what they look like:
@@ -497,6 +509,19 @@ if (!file.exists("data/post_sample_ARGOS_summary.csv"))
             "data/post_sample_ARGOS_summary.csv",
             row.names = F,
             quote = F)
+
+if (!file.exists("data/post_GPS_all.csv"))
+  write.csv(post.GPS,
+            "data/post_GPS_all.csv",
+            row.names = F,
+            quote = F)
+
+if (!file.exists("data/post_ARGOS_all.csv"))
+  write.csv(post.ARGOS,
+            "data/post_ARGOS_all.csv",
+            row.names = F,
+            quote = F)
+
 ```
 
 Next plot uses all data points. 

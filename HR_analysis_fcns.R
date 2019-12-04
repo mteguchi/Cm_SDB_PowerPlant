@@ -683,4 +683,25 @@ extract.UD.eachID <- function(.kd, .data, data.name, grid.value){
 }
 
 
+#kd.input should be the output of HR.analysis.step1. No output file is saved.
+run.HR.analysis.no.files <- function(kd.input, grid.value, h.multiplier){
+
+  # this function uses only $all.utm so no individual HRs are computed.
+  h.adhoc <- HR.analysis(h.multiplier, 
+                         kd.input$kd.href, 
+                         kd.input$list.data, 
+                         grid = grid.value)
+
+  h.1 <- find.h.adhoc(kd.input$list.data$all.utm)
+    
+  h <- round(h.1$h)
   
+  HR <- compute.area(h, 
+                     kd.input$list.data$all.utm, 
+                     grid = grid.value)
+    
+  out.list <- list(h.adhoc = h.adhoc,
+                   h.1 = h.1,
+                   HR = HR)
+  return(out.list)
+}  
