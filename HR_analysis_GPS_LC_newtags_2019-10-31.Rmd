@@ -34,7 +34,7 @@ library(StreamMetabolism)
 
 # The date the first few chunks were run to find inside/outside, day/night, and split into 4-hr blocks. 
 run.date <- "2019-11-01"
-save.figure <- F
+save.figure <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -390,6 +390,12 @@ tagproj <- proj4string(tagprj)
 
 # not sure what this part is doing... 
 latlong = "+init=epsg:4326"
+
+water.color <- "lightblue"
+background.color <- "darkgray"
+xlim <- c(-117.145, -117.09)
+ylim <- c(32.595, 32.665)
+  
 ```
 
 ```{r}
@@ -665,7 +671,7 @@ pre.GPS.HR <- run.HR.analysis(pre.GPS.kd,
 plot(pre.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_GPS_h_adhoc.png",
+  ggsave(filename = "figures/UD95_pre_GPS_h_adhoc.png",
          plot = pre.GPS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -686,7 +692,7 @@ pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd,
 plot(pre.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_ARGOS_h_adhoc.png",
+  ggsave(filename = "figures/UD95_pre_ARGOS_h_adhoc.png",
          plot = pre.ARGOS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -715,7 +721,7 @@ post.GPS.HR <- run.HR.analysis(post.GPS.kd,
 plot(post.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_post_GPS_h_adhoc.png",
+  ggsave(filename = "figures/UD95_post_GPS_h_adhoc.png",
          plot = post.GPS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -733,7 +739,7 @@ post.ARGOS.HR <- run.HR.analysis(post.ARGOS.kd,
 plot(post.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_post_ARGOS_h_adhoc.png",
+  ggsave(filename = "figures/UD95_post_ARGOS_h_adhoc.png",
          plot = post.ARGOS.HR$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -764,7 +770,7 @@ pre.GPS.HR.day <- run.HR.analysis(pre.GPS.kd.day,
 plot(pre.GPS.HR.day$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_GPS_h_adhoc_day.png",
+  ggsave(filename = "figures/UD95_pre_GPS_h_adhoc_day.png",
          plot = pre.GPS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -785,7 +791,7 @@ pre.ARGOS.HR.day <- run.HR.analysis(pre.ARGOS.kd.day,
 plot(pre.ARGOS.HR.day$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_ARGOS_h_adhoc_day.png",
+  ggsave(filename = "figures/UD95_pre_ARGOS_h_adhoc_day.png",
          plot = pre.ARGOS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -817,7 +823,7 @@ pre.GPS.HR.night <- run.HR.analysis(pre.GPS.kd.night,
 plot(pre.GPS.HR.night$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_GPS_h_adhoc_night.png",
+  ggsave(filename = "figures/UD95_pre_GPS_h_adhoc_night.png",
          plot = pre.GPS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -836,7 +842,7 @@ pre.ARGOS.HR.night <- run.HR.analysis(pre.ARGOS.kd.night,
 plot(pre.ARGOS.HR.night$h.adhoc$figure)
 
 if (save.figure)
-  ggsave(filename = "figures/map_pre_ARGOS_h_adhoc_night.png",
+  ggsave(filename = "figures/UD95_pre_ARGOS_h_adhoc_night.png",
          plot = pre.ARGOS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -860,14 +866,14 @@ plotLSCV(post.GPS.kd.day$kd.LSCV)
 
 ```{r}
 post.GPS.HR.day <- run.HR.analysis(post.GPS.kd.day, 
-                                "post_GPS_day", 
-                                grid.value, 
-                                h.multiplier, 
-                                shape.file.dir = "shapefiles_Nov2019/")
+                                   "post_GPS_day", 
+                                   grid.value, 
+                                   h.multiplier, 
+                                   shape.file.dir = "shapefiles_Nov2019/")
 
 plot(post.GPS.HR.day$h.adhoc$figure)
 if (save.figure)
-  ggsave(filename = "figures/map_post_GPS_h_adhoc_day.png",
+  ggsave(filename = "figures/UD95_post_GPS_h_adhoc_day.png",
          plot = post.GPS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -878,14 +884,14 @@ multiplier = 0.45 may be good. See h.post.day.1.
 
 ```{r}
 post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day, 
-                                "post_ARGOS_day", 
-                                grid.value, 
-                                h.multiplier, 
-                                shape.file.dir = "shapefiles_Nov2019/")
+                                     "post_ARGOS_day", 
+                                     grid.value, 
+                                     h.multiplier, 
+                                     shape.file.dir = "shapefiles_Nov2019/")
 
 plot(post.ARGOS.HR.day$h.adhoc$figure)
 if (save.figure)
-  ggsave(filename = "figures/map_post_ARGOS_h_adhoc_day.png",
+  ggsave(filename = "figures/UD95_post_ARGOS_h_adhoc_day.png",
          plot = post.ARGOS.HR.day$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -914,7 +920,7 @@ post.GPS.HR.night <- run.HR.analysis(post.GPS.kd.night,
 
 plot(post.GPS.HR.night$h.adhoc$figure)
 if (save.figure)
-  ggsave(filename = "figures/map_post_GPS_h_adhoc_night.png",
+  ggsave(filename = "figures/UD95_post_GPS_h_adhoc_night.png",
          plot = post.GPS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -931,7 +937,7 @@ post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night,
 
 plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)
-  ggsave(filename = "figures/map_post_ARGOS_h_adhoc_night.png",
+  ggsave(filename = "figures/UD95_post_ARGOS_h_adhoc_night.png",
          plot = post.ARGOS.HR.night$h.adhoc$figure,
          device = "png",
          dpi = 600)
@@ -1404,7 +1410,7 @@ Make a plot for pre using all data:
 pre.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR$HR$ver.50, CRS("+proj=longlat")))
 pre.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR$HR$ver.95, CRS("+proj=longlat")))
 
-map.pre.HR <- map.sdbay.zm + 
+map.pre.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1442,6 +1448,11 @@ map.pre.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_pre.png", 
+         plot = map.pre.HR,
+         device = "png",
+         dpi = 600)
 
 plot(map.pre.HR)
 ```
@@ -1452,7 +1463,7 @@ Make a plot for pre day:
 pre.day.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR.day$HR$ver.50, CRS("+proj=longlat")))
 pre.day.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR.day$HR$ver.95, CRS("+proj=longlat")))
 
-map.pre.day.HR <- map.sdbay.zm + 
+map.pre.day.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1490,6 +1501,11 @@ map.pre.day.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_pre_day.png", 
+         plot = map.pre.day.HR,
+         device = "png",
+         dpi = 600)
 
 plot(map.pre.day.HR)
 ```
@@ -1503,7 +1519,7 @@ pre.night.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR.night$HR$ver.50,
 pre.night.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR.night$HR$ver.95, 
                                                CRS("+proj=longlat")))
 
-map.pre.night.HR <- map.sdbay.zm + 
+map.pre.night.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1541,6 +1557,11 @@ map.pre.night.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_pre_night.png", 
+         plot = map.pre.night.HR,
+         device = "png",
+         dpi = 600)
 
 plot(map.pre.night.HR)
 ```
@@ -1551,7 +1572,7 @@ Make a plot for post using all data:
 post.ver.50.df <- broom::tidy(spTransform(post.GPS.HR$HR$ver.50, CRS("+proj=longlat")))
 post.ver.95.df <- broom::tidy(spTransform(post.GPS.HR$HR$ver.95, CRS("+proj=longlat")))
 
-map.post.HR <- map.sdbay.zm + 
+map.post.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1588,6 +1609,13 @@ map.post.HR <- map.sdbay.zm +
   theme(#legend.title = element_text(size = 10, hjust = 0.5),
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
+
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_post.png", 
+         plot = map.post.HR,
+         device = "png",
+         dpi = 600)
+
 plot(map.post.HR)
 ```
 
@@ -1597,7 +1625,7 @@ Make a plot for post day:
 post.day.ver.50.df <- broom::tidy(spTransform(post.GPS.HR.day$HR$ver.50, CRS("+proj=longlat")))
 post.day.ver.95.df <- broom::tidy(spTransform(post.GPS.HR.day$HR$ver.95, CRS("+proj=longlat")))
 
-map.post.day.HR <- map.sdbay.zm + 
+map.post.day.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1635,6 +1663,12 @@ map.post.day.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_post_day.png", 
+         plot = map.post.day.HR,
+         device = "png",
+         dpi = 600)
+
 plot(map.post.day.HR)
 ```
 
@@ -1647,7 +1681,7 @@ post.night.ver.50.df <- broom::tidy(spTransform(post.GPS.HR.night$HR$ver.50,
 post.night.ver.95.df <- broom::tidy(spTransform(post.GPS.HR.night$HR$ver.95,
                                                 CRS("+proj=longlat")))
 
-map.post.night.HR <- map.sdbay.zm + 
+map.post.night.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat)) +
                #fill = "blue",alpha = 0.6) + 
@@ -1672,6 +1706,12 @@ map.post.night.HR <- map.sdbay.zm +
         #legend.text = element_text(size = 8, vjust = 0),
         legend.position = "none")
 
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_post_night.png", 
+         plot = map.post.night.HR,
+         device = "png",
+         dpi = 600)
+
 plot(map.post.night.HR)
 ```
 
@@ -1681,6 +1721,11 @@ UDs for individual turtles:
 ```{r}
 
 p.h.pre.eachID <- ggplot() + 
+  geom_polygon(data = SDBay.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color,
+               color = "black",
+               alpha = 0.4) +
   geom_polygon(data = pre.GPS.UD.byID$vert.95.df,
                aes(x = long, y = lat,
                    group = group),
@@ -1700,6 +1745,13 @@ p.h.pre.eachID <- ggplot() +
                      limits = c(-117.15, -117.09)) +
   scale_y_continuous(breaks = c(32.60, 32.62, 32.64),
                      limits = c(32.59, 32.65))
+
+if (save.figure)
+  ggsave(filename = "figures/UD_GPS_pre_byID.png", 
+         plot = map.pre.night.HR,
+         device = "png",
+         dpi = 600)
+
 plot(p.h.pre.eachID)
 ```
 
@@ -1732,30 +1784,30 @@ plot(p.h.post.eachID)
 Save figures:
 ```{r}
 if (save.figure){
-  ggsave(filename = paste0("figures/HR_pre_h_comp_GPS_", Sys.Date(), ".png"),
-       plot = h.adhoc.pre$figure,
-       dpi = 600,
-       device = "png")
-  ggsave(filename = paste0("figures/HR_post_h_comp_GPS_", Sys.Date(), ".png"),
-         plot = h.adhoc.post$figure,
-         dpi = 600,
-         device = "png")
-  ggsave(filename = paste0("figures/HR_pre_day_h_comp_GPS_", Sys.Date(), ".png"),
-         plot = h.adhoc.pre.day$figure,
-         dpi = 600,
-         device = "png")
-  ggsave(filename = paste0("figures/HR_pre_night_h_comp_GPS_", Sys.Date(), ".png"),
-         plot = h.adhoc.pre.night$figure,
-         dpi = 600,
-         device = "png")
-  ggsave(filename = paste0("figures/HR_post_day_h_comp_GPS_", Sys.Date(), ".png"),
-         plot = h.adhoc.post.day$figure,
-         dpi = 600,
-         device = "png")
-  ggsave(filename = paste0("figures/HR_post_night_h_comp_GPS_", Sys.Date(), ".png"),
-         plot = h.adhoc.post.night$figure,
-         dpi = 600,
-         device = "png")
+  # ggsave(filename = paste0("figures/HR_pre_h_comp_GPS_", Sys.Date(), ".png"),
+  #      plot = h.adhoc.pre$figure,
+  #      dpi = 600,
+  #      device = "png")
+  # ggsave(filename = paste0("figures/HR_post_h_comp_GPS_", Sys.Date(), ".png"),
+  #        plot = h.adhoc.post$figure,
+  #        dpi = 600,
+  #        device = "png")
+  # ggsave(filename = paste0("figures/HR_pre_day_h_comp_GPS_", Sys.Date(), ".png"),
+  #        plot = h.adhoc.pre.day$figure,
+  #        dpi = 600,
+  #        device = "png")
+  # ggsave(filename = paste0("figures/HR_pre_night_h_comp_GPS_", Sys.Date(), ".png"),
+  #        plot = h.adhoc.pre.night$figure,
+  #        dpi = 600,
+  #        device = "png")
+  # ggsave(filename = paste0("figures/HR_post_day_h_comp_GPS_", Sys.Date(), ".png"),
+  #        plot = h.adhoc.post.day$figure,
+  #        dpi = 600,
+  #        device = "png")
+  # ggsave(filename = paste0("figures/HR_post_night_h_comp_GPS_", Sys.Date(), ".png"),
+  #        plot = h.adhoc.post.night$figure,
+  #        dpi = 600,
+  #        device = "png")
   ggsave(filename = paste0("figures/HR_pre_h_", h.pre, "_GPS_", Sys.Date(), ".png"),
          plot = map.pre.HR,
          dpi = 600,

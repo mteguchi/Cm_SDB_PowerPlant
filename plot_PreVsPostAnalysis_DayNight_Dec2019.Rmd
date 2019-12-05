@@ -25,13 +25,27 @@ library(ggridges)
 source("HR_analysis_fcns.R")
 
 SDBay.gis <- spTransform(readOGR(dsn = "GISfiles",
-                                           layer = "sd_bay",
-                                           verbose = FALSE),
-                                   CRS("+proj=longlat +datum=WGS84"))
+                                 layer = "sd_bay",
+                                 verbose = FALSE),
+                         CRS("+proj=longlat +datum=WGS84"))
 
 SDBay.df <- broom::tidy(SDBay.gis)
 water.color <- "lightblue"
 background.color <- "darkgray"
+
+SDBay.eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+SDBay.eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
+
+SDBay.eelg.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2008",
+                                       verbose = F),
+                               CRS("+proj=longlat +datum=WGS84"))
+
+SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
+
 
 # internet <- F #TRUE
 save.fig <- T
@@ -98,6 +112,12 @@ p.KDE.pre.combined <- ggplot() +
                color = "black",
                fill = "gold",
                alpha = 0.6) +
+  geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = "green",
+               alpha = 0.5) +
   coord_map(xlim = c(-117.145, -117.09),
             ylim = c(32.595, 32.665)) + 
   facet_grid(. ~ ID) +
