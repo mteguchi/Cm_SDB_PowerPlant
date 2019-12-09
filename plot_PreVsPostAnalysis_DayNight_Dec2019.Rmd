@@ -62,7 +62,7 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
 
-# this file was created in PreVsPostAnalysis_DayNight.Rmd
+# this file was created in PreVsPostAnalysis_DayNight_Dec2019.Rmd
 all.data.frames <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
 
 KD.eachID.pre.combined <- all.data.frames$UD.eachID.pre.daynight 
@@ -90,7 +90,7 @@ UD.post.day.night.50.latlon <- all.data.frames$UD50.allID.post.day.night
 
 ```
 
-Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files contain raw data for pre period. First, look at each turtle for day and night combined. 
+
 
 ```{r, message=FALSE}
 

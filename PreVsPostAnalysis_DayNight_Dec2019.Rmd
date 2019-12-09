@@ -42,7 +42,8 @@ tagproj <- proj4string(tagprj)
 
 ```
 
-Load results from HR_analysis_GPS_LC_newtags_11July2018.Rmd. The following files contain raw data for pre period. First, look at each turtle for day and night combined. 
+Load results from HR_analysis_GPS_LC_newtags_2019-10-31.Rmd. The following files contain raw data for pre period. First, look at each turtle for day and night combined. 
+
 
 ```{r, message=FALSE}
 pre.all <- read.csv("data/Pre_GPS_all.csv")
