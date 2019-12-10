@@ -2015,5 +2015,6 @@ summary(lm.fit.dif.50)
 
 ```
 
+This is going down the rabbit hole... we didn't care so much about at the individual level - we wanted to see how green turtles in SDB as a whole changed their movements/behavior before and after the power plant closure. So, let's focus on that and we already have results!
 
 
