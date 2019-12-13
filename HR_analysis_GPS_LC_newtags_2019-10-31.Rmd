@@ -177,7 +177,7 @@ for (d in 1:length(dNames)){
                                                 TransmissionDateTime, UTCDateTime,
                                                 LC, Residual,
                                                 Lat1, Lon1, inside) %>%
-                                  
+                                  filter(Lat1 < N.end) %>%
                                   mutate(LocalDateTime = with_tz(UTCDateTime,
                                                                  tzone = "America/Los_Angeles")) %>%
                                   mutate(Date2 = as.character(LocalDateTime,
@@ -667,6 +667,9 @@ pre.GPS.HR <- run.HR.analysis(pre.GPS.kd,
                               h.multiplier, 
                               shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(pre.GPS.HR,
+        file = "RData/pre_GPS_HR.rds")
+
 # This HR is with the h value with the adhoc method
 plot(pre.GPS.HR$h.adhoc$figure)
 
@@ -689,6 +692,10 @@ pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd,
                                 grid.value, 
                                 h.multiplier, 
                                 shape.file.dir = "shapefiles_Nov2019/")
+
+saveRDS(pre.ARGOS.HR,
+        file = "RData/pre_ARGOS_HR.rds")
+
 plot(pre.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
@@ -718,6 +725,9 @@ post.GPS.HR <- run.HR.analysis(post.GPS.kd,
                                h.multiplier, 
                                shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(post.GPS.HR,
+        file = "RData/post_GPS_HR.rds")
+
 plot(post.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
@@ -736,6 +746,9 @@ post.ARGOS.HR <- run.HR.analysis(post.ARGOS.kd,
                                  grid.value, 
                                  h.multiplier, 
                                  shape.file.dir = "shapefiles_Nov2019/")
+saveRDS(post.ARGOS.HR,
+        file = "RData/post_ARGOS_HR.rds")
+
 plot(post.ARGOS.HR$h.adhoc$figure)
 
 if (save.figure)
@@ -767,6 +780,9 @@ pre.GPS.HR.day <- run.HR.analysis(pre.GPS.kd.day,
                                   h.multiplier, 
                                   shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(pre.GPS.HR.day,
+        file = "RData/pre_GPS_HR_day")
+
 plot(pre.GPS.HR.day$h.adhoc$figure)
 
 if (save.figure)
@@ -787,6 +803,9 @@ pre.ARGOS.HR.day <- run.HR.analysis(pre.ARGOS.kd.day,
                                     grid.value, 
                                     h.multiplier, 
                                     shape.file.dir = "shapefiles_Nov2019/")
+
+saveRDS(pre.ARGOS.HR.day,
+        file = "RData/pre_ARGOS_HR_day.rds")
 
 plot(pre.ARGOS.HR.day$h.adhoc$figure)
 
@@ -820,6 +839,9 @@ pre.GPS.HR.night <- run.HR.analysis(pre.GPS.kd.night,
                                     h.multiplier, 
                                     shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(pre.GPS.HR.night,
+        file = "RData/pre_GPS_HR_night.rds")
+
 plot(pre.GPS.HR.night$h.adhoc$figure)
 
 if (save.figure)
@@ -838,6 +860,8 @@ pre.ARGOS.HR.night <- run.HR.analysis(pre.ARGOS.kd.night,
                                     grid.value, 
                                     h.multiplier, 
                                     shape.file.dir = "shapefiles_Nov2019/")
+saveRDS(pre.ARGOS.HR.night,
+        file = "RData/pre_ARGOS_HR_night.rds")
 
 plot(pre.ARGOS.HR.night$h.adhoc$figure)
 
@@ -871,6 +895,9 @@ post.GPS.HR.day <- run.HR.analysis(post.GPS.kd.day,
                                    h.multiplier, 
                                    shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(post.GPS.HR.day,
+        file = "RData/post_GPS_HR_day.rds")
+
 plot(post.GPS.HR.day$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/UD95_post_GPS_h_adhoc_day.png",
@@ -888,6 +915,9 @@ post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day,
                                      grid.value, 
                                      h.multiplier, 
                                      shape.file.dir = "shapefiles_Nov2019/")
+
+saveRDS(post.ARGOS.HR.day,
+        file = "RData/post_ARGOS_HR_day.rds")
 
 plot(post.ARGOS.HR.day$h.adhoc$figure)
 if (save.figure)
@@ -918,6 +948,9 @@ post.GPS.HR.night <- run.HR.analysis(post.GPS.kd.night,
                                      h.multiplier, 
                                      shape.file.dir = "shapefiles_Nov2019/")
 
+saveRDS(post.GPS.HR.night,
+        file = "RData/post_GPS_HR_night.rds")
+
 plot(post.GPS.HR.night$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/UD95_post_GPS_h_adhoc_night.png",
@@ -934,6 +967,9 @@ post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night,
                                        grid.value, 
                                        h.multiplier, 
                                        shape.file.dir = "shapefiles_Nov2019/")
+
+saveRDS(post.ARGOS.HR.night,
+        file = "RData/post_ARGOS_HR_night.rds")
 
 plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)

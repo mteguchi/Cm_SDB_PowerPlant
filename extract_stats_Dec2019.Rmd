@@ -1,0 +1,116 @@
+---
+title: "Extract statistics for ms revision"
+output: html_notebook
+---
+
+This document extracts necessary statistics for the revision of the manuscript
+
+```{r}
+rm(list = ls())
+
+library(dplyr)
+library(adehabitatHR)
+library(rgdal)
+library(leaflet) 
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(ggridges)
+
+source("HR_analysis_fcns.R")
+
+# internet <- F #TRUE
+save.fig <- T
+
+# Minimum number of relocations per individual to be included in HR analysis
+min_n <- 50
+#N.end <- 32.69   # approx Coronado bridge
+N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
+
+grid <- 1000
+extent <- 1
+
+#source("HR_analysis_fcns.R")
+tagprj <- readOGR(dsn = "Tag_065_UTMzone11n", 
+                  layer = "tag_065_project")
+tagproj <- proj4string(tagprj)
+
+all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
+```
+
+Then, pull out statistics in the order that they are used in the manuscript. 
+
+To find out the proportion of accepted locations for GPS, we need to pull out files with _inout.csv extensions.
+
+```{r}
+pre.all <- read.csv("data/Pre_GPS_all.csv")
+post.all <- read.csv("data/Post_GPS_all.csv")
+
+pre.IDs <- unique(pre.all$ArgosID)
+post.IDs <- unique(post.all$ArgosID)
+all.IDs <- c(pre.IDs, post.IDs)
+
+post.n <- pre.n <- data.frame(ArgosID = NA, all = NA, filtered = NA, final = NA)
+k <- 1
+for (k in 1:length(pre.IDs)){
+  filename <- paste0("data/files_Oct2019_withNewTags/pre/", pre.IDs[k], "_inout.csv")
+  filename1 <- paste0("data/files_Oct2019_withNewTags/pre/", pre.IDs[k], "_inside_DayNight_4hrs_GPS.csv")
+  dat.tmp <- read.csv(file = filename)
+  dat.tmp %>% filter(Message_Type == "GPS") %>%
+    filter(Lat1 < N.end) -> dat.tmp
+  dat.filtered <- filter(dat.tmp, Residual <= 35) %>%
+    filter(inside == 1)
+  dat.final <- read.csv(file = filename1)
+
+  pre.n[k, ] <- c(pre.IDs[k], nrow(dat.tmp), nrow(dat.filtered), nrow(dat.final))
+
+}
+
+pre.n$pre0post1 <- 0
+
+k <- 1
+for (k in 1:length(post.IDs)){
+  if (post.IDs[k] <= 152323 & post.IDs[k] >= 151375 ){
+    filename <- paste0("data/files_Oct2019_withNewTags/new/", post.IDs[k], "_inout.csv")
+    filename1 <- paste0("data/files_Oct2019_withNewTags/new/", post.IDs[k], "_inside_DayNight_4hrs_GPS.csv")
+    
+  } else {
+    filename <- paste0("data/files_Oct2019_withNewTags/post/", post.IDs[k], "_inout.csv")
+    filename1 <- paste0("data/files_Oct2019_withNewTags/post/", post.IDs[k], "_inside_DayNight_4hrs_GPS.csv")
+    
+  }
+  dat.tmp <- read.csv(file = filename)
+  dat.tmp %>% filter(Message_Type == "GPS") %>%
+    filter(Lat1 < N.end)-> dat.tmp
+  dat.filtered <- filter(dat.tmp, Residual <= 35) %>%
+    filter(inside == 1) 
+  
+  dat.final <- read.csv(file = filename1)
+  
+  post.n[k, ] <- c(post.IDs[k], nrow(dat.tmp), nrow(dat.filtered), nrow(dat.final))
+  
+}
+
+post.n$pre0post1 <- 1
+
+all.n <- rbind(pre.n, post.n) %>%
+  mutate(prop.filtered = filtered/all)
+
+all.prop <- sum(all.n$filtered)/sum(all.n$all)
+
+min.prop <- min(all.n$prop.filtered)
+
+all.n %>% filter(filtered > 49) -> used.n
+
+lost.pre <- nrow(all.n[all.n$pre0post1 == 0,]) - nrow(used.n[used.n$pre0post1 == 0,])
+lost.post <- nrow(all.n[all.n$pre0post1 == 1,]) - nrow(used.n[used.n$pre0post1 == 1,])
+
+```
+
+
+
+```{r}
+pre.GPS.HR <- readRDS(file = "RData/pre_GPS_HR.rds")
+```
+
+

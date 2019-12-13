@@ -21,12 +21,16 @@ This notebook creates Table 1. It brings in the file IDvsUDs_2018-11-01.csv, whi
 
 ```{r}
 
-data1 <- read.csv(file = "data/IDvsUDs_2019-11-06.csv")
+data1 <- read.csv(file = "data/IDvsUDs.csv")
 
-data1 %>% dplyr::select(ID.f, Capture_Date, n.days, n.relocations,
-                 n.relocations.all, n.day, n.day.all,
-                 n.night, n.night.all, Sex, Mass_kg, SCL_cm,
-                 period) -> data2
+data1 %>% mutate(ID.f = as.factor(ArgosID),
+                 n.days = n.days.GPS,
+                 n.relocations = n.relocations.all.GPS,
+                 n.day = n.day.all.GPS,
+                 n.night = n.night.all.GPS) %>%
+  dplyr::select(ID.f, Capture_Date, n.days, n.relocations,
+                n.day, n.night, Sex, Mass_kg, SCL_cm,
+                period) -> data2
 
 head(data2)
 ```
@@ -36,11 +40,37 @@ Then compute some statistics that were needed in the text.
 ```{r}
 mean(data2$SCL_cm)
 SE(data2$SCL_cm)
+min(data2$SCL_cm)
+max(data2$SCL_cm)
+
 mean(data2$Mass_kg)
 SE(data2$Mass_kg)
+min(data2$Mass_kg)
+max(data2$Mass_kg)
+
 mean(data2$n.days)
 SE(data2$n.days)
+min(data2$n.days)
+max(data2$n.days)
 ```
+
+Look at SCL, mass, and number of transmission days between two periods.
+
+```{r}
+lm_SCL <- lm(SCL_cm ~ period, data = data2)
+summary(lm_SCL)
+```
+
+```{r}
+lm_Mass <- lm(Mass_kg ~ period, data = data2)
+summary(lm_Mass)
+```
+
+```{r}
+lm_ndays <- lm(n.days ~ period, data = data2)
+summary(lm_ndays)
+```
+
 
 Split statistics into pre and post periods:
 ```{r}
@@ -49,16 +79,16 @@ data2 %>% mutate(period.f = as.factor(period)) %>%
                                    SE.n.days = SE(n.days),
                                    mean.n.relocations = mean(n.relocations),
                                    SE.n.relocations = SE(n.relocations),
-                                   mean.n.relocations.all = mean(n.relocations.all),
-                                   SE.n.relocations.all = SE(n.relocations.all),
+                                   #mean.n.relocations.all = mean(n.relocations.all),
+                                   #SE.n.relocations.all = SE(n.relocations.all),
                                    mean.n.day = mean(n.day),
                                    SE.n.day = SE(n.day),
-                                   mean.n.day.all = mean(n.day.all),
-                                   SE.n.day.all = SE(n.day.all),
+                                   #mean.n.day.all = mean(n.day.all),
+                                   #SE.n.day.all = SE(n.day.all),
                                    mean.n.night = mean(n.night),
                                    SE.n.night = SE(n.night),
-                                   mean.n.night.all = mean(n.night.all),
-                                   SE.n.night.all = SE(n.night.all),
+                                   #mean.n.night.all = mean(n.night.all),
+                                   #SE.n.night.all = SE(n.night.all),
                                    mean.Mass = mean(Mass_kg),
                                    SE.Mass = SE(Mass_kg),
                                    mean.SCL = mean(SCL_cm),

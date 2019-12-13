@@ -58,6 +58,7 @@ UD.eachID.pre.combined <- UD.eachID(pre.combined.kd)
 ```
 
 Next, post period data are loaded and UDs for day and night combined are computed.
+
 ```{r, message=FALSE}
 post.all <- read.csv("data/Post_GPS_all.csv")
 
