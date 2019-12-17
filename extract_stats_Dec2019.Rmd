@@ -16,6 +16,8 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 library(ggridges)
+library(lme4)
+library(mgcv)
 
 source("HR_analysis_fcns.R")
 
@@ -129,36 +131,377 @@ lost.post <- nrow(all.n[all.n$pre0post1 == 1,]) - nrow(used.n[used.n$pre0post1 =
 
 ```
 
-Combine these with the HR analyses output to make one dataframe. All these files were created in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd. 
+Combine these with the HR analyses output to make one dataframe. All these files were created in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd. Because we are not interested in individual differences, especially with the small sample sizes for some individuals, we don't split data for each individual into day and night. But, just to show how bad this gets here is summary.
 
 ```{r}
-pre.UD <- readRDS("RData/pre_GPS_UD_byID.rds")
+pre.UD.byID <- readRDS("RData/pre_GPS_UD_byID.rds")
+pre.UD.day.byID <- readRDS("RData/pre_GPS_UD_day_byID.rds") 
+pre.UD.day.byID$area %>%  
+  transmute(area.50.day = area.50,
+            area.75.day = area.75,
+            area.95.day = area.95,
+            ArgosID = ID) -> pre.UD.day.area.byID
 
-post.UD <- readRDS("RData/post_GPS_UD_byID.rds")
+pre.UD.night.byID <- readRDS("RData/pre_GPS_UD_night_byID.rds")
+pre.UD.night.byID$area %>%  
+  transmute(area.50.night = area.50,
+            area.75.night = area.75,
+            area.95.night = area.95,
+            ArgosID = ID) -> pre.UD.night.area.byID
 
-UD.area <- rbind(pre.UD$area, post.UD$area) %>%
+
+post.UD.byID <- readRDS("RData/post_GPS_UD_byID.rds")
+post.UD.day.byID <- readRDS("RData/post_GPS_UD_day_byID.rds")
+post.UD.day.byID$area %>%  
+  transmute(area.50.day = area.50,
+            area.75.day = area.75,
+            area.95.day = area.95,
+            ArgosID = ID) -> post.UD.day.area.byID
+
+post.UD.night.byID <- readRDS("RData/post_GPS_UD_night_byID.rds")
+post.UD.night.byID$area %>%  
+  transmute(area.50.night = area.50,
+            area.75.night = area.75,
+            area.95.night = area.95,
+            ArgosID = ID) -> post.UD.night.area.byID
+
+UD.area.day <- rbind(pre.UD.day.area.byID, post.UD.day.area.byID)
+UD.area.night <- rbind(pre.UD.night.area.byID, post.UD.night.area.byID)
+
+UD.area.byID <- rbind(pre.UD.byID$area, post.UD.byID$area) %>%
   mutate(ArgosID = ID) %>% 
   dplyr::select(-ID)
 
-used.n %>% left_join(UD.area, by = "ArgosID") -> used.n.byID
+used.n %>% left_join(UD.area.byID, by = "ArgosID") %>% 
+  left_join(UD.area.day, by = "ArgosID") %>% 
+  left_join(UD.area.night, by = "ArgosID") -> used.n.byID
 
 ```
 
-
-UDs for day and night periods (same here - created in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd)
+UDs for day+night, day, and night periods using all individuals (created in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd)
 
 ```{r}
-
+pre.UD <- readRDS("RData/pre_GPS_UD.rds")
 pre.UD.day <- readRDS("RData/pre_GPS_UD_day.rds")
 pre.UD.night <- readRDS("RData/pre_GPS_UD_night.rds")
 
+post.UD <- readRDS("RData/post_GPS_UD.rds")
+post.UD.day <- readRDS("RData/post_GPS_UD_day.rds")
+post.UD.night <- readRDS("RData/post_GPS_UD_night.rds")
 
 ```
 
+
+Determining the sample size necessary to approximate the observed post-period.  
+```{r}
+post.summary <- read.csv("data/post_sample_summary.csv")
+ID.post.min_n <- filter(post.summary,
+                       n.relocations.all > (min_n - 1))
+
+pre.summary <- read.csv("data/pre_sample_summary.csv")
+ID.pre.min_n <- filter(pre.summary,
+                       n.relocations.all > (min_n - 1))
+
+#h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
+# This loop takes a long time... It was run once already so start from 
+# where it was left off. .RData file needs to be loaded to figure out
+# how far along the first attempt was. 
+
+# select randomized results 
+file.names <- list.files(path = "RData/", pattern = "areas_combos_n")
+file.names <- file.names[grep(pattern = "2019-11-12", file.names)]
+
+# initialize empty lists for collecting info
+area50.list <- area95.list <- vector(mode = "list", length = length(file.names))
+p.d50.list <- p.d95.list <- vector(mode = "list", length = length(file.names))
+dif.50.list <- dif.95.list <- vector(mode = "list", length = length(file.names))
+Fn.50.0 <- Fn.95.0 <- vector(mode = "numeric", length = length(file.names))
+
+
+# file.names are not listed from 5 to 15, so results need to be placed in the 
+# right spot 
+for (k in 1:length(file.names)){
+  # find the sample size for this file:
+  n.txt <- unlist(strsplit(strsplit(strsplit(file.names[k], 
+                                             split = "areas_combos_")[[1]][2],
+                                    split = "_2019-11-12")[[1]][1], 
+                           split = "n"))[2]
+  
+  areas.combos <- readRDS(file = paste0("Rdata/", file.names[k]))
+  
+  area50.list[[as.numeric(n.txt) - 4]] <- data.frame(area50 = areas.combos$area50,
+                                                     n = as.numeric(n.txt))
+  area95.list[[as.numeric(n.txt) - 4]] <- data.frame(area95 = areas.combos$area95,
+                                                     n = as.numeric(n.txt))
+  
+  dif.50.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area50 - pre.UD$HR$area.50)
+  dif.95.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area95 - pre.UD$HR$area.95)
+  
+  p.d50.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.50.list[[as.numeric(n.txt) - 4]]) + 
+    geom_histogram(aes(x = dif), binwidth = 0.1) +
+    labs(title = paste0("n = ", n.txt), 
+         x = "Difference in area (50% UD)", y = "Count")
+  
+  # find the ecdf of the differences
+  Fn.50 <- ecdf(dif.50.list[[as.numeric(n.txt) - 4]]$dif)
+  
+  # compute the probability at 0:
+  Fn.50.0[as.numeric(n.txt) - 4] <- Fn.50(0)
+  
+  #plot(hist.dif.50)
+  
+  p.d95.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.95.list[[as.numeric(n.txt) - 4]]) + 
+    geom_histogram(aes(x = dif), binwidth = 0.15) +
+    labs(title = paste0("n = ", n.txt), 
+         x = "Difference in area (95% UD)", y = "Count")
+  
+  # find the ecdf of the differences
+  Fn.95 <- ecdf(dif.95.list[[as.numeric(n.txt) - 4]]$dif)
+  
+  # compute the probability at 0:
+  Fn.95.0[as.numeric(n.txt) - 4] <- Fn.95(0)
+  
+}
+
+```
+
+
+
+Make plots to see how the areas changed with sample sizes
+
+```{r}
+area50.df <- do.call(rbind, area50.list) %>% 
+  mutate(f.n = as.factor(n))
+
+area50.means <- area50.df %>% 
+  group_by(f.n) %>% 
+  summarize(mean.50 = mean(area50),
+            median.50 = median(area50),
+            n = first(n)) 
+
+area95.df <- do.call(rbind, area95.list) %>% 
+  mutate(f.n = as.factor(n))
+
+area95.means <- area95.df %>% 
+  group_by(f.n) %>% 
+  summarize(mean.95 = mean(area95),
+            median.95 = median(area95),
+            n = first(n)) 
+
+pre.df <- data.frame(n = c(6, 6), 
+                     areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
+
+post.df <- data.frame(n = c(17, 17), 
+                     areas = c(post.UD$HR$area.50, post.UD$HR$area.95))
+ 
+p.dif.dist <- ggplot() + 
+  geom_point(data = area50.df,
+             aes(x = n, y = area50)) + 
+  geom_point(data = area50.means,
+             aes(x = n, 
+                 y = mean.50),
+             size = 4.5,
+             shape = 15) + 
+  geom_point(data = area95.df,
+             aes(x = n, y = area95)) + 
+  geom_point(data = area95.means,
+             aes(x = n, 
+                 y = mean.95),
+             size = 4.5,
+             shape = 15) + 
+  geom_point(data = pre.df,
+             aes(x = n, y = areas),
+             color = "green",
+             size = 3.5) + 
+  geom_hline(yintercept = post.UD$HR$area.50,
+             size = 1.5, color = "blue",
+             linetype = 2) + 
+  geom_hline(yintercept = post.UD$HR$area.95,
+             size = 1.5, color = "blue",
+             linetype = 2) + 
+  scale_x_continuous(breaks = c(min(area95.df$n):max(area95.df$n)),
+                     limits = c((min(area95.df$n) - 0.2), (max(area95.df$n) + 0.2))) +
+  labs(x = "Number of individuals",
+       y = bquote('Estimated UDs (' *km^2*')'))
+  
+ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
+       plot = p.dif.dist,
+       device = "png",
+       dpi = 600)
+
+print(p.dif.dist)
+```
+
+This plot shows that (1) the mean 50% UDs did not change from n = 5 to n = 13 and (2) 95% UDs require 11 or more individuals to be a good estimate. The observed pre-period UDs were significantly less than the post-period. 
+
+Another way to look at the distributions - ridge plots. 
+
+```{r}
+
+ggplot(data = area50.df) + 
+  geom_density_ridges2(aes(x = area50, y = f.n), 
+                       scale = 2,
+                       fill = "springgreen2") + 
+  geom_vline(xintercept = post.UD$HR$area.50,
+             size = 1.5, color = "black",
+             linetype = 2) + 
+  labs(x = "50% UD", y = "Number of individuals")
+
+```
+
+```{r}
+
+ggplot(data = area95.df) + 
+  geom_density_ridges2(aes(x = area95, y = f.n), 
+                       scale = 2,
+                       fill = "springgreen2") + 
+  geom_vline(xintercept = post.UD$HR$area.95,
+             size = 1.5, color = "black",
+             linetype = 2) + 
+  labs(x = "95% UD", y = "Number of individuals")
+
+```
+
+Look at the differences between pre and post periods using 50% UDs.
+
+```{r}
+# n = 6 is the second list item.
+p.d50.n6 <- ggplot(data = dif.50.list[[2]]) + 
+    geom_histogram(aes(x = dif), binwidth = 0.1,
+                   fill = "gray",
+                   col = "black") +
+    labs(x = "Difference in area (50% UD)", y = "Count")
+
+ggsave(filename = paste0("figures/preVsPost_n6_", Sys.Date(), ".png"),
+       plot = p.d50.n6,
+       device = "png",
+       dpi = 600)
+
+
+print(p.d50.n6)
+
+p.gt0 <- sum(dif.50.list[[2]]$dif > 0)/1000
+```
+
+Now, I need to look at the effects of various things on the HR sizes.  
+
+The first comparison is the main one; pre vs. post, where using day and night data together.  I use only GPS data first. In this case, no mixed-effecs model is necessary. 
+
+We used 
+
+```{r}
+
+dat.table <- read.csv(file = "data/IDvsUDs.csv") 
+
+dat.table %>% 
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
+                n.day.all.GPS, n.night.all.GPS,
+                Sex, CCL_cm, 
+                period, area.50.all.GPS) %>%
+  mutate(period01 = ifelse(period == "pre", 0, 1)) %>% #-> table.area.50.GPS #%>%
+  na.omit() -> table.area.50.GPS
+
+lm.fit.all.50 <- lm(formula = area.50.all.GPS ~ period01 + CCL_cm + n.days.GPS + n.relocations.all.GPS,
+                    data = table.area.50.GPS)
+
+summary(lm.fit.all.50)
+```
+
+The model indicates no significant effects of the period (uncertainty is too big), even though the coefficient is positive, indicating the increase in UD50. Longer deployments result in larger UD50s, whereas larger turtles tend to have smaller UD50s. 
+
+Second, I use day and night data as separate but drop the combined data.  To account for individuals, they are treated as random effects. There are only 7 individuals available for this analysis.  Just because of this small sample issue, I remove CCL from the list of variables. 
+
+```{r}
+dat.table %>%
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, n.day.all.GPS, n.night.all.GPS,
+         Sex, CCL_cm, 
+         period, area.50.night.GPS, area.50.day.GPS) %>%
+  mutate(period01 = ifelse(period == "pre", 0, 1)) %>% #-> area.50.day.night.GPS #%>%
+  na.omit() -> area.50.day.night.GPS 
+
+area.50.day.night.GPS.long <- gather(area.50.day.night.GPS,
+                                     day_night, area, 
+                                     area.50.night.GPS, area.50.day.GPS) %>%
+  mutate(day1night2 = ifelse(day_night == "area.50.day.GPS", 1, 2))
+
+lmm.fit.all.50 <- lmer(formula = area ~ day1night2 + period01 + (1|ArgosID),
+                      data = area.50.day.night.GPS.long)
+
+summary(lmm.fit.all.50)
+```
+
+UD50s are smaller during the night than the day and for the pre period than the post period.   
+
+How about the 95% UDs?
+
+```{r}
+dat.table %>% 
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
+                n.day.all.GPS, n.night.all.GPS,
+                Sex, CCL_cm, 
+                period, area.95.all.GPS) %>%
+  mutate(period01 = ifelse(period == "pre", 0, 1)) %>%
+  na.omit() -> table.area.95.GPS
+
+lm.fit.all.95 <- lm(formula = area.95.all.GPS ~ period01 + CCL_cm + n.days.GPS + n.relocations.all.GPS,
+                    data = table.area.95.GPS)
+
+summary(lm.fit.all.95)
+
+
+```
+
+Longer data series result in larger 95% UDs, smaller turtles have larger UDs, but not significant effect of pre vs. post. 
+
+Also, random effects model for 95% UDs.
+
+```{r}
+
+dat.table %>%
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, n.day.all.GPS, n.night.all.GPS,
+         Sex, CCL_cm, 
+         period, area.95.night.GPS, area.95.day.GPS) %>%
+  mutate(period01 = ifelse(period == "pre", 0, 1)) %>%
+  na.omit() -> area.95.day.night.GPS
+
+area.95.day.night.GPS.long <- gather(area.95.day.night.GPS,
+                                     day_night, area, 
+                                     area.95.night.GPS, area.95.day.GPS) %>%
+  mutate(day1night2 = ifelse(day_night == "area.95.day.GPS", 1, 2))
+
+lmm.fit.all.95 <- lmer(formula = area ~ day1night2 + period01 + (1|ArgosID),
+                      data = area.95.day.night.GPS.long)
+
+summary(lmm.fit.all.95)
+
+```
+
+Nothing really comes out as significant effects because of large uncertainty.  Using individual-based UDs is difficult because of the small sample sizes.  
+
+I think adding Argos data help this issue... To justify, we need to look at how adding Argos locations to GPS data doesn't change the results.
+
+Look at the difference between day and night
+```{r}
+area.50.day.night.GPS %>% 
+  mutate(dif.day.night = area.50.day.GPS - area.50.night.GPS,
+         period01 = ifelse(period == "pre", 0, 1)) -> dif.area.50.day.night.GPS
+
+lm.fit.dif.50 <- lm(formula = dif.day.night ~ period01 + CCL_cm,
+                    data = dif.area.50.day.night.GPS)
+
+summary(lm.fit.dif.50)
+
+```
+
+This is going down the rabbit hole... we didn't care so much about at the individual level - we wanted to see how green turtles in SDB as a whole changed their movements/behavior before and after the power plant closure. So, let's focus on that and we already have results!
 
 
 ```{r}
-pre.GPS.HR <- readRDS(file = "RData/pre_GPS_HR.rds")
+
+
 ```
+
+
+
 
 

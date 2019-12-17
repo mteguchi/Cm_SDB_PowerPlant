@@ -8,9 +8,9 @@ This file contains code to compare pre and post periods by randomly extracting t
 ```{r}
 rm(list = ls())
 
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
+# ifelse(Sys.info()[1] == 'Linux',
+#        source('~/Documents/R/tools/TomosFunctions.R'),
+#        source('~/R/tools/TomosFunctions.R'))
 
 #library(readxl)
 library(dplyr)
