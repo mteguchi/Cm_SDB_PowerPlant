@@ -317,31 +317,31 @@ In this chunk, I summarize how many of data points were removed for each telemet
 ```{r}
 pre.summary <- get.summary.1(dNames[1])
 
-if (!file.exists("data/pre_sample_summary.csv"))
+#if (!file.exists("data/pre_sample_summary.csv"))
   write.csv(pre.summary$raw.summary,
             "data/pre_sample_summary.csv",
             row.names = F, 
             quote = F)
 
-if (!file.exists("data/pre_sample_GPS_summary.csv"))
+#if (!file.exists("data/pre_sample_GPS_summary.csv"))
   write.csv(pre.summary$GPS.summary, 
             "data/pre_sample_GPS_summary.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/pre_sample_ARGOS_summary.csv"))
+#if (!file.exists("data/pre_sample_ARGOS_summary.csv"))
   write.csv(pre.summary$ARGOS.summary, 
             "data/pre_sample_ARGOS_summary.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/pre_GPS_all.csv"))
+#if (!file.exists("data/pre_GPS_all.csv"))
   write.csv(pre.summary$GPS,
             "data/pre_GPS_all.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/pre_ARGOS_all.csv"))
+#if (!file.exists("data/pre_ARGOS_all.csv"))
   write.csv(pre.summary$ARGOS,
             "data/pre_ARGOS_all.csv",
             row.names = F,
@@ -507,31 +507,31 @@ post.GPS <- rbind(post.summary$GPS, new.summary$GPS) %>%
 post.ARGOS <- rbind(post.summary$ARGOS, new.summary$ARGOS) %>%
   filter(Lat1 < 32.66)
 
-if (!file.exists("data/post_sample_summary.csv"))
+#if (!file.exists("data/post_sample_summary.csv"))
   write.csv(rbind(post.summary$raw.summary, new.summary$raw.summary),
             "data/post_sample_summary.csv",
             row.names = F, 
             quote = F)
 
-if (!file.exists("data/post_sample_GPS_summary.csv"))
+#if (!file.exists("data/post_sample_GPS_summary.csv"))
   write.csv(rbind(post.summary$GPS.summary, new.summary$GPS.summary), 
             "data/post_sample_GPS_summary.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/post_sample_ARGOS_summary.csv"))
+#if (!file.exists("data/post_sample_ARGOS_summary.csv"))
   write.csv(rbind(post.summary$ARGOS.summary, new.summary$ARGOS.summary), 
             "data/post_sample_ARGOS_summary.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/post_GPS_all.csv"))
+#if (!file.exists("data/post_GPS_all.csv"))
   write.csv(post.GPS,
             "data/post_GPS_all.csv",
             row.names = F,
             quote = F)
 
-if (!file.exists("data/post_ARGOS_all.csv"))
+#if (!file.exists("data/post_ARGOS_all.csv"))
   write.csv(post.ARGOS,
             "data/post_ARGOS_all.csv",
             row.names = F,
@@ -1274,7 +1274,7 @@ readr::read_csv(paste0("data/pre_sample_ARGOS_summary.csv"),
 dat.table.pre %>% full_join(dat.table.pre.ARGOS, by = "ArgosID") %>%
   mutate(period = "pre") -> dat.table.pre
 
-if (!file.exists("data/pre_sample_summary_size.csv"))
+#if (!file.exists("data/pre_sample_summary_size.csv"))
   write.csv(dat.table.pre,
             "data/pre_sample_summary_size.csv",
             quote = F,
@@ -1381,7 +1381,7 @@ readr::read_csv(paste0("data/post_sample_ARGOS_summary.csv"),
 dat.table.post %>% full_join(dat.table.post.ARGOS, by = "ArgosID") %>%
   mutate(period = "post") -> dat.table.post
 
-if (!file.exists("data/post_sample_summary_size.csv"))
+#if (!file.exists("data/post_sample_summary_size.csv"))
   write.csv(dat.table.post,
             "data/post_sample_summary_size.csv",
             quote = F,

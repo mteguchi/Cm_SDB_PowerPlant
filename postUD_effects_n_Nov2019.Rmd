@@ -20,7 +20,7 @@ library(ggplot2)
 library(lubridate)
 library(tidyverse)
 
-run.date2 <- "2019-11-12"
+run.date2 <- "2019-12-17"
 
 # internet <- F #TRUE
 # save.figure <- T
@@ -65,13 +65,13 @@ h.pre <- round(h.pre.1$h)
 Select all possible combinations of 5 (nrow(ID.pre.min_n)) to 15 (nrow(ID.post.min_n) - 1) individuals from the post data. Only 1000 combinations are selected per number of individuals.  
 
 ```{r echo=FALSE, results="hide"}
-post.summary <- read.csv("data/post_sample_summary.csv")
+post.summary <- read.csv("data/post_sample_GPS_summary.csv")
 ID.post.min_n <- filter(post.summary,
-                       GPS.accept > (min_n - 1))
+                       n.relocations.all > (min_n - 1))
 
-pre.summary <- read.csv("data/pre_sample_summary.csv")
+pre.summary <- read.csv("data/pre_sample_GPS_summary.csv")
 ID.pre.min_n <- filter(pre.summary,
-                       GPS.accept > (min_n - 1))
+                       n.relocations.all > (min_n - 1))
 
 #h.multiplier <-  seq(from = 0.1, to = 0.95, by = 0.05) 
 # This loop takes a long time... It was run once already so start from 
@@ -79,7 +79,7 @@ ID.pre.min_n <- filter(pre.summary,
 # how far along the first attempt was. 
 
 extent <- 1
-max.n <- dim(ID.post.min_n)[1] - 1
+max.n <- nrow(ID.post.min_n) - 1
 min.n <- nrow(ID.pre.min_n)
 k1 <- min.n
 for (k1 in min.n:max.n){
@@ -89,8 +89,10 @@ for (k1 in min.n:max.n){
     if (ncol(combos) > 1000){
       combos <- combos[, sample(1:ncol(combos), size = 1000)]
     }
+    
     IDs <- ver.95.df.list <- pts.df.list <- vector(mode = "list", 
                                                    length = ncol(combos))
+    
     area.95 <- area.50 <- lat.N <- vector(mode = "numeric", 
                                           length = ncol(combos))
     
