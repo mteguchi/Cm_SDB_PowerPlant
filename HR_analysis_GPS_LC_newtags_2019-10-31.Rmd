@@ -55,6 +55,7 @@ source("HR_analysis_fcns.R")
 Section 2: read in data
 
 First, read the raw data and find whether or not each location is inside or outside SDB. 
+
 ```{r}
 
 dNames <- paste0("data/files_Oct2019_withNewTags/", c("pre", "post", "new"))
@@ -64,7 +65,8 @@ for (d in 1:length(dNames)){
   data.files <- dir(dNames[d], pattern = ".txt")
   
   for (k in 1:length(data.files)){
-    if (!file.exists(paste0(dNames[d], "/", unlist(strsplit(data.files[k], '.txt'))[1],
+    if (!file.exists(paste0(dNames[d], "/", 
+                            unlist(strsplit(data.files[k], '.txt'))[1],
                             "_inout.csv"))){
       dat <- read.csv(paste0(dNames[d], "/", data.files[k]))
       in.out <- vector(mode = "numeric", length = dim(dat)[1])
@@ -75,13 +77,18 @@ for (d in 1:length(dNames)){
       dat$inside <- in.out
       
       write.csv(dat,
-                file = paste0(dNames[d], "/", unlist(strsplit(data.files[k], '.txt'))[1],
+                file = paste0(dNames[d], "/", 
+                              unlist(strsplit(data.files[k], '.txt'))[1],
                               "_inout.csv"),
                 quote = F, row.names = F)
       
-      dat.inside <- filter(dat, inside == 1)
+      # inside SDB and also south of N.end (32.66 as of 16 Dec 2019)
+      dat.inside <- filter(dat, inside == 1) %>% 
+        filter(Lat1 < N.end)
+      
       write.csv(dat.inside,
-                file = paste0(dNames[d], "/", unlist(strsplit(data.files[k], '.txt'))[1],
+                file = paste0(dNames[d], "/", 
+                              unlist(strsplit(data.files[k], '.txt'))[1],
                               "_inside.csv"),
                 quote = F, row.names = F)
       
@@ -168,6 +175,7 @@ for (d in 1:length(dNames)){
       
       #filters each Argos tag for nums (LC 1,2,3) and GPS, which eliminates Argos A,B,Z,0
       ## | represents or
+      # Also remove latitude that is >= N.end
       
       filtered.data <- lapply(all.data,
                               FUN = function(x){
@@ -247,7 +255,8 @@ for (d in 1:length(dNames)){
       # create hours column:
       dat$hr <- hour(dat$LocalDateTime)
       
-      dat %>% filter(Message_Type == "GPS") -> dat.gps
+      # GPS data need to be residual <= 35.0
+      dat %>% filter(Message_Type == "GPS") %>% filter(Residual <= 35) -> dat.gps
       dat %>% filter(Message_Type != "GPS") -> dat.argos
       
       write(x = colnames(dat), file = fileout.gps,
@@ -668,7 +677,7 @@ pre.GPS.HR <- run.HR.analysis(pre.GPS.kd,
                               shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(pre.GPS.HR,
-        file = "RData/pre_GPS_HR.rds")
+        file = "RData/pre_GPS_UD.rds")
 
 # This HR is with the h value with the adhoc method
 plot(pre.GPS.HR$h.adhoc$figure)
@@ -694,7 +703,7 @@ pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd,
                                 shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(pre.ARGOS.HR,
-        file = "RData/pre_ARGOS_HR.rds")
+        file = "RData/pre_ARGOS_UD.rds")
 
 plot(pre.ARGOS.HR$h.adhoc$figure)
 
@@ -726,7 +735,7 @@ post.GPS.HR <- run.HR.analysis(post.GPS.kd,
                                shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(post.GPS.HR,
-        file = "RData/post_GPS_HR.rds")
+        file = "RData/post_GPS_UD.rds")
 
 plot(post.GPS.HR$h.adhoc$figure)
 
@@ -747,7 +756,7 @@ post.ARGOS.HR <- run.HR.analysis(post.ARGOS.kd,
                                  h.multiplier, 
                                  shape.file.dir = "shapefiles_Nov2019/")
 saveRDS(post.ARGOS.HR,
-        file = "RData/post_ARGOS_HR.rds")
+        file = "RData/post_ARGOS_UD.rds")
 
 plot(post.ARGOS.HR$h.adhoc$figure)
 
@@ -781,7 +790,7 @@ pre.GPS.HR.day <- run.HR.analysis(pre.GPS.kd.day,
                                   shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(pre.GPS.HR.day,
-        file = "RData/pre_GPS_HR_day")
+        file = "RData/pre_GPS_UD_day.rds")
 
 plot(pre.GPS.HR.day$h.adhoc$figure)
 
@@ -805,7 +814,7 @@ pre.ARGOS.HR.day <- run.HR.analysis(pre.ARGOS.kd.day,
                                     shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(pre.ARGOS.HR.day,
-        file = "RData/pre_ARGOS_HR_day.rds")
+        file = "RData/pre_ARGOS_UD_day.rds")
 
 plot(pre.ARGOS.HR.day$h.adhoc$figure)
 
@@ -840,7 +849,7 @@ pre.GPS.HR.night <- run.HR.analysis(pre.GPS.kd.night,
                                     shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(pre.GPS.HR.night,
-        file = "RData/pre_GPS_HR_night.rds")
+        file = "RData/pre_GPS_UD_night.rds")
 
 plot(pre.GPS.HR.night$h.adhoc$figure)
 
@@ -861,7 +870,7 @@ pre.ARGOS.HR.night <- run.HR.analysis(pre.ARGOS.kd.night,
                                     h.multiplier, 
                                     shape.file.dir = "shapefiles_Nov2019/")
 saveRDS(pre.ARGOS.HR.night,
-        file = "RData/pre_ARGOS_HR_night.rds")
+        file = "RData/pre_ARGOS_UD_night.rds")
 
 plot(pre.ARGOS.HR.night$h.adhoc$figure)
 
@@ -896,7 +905,7 @@ post.GPS.HR.day <- run.HR.analysis(post.GPS.kd.day,
                                    shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(post.GPS.HR.day,
-        file = "RData/post_GPS_HR_day.rds")
+        file = "RData/post_GPS_UD_day.rds")
 
 plot(post.GPS.HR.day$h.adhoc$figure)
 if (save.figure)
@@ -917,7 +926,7 @@ post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day,
                                      shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(post.ARGOS.HR.day,
-        file = "RData/post_ARGOS_HR_day.rds")
+        file = "RData/post_ARGOS_UD_day.rds")
 
 plot(post.ARGOS.HR.day$h.adhoc$figure)
 if (save.figure)
@@ -949,7 +958,7 @@ post.GPS.HR.night <- run.HR.analysis(post.GPS.kd.night,
                                      shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(post.GPS.HR.night,
-        file = "RData/post_GPS_HR_night.rds")
+        file = "RData/post_GPS_UD_night.rds")
 
 plot(post.GPS.HR.night$h.adhoc$figure)
 if (save.figure)
@@ -969,7 +978,7 @@ post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night,
                                        shape.file.dir = "shapefiles_Nov2019/")
 
 saveRDS(post.ARGOS.HR.night,
-        file = "RData/post_ARGOS_HR_night.rds")
+        file = "RData/post_ARGOS_UD_night.rds")
 
 plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)
