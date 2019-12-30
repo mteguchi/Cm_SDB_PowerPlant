@@ -216,7 +216,7 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
 compute.area <- function(h, all.utm, grid=1000){
   #h.multiplier * kd.href@h$h
   
-  HR <- HR.bvnorm.fcn(all.utm,
+  HR <- HR.bvnorm.fcn(all.utm$all.utm,
                       #list.data$byID.utm,
                       h = h,
                       hlim=c(0.03, 1.5),
