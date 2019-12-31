@@ -17,7 +17,7 @@ library(lubridate)
 library(tidyverse)
 ```
 
-This notebook creates Table 1. It brings in the file IDvsUDs_2018-11-01.csv, which was created by HR_analylsis_GPS_LC_newtags.Rmd, which also used another file all_sample_summary_size_2018-07-24.csv. See each of these files for details. 
+This notebook creates Table 1. It brings in the file IDvsUDs.csv, which was created by HR_analylsis_GPS_LC_newtags_2019-10-.Rmd, which also used another file all_sample_summary_size_2018-07-24.csv. See each of these files for details. 
 
 ```{r}
 
@@ -72,46 +72,46 @@ summary(lm_ndays)
 ```
 
 
-Split statistics into pre and post periods:
-```{r}
-data2 %>% mutate(period.f = as.factor(period)) %>%
-  group_by(period.f) %>% summarise(mean.n.days = mean(n.days),
-                                   SE.n.days = SE(n.days),
-                                   mean.n.relocations = mean(n.relocations),
-                                   SE.n.relocations = SE(n.relocations),
-                                   #mean.n.relocations.all = mean(n.relocations.all),
-                                   #SE.n.relocations.all = SE(n.relocations.all),
-                                   mean.n.day = mean(n.day),
-                                   SE.n.day = SE(n.day),
-                                   #mean.n.day.all = mean(n.day.all),
-                                   #SE.n.day.all = SE(n.day.all),
-                                   mean.n.night = mean(n.night),
-                                   SE.n.night = SE(n.night),
-                                   #mean.n.night.all = mean(n.night.all),
-                                   #SE.n.night.all = SE(n.night.all),
-                                   mean.Mass = mean(Mass_kg),
-                                   SE.Mass = SE(Mass_kg),
-                                   mean.SCL = mean(SCL_cm),
-                                   SE.SCL = SE(SCL_cm)) -> data2.by.period
-```
+<!-- Split statistics into pre and post periods: -->
+<!-- ```{r} -->
+<!-- data2 %>% mutate(period.f = as.factor(period)) %>% -->
+<!--   group_by(period.f) %>% summarise(mean.n.days = mean(n.days), -->
+<!--                                    SE.n.days = SE(n.days), -->
+<!--                                    mean.n.relocations = mean(n.relocations), -->
+<!--                                    SE.n.relocations = SE(n.relocations), -->
+<!--                                    #mean.n.relocations.all = mean(n.relocations.all), -->
+<!--                                    #SE.n.relocations.all = SE(n.relocations.all), -->
+<!--                                    mean.n.day = mean(n.day), -->
+<!--                                    SE.n.day = SE(n.day), -->
+<!--                                    #mean.n.day.all = mean(n.day.all), -->
+<!--                                    #SE.n.day.all = SE(n.day.all), -->
+<!--                                    mean.n.night = mean(n.night), -->
+<!--                                    SE.n.night = SE(n.night), -->
+<!--                                    #mean.n.night.all = mean(n.night.all), -->
+<!--                                    #SE.n.night.all = SE(n.night.all), -->
+<!--                                    mean.Mass = mean(Mass_kg), -->
+<!--                                    SE.Mass = SE(Mass_kg), -->
+<!--                                    mean.SCL = mean(SCL_cm), -->
+<!--                                    SE.SCL = SE(SCL_cm)) -> data2.by.period -->
+<!-- ``` -->
 
 
-Then do comparisons between pre and post for SCL, Mass, and transmission days.
+<!-- Then do comparisons between pre and post for SCL, Mass, and transmission days. -->
 
-```{r}
-fit.SCL <- lm(SCL_cm ~ period, data = data2)
-summary(fit.SCL)
-```
+<!-- ```{r} -->
+<!-- fit.SCL <- lm(SCL_cm ~ period, data = data2) -->
+<!-- summary(fit.SCL) -->
+<!-- ``` -->
 
-```{r}
-fit.Mass <- lm(Mass_kg ~ period, data = data2)
-summary(fit.Mass)
-```
+<!-- ```{r} -->
+<!-- fit.Mass <- lm(Mass_kg ~ period, data = data2) -->
+<!-- summary(fit.Mass) -->
+<!-- ``` -->
 
-```{r}
-fit.days <- lm(n.days ~ period, data = data2)
-summary(fit.days)
-```
+<!-- ```{r} -->
+<!-- fit.days <- lm(n.days ~ period, data = data2) -->
+<!-- summary(fit.days) -->
+<!-- ``` -->
 
 
 

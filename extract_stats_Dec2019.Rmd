@@ -209,7 +209,7 @@ ID.pre.min_n <- filter(pre.summary,
 
 # select randomized results 
 file.names <- list.files(path = "RData/", pattern = "areas_combos_n")
-file.names <- file.names[grep(pattern = "2019-11-12", file.names)]
+file.names <- file.names[grep(pattern = "2019-12-17", file.names)]
 
 # initialize empty lists for collecting info
 area50.list <- area95.list <- vector(mode = "list", length = length(file.names))
@@ -217,49 +217,49 @@ p.d50.list <- p.d95.list <- vector(mode = "list", length = length(file.names))
 dif.50.list <- dif.95.list <- vector(mode = "list", length = length(file.names))
 Fn.50.0 <- Fn.95.0 <- vector(mode = "numeric", length = length(file.names))
 
-
-# file.names are not listed from 5 to 15, so results need to be placed in the 
+min.k <- nrow(filter(used.n, pre0post1 == 0)) - 1 #3
+# file.names are not listed from 4 to 12, so results need to be placed in the 
 # right spot 
 for (k in 1:length(file.names)){
   # find the sample size for this file:
   n.txt <- unlist(strsplit(strsplit(strsplit(file.names[k], 
                                              split = "areas_combos_")[[1]][2],
-                                    split = "_2019-11-12")[[1]][1], 
+                                    split = "_2019-12-17")[[1]][1], 
                            split = "n"))[2]
   
   areas.combos <- readRDS(file = paste0("Rdata/", file.names[k]))
   
-  area50.list[[as.numeric(n.txt) - 4]] <- data.frame(area50 = areas.combos$area50,
+  area50.list[[as.numeric(n.txt) - min.k]] <- data.frame(area50 = areas.combos$area50,
                                                      n = as.numeric(n.txt))
-  area95.list[[as.numeric(n.txt) - 4]] <- data.frame(area95 = areas.combos$area95,
+  area95.list[[as.numeric(n.txt) - min.k]] <- data.frame(area95 = areas.combos$area95,
                                                      n = as.numeric(n.txt))
   
-  dif.50.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area50 - pre.UD$HR$area.50)
-  dif.95.list[[as.numeric(n.txt) - 4]] <- data.frame(dif = areas.combos$area95 - pre.UD$HR$area.95)
+  dif.50.list[[as.numeric(n.txt) - min.k]] <- data.frame(dif = areas.combos$area50 - pre.UD$HR$area.50)
+  dif.95.list[[as.numeric(n.txt) - min.k]] <- data.frame(dif = areas.combos$area95 - pre.UD$HR$area.95)
   
-  p.d50.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.50.list[[as.numeric(n.txt) - 4]]) + 
+  p.d50.list[[as.numeric(n.txt) - min.k]] <- ggplot(data = dif.50.list[[as.numeric(n.txt) - min.k]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.1) +
     labs(title = paste0("n = ", n.txt), 
          x = "Difference in area (50% UD)", y = "Count")
   
   # find the ecdf of the differences
-  Fn.50 <- ecdf(dif.50.list[[as.numeric(n.txt) - 4]]$dif)
+  Fn.50 <- ecdf(dif.50.list[[as.numeric(n.txt) - min.k]]$dif)
   
   # compute the probability at 0:
-  Fn.50.0[as.numeric(n.txt) - 4] <- Fn.50(0)
+  Fn.50.0[as.numeric(n.txt) - min.k] <- Fn.50(0)
   
   #plot(hist.dif.50)
   
-  p.d95.list[[as.numeric(n.txt) - 4]] <- ggplot(data = dif.95.list[[as.numeric(n.txt) - 4]]) + 
+  p.d95.list[[as.numeric(n.txt) - min.k]] <- ggplot(data = dif.95.list[[as.numeric(n.txt) - min.k]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.15) +
     labs(title = paste0("n = ", n.txt), 
          x = "Difference in area (95% UD)", y = "Count")
   
   # find the ecdf of the differences
-  Fn.95 <- ecdf(dif.95.list[[as.numeric(n.txt) - 4]]$dif)
+  Fn.95 <- ecdf(dif.95.list[[as.numeric(n.txt) - min.k]]$dif)
   
   # compute the probability at 0:
-  Fn.95.0[as.numeric(n.txt) - 4] <- Fn.95(0)
+  Fn.95.0[as.numeric(n.txt) - min.k] <- Fn.95(0)
   
 }
 
@@ -288,10 +288,12 @@ area95.means <- area95.df %>%
             median.95 = median(area95),
             n = first(n)) 
 
-pre.df <- data.frame(n = c(6, 6), 
+pre.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 0)), 
+                           nrow(filter(used.n, pre0post1 == 0))), 
                      areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
 
-post.df <- data.frame(n = c(17, 17), 
+post.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 1)), 
+                            nrow(filter(used.n, pre0post1 == 1))), 
                      areas = c(post.UD$HR$area.50, post.UD$HR$area.95))
  
 p.dif.dist <- ggplot() + 
@@ -332,7 +334,18 @@ ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
 print(p.dif.dist)
 ```
 
-This plot shows that (1) the mean 50% UDs did not change from n = 5 to n = 13 and (2) 95% UDs require 11 or more individuals to be a good estimate. The observed pre-period UDs were significantly less than the post-period. 
+This plot shows that (1) the mean 50% UDs did not change from n = 4 to n = 12 and (2) 95% UDs require 11 or more individuals to be a good estimate. The observed pre-period UDs were significantly less than the post-period. 
+
+Look at the difference between n = 4 and n = 12
+```{r}
+# mean of all n = 4 samples
+area50.df %>% filter(n == 4) %>% summarise(mean(area50))
+
+# min and max of n = 12 samples
+area50.df %>% filter(n == 12) %>% summarise(min(area50), max(area50))
+
+```
+
 
 Another way to look at the distributions - ridge plots. 
 
@@ -365,22 +378,22 @@ ggplot(data = area95.df) +
 Look at the differences between pre and post periods using 50% UDs.
 
 ```{r}
-# n = 6 is the second list item.
-p.d50.n6 <- ggplot(data = dif.50.list[[2]]) + 
+# n = 4 is the first list item.
+p.d50.n4 <- ggplot(data = dif.50.list[[1]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.1,
                    fill = "gray",
                    col = "black") +
     labs(x = "Difference in area (50% UD)", y = "Count")
 
-ggsave(filename = paste0("figures/preVsPost_n6_", Sys.Date(), ".png"),
-       plot = p.d50.n6,
+ggsave(filename = paste0("figures/preVsPost_n4_", Sys.Date(), ".png"),
+       plot = p.d50.n4,
        device = "png",
        dpi = 600)
 
 
-print(p.d50.n6)
+print(p.d50.n4)
 
-p.gt0 <- sum(dif.50.list[[2]]$dif > 0)/1000
+p.gt0 <- sum(dif.50.list[[1]]$dif > 0)/length(dif.50.list[[1]]$dif)
 ```
 
 Now, I need to look at the effects of various things on the HR sizes.  
@@ -397,7 +410,9 @@ dat.table %>%
   dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
                 n.day.all.GPS, n.night.all.GPS,
                 Sex, CCL_cm, 
-                period, area.50.all.GPS) %>%
+                period, area.50.all.GPS,
+                area.50.day.GPS,
+                area.50.night.GPS) %>%
   mutate(period01 = ifelse(period == "pre", 0, 1)) %>% #-> table.area.50.GPS #%>%
   na.omit() -> table.area.50.GPS
 
@@ -424,13 +439,13 @@ area.50.day.night.GPS.long <- gather(area.50.day.night.GPS,
                                      area.50.night.GPS, area.50.day.GPS) %>%
   mutate(day1night2 = ifelse(day_night == "area.50.day.GPS", 1, 2))
 
-lmm.fit.all.50 <- lmer(formula = area ~ day1night2 + period01 + (1|ArgosID),
+lmm.fit.all.50 <- lmer(formula = area ~ day1night2 +  (1|ArgosID),
                       data = area.50.day.night.GPS.long)
 
 summary(lmm.fit.all.50)
 ```
 
-UD50s are smaller during the night than the day and for the pre period than the post period.   
+UD50s are smaller during the night than the day.   
 
 How about the 95% UDs?
 
@@ -469,7 +484,7 @@ area.95.day.night.GPS.long <- gather(area.95.day.night.GPS,
                                      area.95.night.GPS, area.95.day.GPS) %>%
   mutate(day1night2 = ifelse(day_night == "area.95.day.GPS", 1, 2))
 
-lmm.fit.all.95 <- lmer(formula = area ~ day1night2 + period01 + (1|ArgosID),
+lmm.fit.all.95 <- lmer(formula = area ~ day1night2 + (1|ArgosID),
                       data = area.95.day.night.GPS.long)
 
 summary(lmm.fit.all.95)
