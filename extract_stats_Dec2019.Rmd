@@ -22,7 +22,7 @@ library(mgcv)
 source("HR_analysis_fcns.R")
 
 # internet <- F #TRUE
-save.fig <- T
+save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -37,7 +37,6 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
 
-all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
 ```
 
 Then, pull out statistics in the order that they are used in the manuscript. 
@@ -266,7 +265,6 @@ for (k in 1:length(file.names)){
 ```
 
 
-
 Make plots to see how the areas changed with sample sizes
 
 ```{r}
@@ -326,10 +324,11 @@ p.dif.dist <- ggplot() +
   labs(x = "Number of individuals",
        y = bquote('Estimated UDs (' *km^2*')'))
   
-ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
-       plot = p.dif.dist,
-       device = "png",
-       dpi = 600)
+if (save.fig)
+  ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
+         plot = p.dif.dist,
+         device = "png",
+         dpi = 600)
 
 print(p.dif.dist)
 ```
@@ -396,13 +395,91 @@ print(p.d50.n4)
 p.gt0 <- sum(dif.50.list[[1]]$dif > 0)/length(dif.50.list[[1]]$dif)
 ```
 
+Now that we know the stability of the core use area with respect to the sample sizes, we compute them extracting the land space.  
+
+```{r}
+
+all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
+
+area.pre.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.95,
+                                             FUN = spTransform,
+                                             CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.95.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.95,
+                                        FUN = spTransform,
+                                        CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.95.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.95,
+                                          FUN = spTransform,
+                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.50,
+                                             FUN = spTransform,
+                                             CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.50.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.50,
+                                        FUN = spTransform,
+                                        CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.50.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.50,
+                                          FUN = spTransform,
+                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 95),
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 95),
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 50),
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 50),
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 50),
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.95,
+                                              FUN = spTransform,
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.95.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.95,
+                                         FUN = spTransform,
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.95.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.95,
+                                           FUN = spTransform,
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.50,
+                                              FUN = spTransform,
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.50.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.50,
+                                         FUN = spTransform,
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.50.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.50,
+                                           FUN = spTransform,
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+```
+
 Now, I need to look at the effects of various things on the HR sizes.  
 
 The first comparison is the main one; pre vs. post, where using day and night data together.  I use only GPS data first. In this case, no mixed-effecs model is necessary. 
 
-We used 
 
 ```{r}
+
+area.pre.50 <- slot(area.pre.daynight.50@polygons[[1]], "area")
+
 
 dat.table <- read.csv(file = "data/IDvsUDs.csv") 
 

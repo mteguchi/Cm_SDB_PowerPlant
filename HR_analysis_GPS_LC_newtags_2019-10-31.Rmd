@@ -679,6 +679,9 @@ pre.GPS.HR <- run.HR.analysis(pre.GPS.kd,
 saveRDS(pre.GPS.HR,
         file = "RData/pre_GPS_UD.rds")
 
+# remove the land area. START HERE ON 1/3/2020!!!
+
+
 # This HR is with the h value with the adhoc method
 plot(pre.GPS.HR$h.adhoc$figure)
 

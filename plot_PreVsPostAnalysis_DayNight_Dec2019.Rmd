@@ -68,50 +68,107 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
 tagproj <- proj4string(tagprj)
 
 # this file was created in PreVsPostAnalysis_DayNight_Dec2019.Rmd
-all.data.frames <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
+all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
 
-KD.eachID.pre.combined <- all.data.frames$UD.eachID.pre.daynight 
-KD.eachID.post.combined<- all.data.frames$UD.eachID.post.daynight 
-KD.eachID.pre.day <- all.data.frames$UD.eachID.pre.day 
-KD.eachID.pre.night <- all.data.frames$UD.eachID.pre.night 
-KD.eachID.post.day <- all.data.frames$UD.eachID.post.day 
-KD.eachID.post.night <- all.data.frames$UD.eachID.post.night
-UD.post.95.latlon <- all.data.frames$UD95.allID.post.daynight 
-UD.post.50.latlon <- all.data.frames$UD50.allID.post.daynight 
-UD.pre.95.latlon <- all.data.frames$UD95.allID.pre.daynight 
-UD.pre.50.latlon <- all.data.frames$UD50.allID.pre.daynight 
-UD.pre.day.95.latlon <- all.data.frames$UD95.allID.pre.day 
-UD.pre.day.50.latlon <- all.data.frames$UD50.allID.pre.day
-UD.pre.night.95.latlon <- all.data.frames$UD95.allID.pre.night
-UD.pre.night.50.latlon <- all.data.frames$UD50.allID.pre.night 
-UD.post.day.95.latlon <- all.data.frames$UD95.allID.post.day
-UD.post.day.50.latlon <- all.data.frames$UD50.allID.post.day 
-UD.post.night.95.latlon <- all.data.frames$UD95.allID.post.night 
-UD.post.night.50.latlon <- all.data.frames$UD50.allID.post.night
-UD.pre.day.night.95.latlon <- all.data.frames$UD95.allID.pre.day.night
-UD.pre.day.night.50.latlon <- all.data.frames$UD50.allID.pre.day.night
-UD.post.day.night.95.latlon <- all.data.frames$UD95.allID.post.day.night
-UD.post.day.night.50.latlon <- all.data.frames$UD50.allID.post.day.night
+area.pre.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 50),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.95,
+                                             FUN = spTransform,
+                                             CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.95.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.95,
+                                        FUN = spTransform,
+                                        CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.95.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.95,
+                                          FUN = spTransform,
+                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.pre.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.50,
+                                             FUN = spTransform,
+                                             CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.day.50.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.50,
+                                        FUN = spTransform,
+                                        CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.night.50.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.50,
+                                          FUN = spTransform,
+                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 95),
+                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 95),
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 95),
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 50),
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 50),
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 50),
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.95,
+                                              FUN = spTransform,
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.95.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.95,
+                                         FUN = spTransform,
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.95.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.95,
+                                           FUN = spTransform,
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+
+area.post.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.50,
+                                              FUN = spTransform,
+                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.50.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.50,
+                                         FUN = spTransform,
+                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.50.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.50,
+                                           FUN = spTransform,
+                                           CRS=CRS("+proj=longlat +datum=WGS84")))
 
 ```
 
-
+Plot UDs by ID for pre period. Need to convert a spatial polygon list into a data frame. 
 
 ```{r, message=FALSE}
+pre.IDs <- all.data$UD.eachID.pre.daynight$area$ID
+pre.50.byID <- mapply(x = area.pre.daynight.50.byID, y = pre.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+pre.95.byID <- mapply(x = area.pre.daynight.95.byID, y = pre.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+pre.50.byID.df <- do.call(rbind, pre.50.byID)
+
+pre.95.byID.df <- do.call(rbind, pre.95.byID)
 
 p.KDE.pre.combined <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = KD.eachID.pre.combined$vert.95.df,
+  geom_polygon(data = pre.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = pre.95.color,
                alpha = 0.4) +
 
-  geom_polygon(data = KD.eachID.pre.combined$vert.50.df,
+  geom_polygon(data = pre.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -150,20 +207,34 @@ if (save.fig)
 
 Next, post period data are loaded and UDs for day and night combined are computed.
 ```{r, message=FALSE}
+post.IDs <- all.data$UD.eachID.post.daynight$area$ID
+post.50.byID <- mapply(x = area.post.daynight.50.byID, 
+                       y = post.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+post.95.byID <- mapply(x = area.post.daynight.95.byID, 
+                       y = post.IDs,
+                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                       SIMPLIFY = F)
+
+post.50.byID.df <- do.call(rbind, post.50.byID)
+
+post.95.byID.df <- do.call(rbind, post.95.byID)
 
 p.KDE.post.combined <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = KD.eachID.post.combined$vert.95.df,
+  geom_polygon(data = post.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "mediumpurple1",
                alpha = 0.4) +
 
-  geom_polygon(data = KD.eachID.post.combined$vert.50.df,
+  geom_polygon(data = post.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -200,6 +271,20 @@ if (save.fig)
 
 We then pull out just day time for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
 ```{r}
+pre.day.IDs <- all.data$UD.eachID.pre.day$area$ID
+pre.day.50.byID <- mapply(x = area.pre.day.50.byID, 
+                       y = pre.day.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+pre.day.95.byID <- mapply(x = area.pre.day.95.byID, 
+                       y = pre.day.IDs,
+                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                       SIMPLIFY = F)
+
+pre.day.50.byID.df <- do.call(rbind, pre.day.50.byID)
+
+pre.day.95.byID.df <- do.call(rbind, pre.day.95.byID)
 
 p.KDE.pre.day <- ggplot() + 
   geom_polygon(data = SDBay.df,
@@ -212,14 +297,14 @@ p.KDE.pre.day <- ggplot() +
                    group = group),
                fill = "mediumseagreen",
                alpha = 0.5) +
-  geom_polygon(data = KD.eachID.pre.day$vert.95.df,
+  geom_polygon(data = pre.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightcyan",
                alpha = 0.6) +
 
-  geom_polygon(data = KD.eachID.pre.day$vert.50.df,
+  geom_polygon(data = pre.day.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -254,6 +339,20 @@ Pre-day KDEs for 44366 has two "dots"... what's going on there? 12/4/2018 - has 
 Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
 
 ```{r}
+pre.night.IDs <- all.data$UD.eachID.pre.night$area$ID
+pre.night.50.byID <- mapply(x = area.pre.night.50.byID, 
+                       y = pre.night.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+pre.night.95.byID <- mapply(x = area.pre.night.95.byID, 
+                       y = pre.night.IDs,
+                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                       SIMPLIFY = F)
+
+pre.night.50.byID.df <- do.call(rbind, pre.night.50.byID)
+
+pre.night.95.byID.df <- do.call(rbind, pre.night.95.byID)
 
 
 p.KDE.pre.day.night <- ggplot() + 
@@ -267,28 +366,28 @@ p.KDE.pre.day.night <- ggplot() +
                    group = group),
                fill = "mediumseagreen",
                alpha = 0.5) +
-  geom_polygon(data = KD.eachID.pre.day$vert.95.df,
+  geom_polygon(data = pre.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightcyan",
                alpha = 0.6) +
-  
-  geom_polygon(data = KD.eachID.pre.day$vert.50.df,
+
+  geom_polygon(data = pre.day.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "blue4",
                alpha = 0.6) +
 
-  geom_polygon(data = KD.eachID.pre.night$vert.95.df,
+  geom_polygon(data = pre.night.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightpink",
                alpha = 0.5) +
 
-  geom_polygon(data = KD.eachID.pre.night$vert.50.df,
+  geom_polygon(data = pre.night.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -321,6 +420,20 @@ if (save.fig)
 Post period and daytime. 
 
 ```{r}
+post.day.IDs <- all.data$UD.eachID.post.day$area$ID
+post.day.50.byID <- mapply(x = area.post.day.50.byID, 
+                       y = post.day.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+post.day.95.byID <- mapply(x = area.post.day.95.byID, 
+                       y = post.day.IDs,
+                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                       SIMPLIFY = F)
+
+post.day.50.byID.df <- do.call(rbind, post.day.50.byID)
+
+post.day.95.byID.df <- do.call(rbind, post.day.95.byID)
 
 p.KDE.post.day <- ggplot() + 
   geom_polygon(data = SDBay.df,
@@ -333,14 +446,14 @@ p.KDE.post.day <- ggplot() +
                    group = group),
                fill = eelgrass.color,
                alpha = 0.5) +
-  geom_polygon(data = KD.eachID.post.day$vert.95.df,
+  geom_polygon(data = post.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = post.95.color,
                alpha = 0.6) +
 
-  geom_polygon(data = KD.eachID.post.day$vert.50.df,
+  geom_polygon(data = post.day.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -378,12 +491,26 @@ plot(p.KDE.post.day)
 Post period night time overlayed on top of daytime. 
 
 ```{r}
+post.night.IDs <- all.data$UD.eachID.post.night$area$ID
+post.night.50.byID <- mapply(x = area.post.night.50.byID, 
+                       y = post.night.IDs,
+                      FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                      SIMPLIFY = F)
+
+post.night.95.byID <- mapply(x = area.post.night.95.byID, 
+                       y = post.night.IDs,
+                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
+                       SIMPLIFY = F)
+
+post.night.50.byID.df <- do.call(rbind, post.night.50.byID)
+post.night.95.byID.df <- do.call(rbind, post.night.95.byID)
+
 p.KDE.post.day.night <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = KD.eachID.post.day$vert.95.df,
+  geom_polygon(data = post.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -396,13 +523,13 @@ p.KDE.post.day.night <- ggplot() +
   #              fill = "deepskyblue",
   #              alpha = 0.7) +
   
-  geom_polygon(data = KD.eachID.post.day$vert.50.df,
+  geom_polygon(data = post.day.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "blue4",
                alpha = 0.6) +
-  geom_polygon(data = KD.eachID.post.night$vert.95.df,
+  geom_polygon(data = post.night.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -415,7 +542,7 @@ p.KDE.post.day.night <- ggplot() +
   #              fill = "indianred",
   #              alpha = 0.3) +
   
-  geom_polygon(data = KD.eachID.post.night$vert.50.df,
+  geom_polygon(data = post.night.50.byID.df,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -448,21 +575,32 @@ plot(p.KDE.post.day.night)
 Make plots for all turtles, including pre and post periods.
 
 ```{r}
-pre.day.vert.95 <- KD.eachID.pre.day$vert.95.df
-pre.night.vert.95 <- KD.eachID.pre.night$vert.95.df
-post.day.vert.95 <- KD.eachID.post.day$vert.95.df
-post.night.vert.95 <- KD.eachID.post.night$vert.95.df
 
-day.vert.95 <- rbind(pre.day.vert.95, post.day.vert.95)
-night.vert.95 <- rbind(pre.night.vert.95, post.night.vert.95)
+day.vert.50 <- rbind(pre.day.50.byID.df,
+                     post.day.50.byID.df)
+day.vert.95 <- rbind(pre.day.95.byID.df,
+                     post.day.95.byID.df)
 
-pre.day.vert.50 <- KD.eachID.pre.day$vert.50.df
-pre.night.vert.50 <- KD.eachID.pre.night$vert.50.df
-post.day.vert.50 <- KD.eachID.post.day$vert.50.df
-post.night.vert.50 <- KD.eachID.post.night$vert.50.df
+night.vert.50 <- rbind(pre.night.50.byID.df,
+                     post.night.50.byID.df)
+night.vert.95 <- rbind(pre.night.95.byID.df,
+                     post.night.95.byID.df)
 
-day.vert.50 <- rbind(pre.day.vert.50, post.day.vert.50)
-night.vert.50 <- rbind(pre.night.vert.50, post.night.vert.50)
+# pre.day.vert.95 <- KD.eachID.pre.day$vert.95.df
+# pre.night.vert.95 <- KD.eachID.pre.night$vert.95.df
+# post.day.vert.95 <- KD.eachID.post.day$vert.95.df
+# post.night.vert.95 <- KD.eachID.post.night$vert.95.df
+# 
+# day.vert.95 <- rbind(pre.day.vert.95, post.day.vert.95)
+# night.vert.95 <- rbind(pre.night.vert.95, post.night.vert.95)
+# 
+# pre.day.vert.50 <- KD.eachID.pre.day$vert.50.df
+# pre.night.vert.50 <- KD.eachID.pre.night$vert.50.df
+# post.day.vert.50 <- KD.eachID.post.day$vert.50.df
+# post.night.vert.50 <- KD.eachID.post.night$vert.50.df
+# 
+# day.vert.50 <- rbind(pre.day.vert.50, post.day.vert.50)
+# night.vert.50 <- rbind(pre.night.vert.50, post.night.vert.50)
 
 p.KDE.pre.post.day.night <- ggplot() + 
   geom_polygon(data = SDBay.df,
@@ -542,18 +680,24 @@ Combine all turtles together - day and night.
 
 
 ```{r}
+pre.daynight.95 <- broom::tidy(area.pre.daynight.95) %>% 
+  mutate(daynight = "day+night", period = "pre")
+pre.daynight.50 <- broom::tidy(area.pre.daynight.50) %>% 
+  mutate(daynight = "day+night", period = "pre")
+
+
 p.KDE.pre.all <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = UD.pre.95.latlon,
+  geom_polygon(data = pre.daynight.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgoldenrod1",
                alpha = 0.6) +
-  geom_polygon(data = UD.pre.50.latlon,
+  geom_polygon(data = pre.daynight.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -586,31 +730,35 @@ plot(p.KDE.pre.all)
 
 
 ```{r}
+post.daynight.95 <- broom::tidy(area.post.daynight.95) %>% 
+  mutate(daynight = "day+night", period = "post")
+post.daynight.50 <- broom::tidy(area.post.daynight.50) %>% 
+  mutate(daynight = "day+night", period = "post")
 
 p.KDE.pre.post.all <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = UD.pre.95.latlon,
+  geom_polygon(data = pre.daynight.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgoldenrod1",
                alpha = 0.6) +
-  geom_polygon(data = UD.pre.50.latlon,
+  geom_polygon(data = pre.daynight.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "gold",
                alpha = 0.6) +
-     geom_polygon(data = UD.post.95.latlon,
+     geom_polygon(data = post.daynight.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgreen",
                alpha = 0.5) +
-  geom_polygon(data = UD.post.50.latlon,
+  geom_polygon(data = post.daynight.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -646,19 +794,27 @@ Then split these into day and night.
 
 Plot pre night vs day
 ```{r}
+pre.day.95 <- broom::tidy(area.pre.day.95) %>% mutate(daynight = "day", period = "pre")
+pre.day.50 <- broom::tidy(area.pre.day.50) %>% mutate(daynight = "day", period = "pre")
+
+pre.night.95 <- broom::tidy(area.pre.night.95) %>% mutate(daynight = "night", period = "pre")
+pre.night.50 <- broom::tidy(area.pre.night.50)%>% mutate(daynight = "night", period = "pre")
+
+pre.95 <- rbind(pre.day.95, pre.night.95)
+pre.50 <- rbind(pre.day.50, pre.night.50)
 
 p.KDE.pre.DayVsNight <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = UD.pre.day.night.95.latlon,
+  geom_polygon(data = pre.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgoldenrod1",
                alpha = 0.6) +
-  geom_polygon(data = UD.pre.day.night.50.latlon,
+  geom_polygon(data = pre.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -689,22 +845,31 @@ plot(p.KDE.pre.DayVsNight)
 ```
 
 
-
-
 Plot post night vs day
 ```{r}
+
+post.day.95 <- broom::tidy(area.post.day.95) %>% mutate(daynight = "day", period = "post")
+post.day.50 <- broom::tidy(area.post.day.50) %>% mutate(daynight = "day", period = "post")
+
+
+post.night.95 <- broom::tidy(area.post.night.95) %>% mutate(daynight = "night", period = "post")
+post.night.50 <- broom::tidy(area.post.night.50)%>% mutate(daynight = "night", period = "post")
+
+post.95 <- rbind(post.day.95, post.night.95)
+post.50 <- rbind(post.day.50, post.night.50)
+
 p.KDE.post.DayVsNight <- ggplot() + 
   geom_polygon(data = SDBay.df,
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
-  geom_polygon(data = UD.post.day.night.95.latlon,
+  geom_polygon(data = post.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgreen",
                alpha = 0.6) +
-  geom_polygon(data = UD.post.day.night.50.latlon,
+  geom_polygon(data = post.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
@@ -734,47 +899,52 @@ if (save.fig)
 plot(p.KDE.post.DayVsNight)
 ```
 
+pre vs post vs day vs night
 
 ```{r}
-UD.pre.50.latlon$daynight <- "day+night"
-UD.pre.50.latlon$period <- "pre"
+all.50 <- rbind(pre.daynight.50, pre.50, post.daynight.50, post.50)
+all.95 <- rbind(pre.daynight.95, pre.95, post.daynight.95, post.95)
 
-UD.pre.95.latlon$daynight <- "day+night"
-UD.pre.95.latlon$period <- "pre"
 
-UD.post.50.latlon$daynight <- "day+night"
-UD.post.50.latlon$period <- "post"
+# UD.pre.50.latlon$daynight <- "day+night"
+# UD.pre.50.latlon$period <- "pre"
+# 
+# UD.pre.95.latlon$daynight <- "day+night"
+# UD.pre.95.latlon$period <- "pre"
+# 
+# UD.post.50.latlon$daynight <- "day+night"
+# UD.post.50.latlon$period <- "post"
+# 
+# UD.post.95.latlon$daynight <- "day+night"
+# UD.post.95.latlon$period <- "post"
+# 
+# UD.pre.day.night.50.latlon$period <- "pre"
+# UD.pre.day.night.95.latlon$period <- "pre"
+# 
+# UD.post.day.night.50.latlon$period <- "post"
+# UD.post.day.night.95.latlon$period <- "post"
+# 
+# UD.pre.post.day.night.50 <- rbind(UD.pre.day.night.50.latlon,
+#                                   UD.post.day.night.50.latlon,
+#                                   UD.pre.50.latlon,
+#                                   UD.post.50.latlon)
+# 
+# UD.pre.post.day.night.95 <- rbind(UD.pre.day.night.95.latlon,
+#                                   UD.post.day.night.95.latlon,
+#                                   UD.pre.95.latlon,
+#                                   UD.post.95.latlon)
 
-UD.post.95.latlon$daynight <- "day+night"
-UD.post.95.latlon$period <- "post"
+all.50$daynight.f <- factor(all.50$daynight,
+                            levels = c("day", "night", "day+night"))
 
-UD.pre.day.night.50.latlon$period <- "pre"
-UD.pre.day.night.95.latlon$period <- "pre"
+all.95$daynight.f <- factor(all.95$daynight,
+                            levels = c("day", "night", "day+night"))
 
-UD.post.day.night.50.latlon$period <- "post"
-UD.post.day.night.95.latlon$period <- "post"
+all.50$period.f <- factor(all.50$period,
+                          levels = c("pre", "post"))
 
-UD.pre.post.day.night.50 <- rbind(UD.pre.day.night.50.latlon,
-                                  UD.post.day.night.50.latlon,
-                                  UD.pre.50.latlon,
-                                  UD.post.50.latlon)
-
-UD.pre.post.day.night.95 <- rbind(UD.pre.day.night.95.latlon,
-                                  UD.post.day.night.95.latlon,
-                                  UD.pre.95.latlon,
-                                  UD.post.95.latlon)
-
-UD.pre.post.day.night.50$daynight.f <- factor(UD.pre.post.day.night.50$daynight,
-                                              levels = c("day", "night", "day+night"))
-
-UD.pre.post.day.night.95$daynight.f <- factor(UD.pre.post.day.night.95$daynight,
-                                              levels = c("day", "night", "day+night"))
-
-UD.pre.post.day.night.50$period.f <- factor(UD.pre.post.day.night.50$period,
-                                              levels = c("pre", "post"))
-
-UD.pre.post.day.night.95$period.f <- factor(UD.pre.post.day.night.95$period,
-                                              levels = c("pre", "post"))
+all.95$period.f <- factor(all.95$period,
+                          levels = c("pre", "post"))
 
 p.KDE.pre.post.DayVsNight <- ggplot() + 
   geom_polygon(data = SDBay.df,
@@ -782,13 +952,13 @@ p.KDE.pre.post.DayVsNight <- ggplot() +
                fill = water.color,
                color = "black") +
 
-  geom_polygon(data = UD.pre.post.day.night.95,
+  geom_polygon(data = all.95,
                aes(x = long, y = lat,
                    group = group),
                color = "black",
                fill = "lightgreen",
                alpha = 0.6) +
-  geom_polygon(data = UD.pre.post.day.night.50,
+  geom_polygon(data = all.50,
                aes(x = long, y = lat,
                    group = group),
                color = "black",

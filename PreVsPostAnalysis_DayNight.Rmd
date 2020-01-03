@@ -8,9 +8,9 @@ Extract UDs for pre/post/day/night combinations. Also for each individual and co
 ```{r message=FALSE}
 rm(list = ls())
 
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
+# ifelse(Sys.info()[1] == 'Linux',
+#        source('~/Documents/R/tools/TomosFunctions.R'),
+#        source('~/R/tools/TomosFunctions.R'))
 
 #library(readxl)
 library(dplyr)
@@ -25,7 +25,7 @@ library(ggridges)
 source("HR_analysis_fcns.R")
 
 # internet <- F #TRUE
-save.fig <- T
+save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -151,10 +151,10 @@ UD.pre <- kernelUD(pre.kd$list.data$all.utm,
 UD.pre.95 <- getverticeshr(UD.pre, 95)
 UD.pre.50 <- getverticeshr(UD.pre, 50)
     
-UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, 
-                                            CRS("+proj=longlat")))
-UD.pre.50.latlon <- broom::tidy(spTransform(UD.pre.50, 
-                                            CRS("+proj=longlat")))
+# UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, 
+#                                             CRS("+proj=longlat")))
+# UD.pre.50.latlon <- broom::tidy(spTransform(UD.pre.50, 
+#                                             CRS("+proj=longlat")))
 
 # work on the post period
 h.post.1 <- find.h.adhoc(post.kd$list.data$all.utm)
@@ -169,10 +169,10 @@ UD.post <- kernelUD(post.kd$list.data$all.utm,
 UD.post.95 <- getverticeshr(UD.post, 95)
 UD.post.50 <- getverticeshr(UD.post, 50)
     
-UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, 
-                                             CRS("+proj=longlat")))
-UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, 
-                                             CRS("+proj=longlat")))
+# UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, 
+#                                              CRS("+proj=longlat")))
+# UD.post.50.latlon <- broom::tidy(spTransform(UD.post.50, 
+#                                              CRS("+proj=longlat")))
 
 
 ```
@@ -192,12 +192,12 @@ UD.pre.day <- kernelUD(pre.day.kd$list.data$all.utm,
 UD.pre.day.95 <- getverticeshr(UD.pre.day, 95)
 UD.pre.day.50 <- getverticeshr(UD.pre.day, 50)
     
-UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95,
-                                                CRS("+proj=longlat")))
-UD.pre.day.95.latlon$daynight <- "day"
-UD.pre.day.50.latlon <- broom::tidy(spTransform(UD.pre.day.50,
-                                                CRS("+proj=longlat")))
-UD.pre.day.50.latlon$daynight <- "day"
+# UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95,
+#                                                 CRS("+proj=longlat")))
+# UD.pre.day.95.latlon$daynight <- "day"
+# UD.pre.day.50.latlon <- broom::tidy(spTransform(UD.pre.day.50,
+#                                                 CRS("+proj=longlat")))
+# UD.pre.day.50.latlon$daynight <- "day"
 
 h.pre.1 <- find.h.adhoc(pre.night.kd$list.data$all.utm)
 h.pre.night <- ceiling(h.pre.1$h)
@@ -210,17 +210,17 @@ UD.pre.night <- kernelUD(pre.night.kd$list.data$all.utm,
 UD.pre.night.95 <- getverticeshr(UD.pre.night, 95)
 UD.pre.night.50 <- getverticeshr(UD.pre.night, 50)
     
-UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95,
-                                                  CRS("+proj=longlat")))
-UD.pre.night.95.latlon$daynight <- "night"
-UD.pre.night.50.latlon <- broom::tidy(spTransform(UD.pre.night.50,
-                                                  CRS("+proj=longlat")))
-UD.pre.night.50.latlon$daynight <- "night"
+# UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95,
+#                                                   CRS("+proj=longlat")))
+# UD.pre.night.95.latlon$daynight <- "night"
+# UD.pre.night.50.latlon <- broom::tidy(spTransform(UD.pre.night.50,
+#                                                   CRS("+proj=longlat")))
+# UD.pre.night.50.latlon$daynight <- "night"
 
-UD.pre.day.night.95.latlon <- rbind(UD.pre.day.95.latlon, 
-                                    UD.pre.night.95.latlon)
-UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, 
-                                    UD.pre.night.50.latlon)
+# UD.pre.day.night.95.latlon <- rbind(UD.pre.day.95.latlon, 
+#                                     UD.pre.night.95.latlon)
+# UD.pre.day.night.50.latlon <- rbind(UD.pre.day.50.latlon, 
+#                                     UD.pre.night.50.latlon)
 ```
 
 For the post period
@@ -237,12 +237,12 @@ UD.post.day <- kernelUD(post.day.kd$list.data$all.utm,
 UD.post.day.95 <- getverticeshr(UD.post.day, 95)
 UD.post.day.50 <- getverticeshr(UD.post.day, 50)
     
-UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95,
-                                                 CRS("+proj=longlat")))
-UD.post.day.95.latlon$daynight <- "day"
-UD.post.day.50.latlon <- broom::tidy(spTransform(UD.post.day.50,
-                                                 CRS("+proj=longlat")))
-UD.post.day.50.latlon$daynight <- "day"
+# UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95,
+#                                                  CRS("+proj=longlat")))
+# UD.post.day.95.latlon$daynight <- "day"
+# UD.post.day.50.latlon <- broom::tidy(spTransform(UD.post.day.50,
+#                                                  CRS("+proj=longlat")))
+# UD.post.day.50.latlon$daynight <- "day"
 
 h.post.1 <- find.h.adhoc(post.night.kd$list.data$all.utm)
 h.post.night <- ceiling(h.post.1$h)
@@ -255,18 +255,18 @@ UD.post.night <- kernelUD(post.night.kd$list.data$all.utm,
 UD.post.night.95 <- getverticeshr(UD.post.night, 95)
 UD.post.night.50 <- getverticeshr(UD.post.night, 50)
     
-UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95,
-                                                   CRS("+proj=longlat")))
-UD.post.night.95.latlon$daynight <- "night"
-UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50,
-                                                   CRS("+proj=longlat")))
-UD.post.night.50.latlon$daynight <- "night"
-
-
-UD.post.day.night.95.latlon <- rbind(UD.post.day.95.latlon, 
-                                     UD.post.night.95.latlon)
-UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, 
-                                     UD.post.night.50.latlon)
+# UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95,
+#                                                    CRS("+proj=longlat")))
+# UD.post.night.95.latlon$daynight <- "night"
+# UD.post.night.50.latlon <- broom::tidy(spTransform(UD.post.night.50,
+#                                                    CRS("+proj=longlat")))
+# UD.post.night.50.latlon$daynight <- "night"
+# 
+# 
+# UD.post.day.night.95.latlon <- rbind(UD.post.day.95.latlon, 
+#                                      UD.post.night.95.latlon)
+# UD.post.day.night.50.latlon <- rbind(UD.post.day.50.latlon, 
+#                                      UD.post.night.50.latlon)
 ```
 
 

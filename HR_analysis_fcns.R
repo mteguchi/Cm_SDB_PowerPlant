@@ -373,7 +373,7 @@ tmp.summary <- function(begin.date, end.date){
 # extracts KD for each ID given the total KD
 UD.eachID <- function(kd.all, grid.value = 1000){
   UD.95 <- UD.75 <- UD.50 <- vector(mode = "list", 
-                                    length = length(kd.all$list.data$eachID.utm))
+                                          length = length(kd.all$list.data$eachID.utm))
   
   h.eachID <- h.multip.eachID <- vector(mode = "numeric", 
                                         length = length(kd.all$list.data$eachID.utm))
@@ -433,7 +433,10 @@ UD.eachID <- function(kd.all, grid.value = 1000){
                    vert.50.df = df.50,
                    area = UD.area,
                    h = h.eachID,
-                   h.multip = h.multip.eachID)
+                   h.multip = h.multip.eachID,
+                   UD.95 = UD.95,
+                   UD.75 = UD.75,
+                   UD.50 = UD.50)
   return(out.list)
 }
 
@@ -705,3 +708,19 @@ run.HR.analysis.no.files <- function(kd.input, grid.value, h.multiplier){
                    HR = HR)
   return(out.list)
 }  
+
+get.area <- function(UD){
+  SDBay.geo <- spTransform(readOGR(dsn = "GISfiles",
+                                   layer = "sd_bay",
+                                   verbose = FALSE),
+                           CRS("+proj=longlat +datum=WGS84"))
+  
+  if (is.list(UD)){
+    areas <- lapply(UD, 
+                    FUN = rgeos::gIntersection,
+                    SDBay.geo)
+  } else {
+    areas <- rgeos::gIntersection(UD, SDBay.geo)
+  }
+  return(areas)  
+}
