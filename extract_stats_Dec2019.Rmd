@@ -607,25 +607,6 @@ ggplot() +
   coord_map()
 
 
-SDBay.eelg.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
-                                       layer = "SD_Baywide_Eelgrass_2008",
-                                       verbose = F),
-                               CRS( slot(pre.UD$HR$ver.50@proj4string, "projargs")))
-
-pre.eelgrass.UD.area <- slot(pre.eelgrass@polygons[[1]], "area")
-
-eelg.2008.df <- broom::tidy(eelg.2008.UTM.south)
-pre.UD.df <- broom::tidy(pre.UD$HR$ver.50)
-
-ggplot() + 
-  geom_polygon(data = pre.UD.df,
-               aes(x = long, y = lat, group = group),
-               fill = "black") + 
-  geom_polygon(data = eelg.2008.df,
-               aes(x = long, y = lat, group = group),
-               fill = "green")  
-  #coord_map()
-
 ```
 
 
