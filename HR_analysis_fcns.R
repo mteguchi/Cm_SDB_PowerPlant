@@ -172,7 +172,7 @@ HR.analysis <- function(h.multiplier, kd.href, data.list, grid = 1000){
   # make dataframes of vertices:
   ver.95.adhoc <- lapply(kd.adhoc,
                          FUN = getverticeshr,
-                         percent = 95)
+                         percent = 95, unin = "m", unout = "km2")
 
   ver.95.adhoc.tmp <- lapply(ver.95.adhoc,
                              FUN = spTransform,
@@ -225,8 +225,8 @@ compute.area <- function(h, all.utm, grid=1000){
 
   return(list(area.50 = HR$area.all["50"],
               area.95 = HR$area.all["95"],
-              ver.50 = getverticeshr(HR$all.kd, 50),
-              ver.95 = getverticeshr(HR$all.kd, 95)))
+              ver.50 = getverticeshr(HR$all.kd, 50, unin = "m", unout = "km2"),
+              ver.95 = getverticeshr(HR$all.kd, 95, unin = "m", unout = "km2")))
               # area.byID.50 = HR$area.byID["50",],
               # area.byID.95 = HR$area.byID["95",],
               # ver.byID.50 = getverticeshr(HR$byID.kd, 50),
@@ -247,7 +247,7 @@ find.h.adhoc <- function(utm.data, grid = 1000, extent = 1){
     tmp.UD <- kernelUD(utm.data, h = h,
                        kern = "bivnorm", grid = grid,
                        extent = extent)
-    tmp.V <- getverticeshr(tmp.UD, 95)
+    tmp.V <- getverticeshr(tmp.UD, 95, unin = "m", unout = "km2")
     n.seg <- length(tmp.V@polygons[[1]]@Polygons)
     h.multip <- h.multip + 0.05
   }
@@ -274,7 +274,7 @@ find.h.optim <- function(utm.data, grid = 1000, extent = 1){
                        kern = "bivnorm", 
                        grid = grid,
                        extent = extent)
-    tmp.V <- getverticeshr(tmp.UD, 95)
+    tmp.V <- getverticeshr(tmp.UD, 95, unin = "m", unout = "km2")
     length(tmp.V@polygons[[1]]@Polygons)
     
   }
@@ -287,7 +287,7 @@ find.h.optim <- function(utm.data, grid = 1000, extent = 1){
                      kern = "bivnorm", 
                      grid = grid,
                      extent = extent)
-  tmp.V <- getverticeshr(tmp.UD, 95)
+  tmp.V <- getverticeshr(tmp.UD, 95, unin = "m", unout = "km2")
     
   return(list(v.95 = tmp.V,
               UD.95 = tmp.UD,
@@ -391,20 +391,28 @@ UD.eachID <- function(kd.all, grid.value = 1000){
                    h = h.eachID[k], 
                    kern = "bivnorm", 
                    grid = grid.value)
-    UD.tmp <- kernel.area(UD,
-                          percent = c(50, 75, 95),
-                          unin = c("m"),
-                          unout = c("km2"),
-                          standardize = FALSE)
+    
+    # remove land
+    UD.95[[k]] <- get.area.UTM(getverticeshr(UD, 95, unin = "m", unout = "km2"))
+    UD.75[[k]] <- get.area.UTM(getverticeshr(UD, 75, unin = "m", unout = "km2")) 
+    UD.50[[k]] <- get.area.UTM(getverticeshr(UD, 50, unin = "m", unout = "km2"))
+    
+    # UD.tmp <- kernel.area(UD,
+    #                       percent = c(50, 75, 95),
+    #                       unin = c("m"),
+    #                       unout = c("km2"),
+    #                       standardize = FALSE)
+    
+    # UD.area[k,] <- c("ID" = kd.all$list.data$unique.ID[k], 
+    #                  "area.50" =  UD.tmp[1],
+    #                  "area.75" = UD.tmp[2],
+    #                  "area.95" = UD.tmp[3])
     
     UD.area[k,] <- c("ID" = kd.all$list.data$unique.ID[k], 
-                     "area.50" =  UD.tmp[1],
-                     "area.75" = UD.tmp[2],
-                     "area.95" = UD.tmp[3])
-    
-    UD.95[[k]] <- getverticeshr(UD, 95)
-    UD.75[[k]] <- getverticeshr(UD, 75)  
-    UD.50[[k]] <- getverticeshr(UD, 50)
+                     "area.50" = slot(UD.50[[k]]@polygons[[1]], "area")/1000000,
+                     "area.75" = slot(UD.75[[k]]@polygons[[1]], "area")/1000000,
+                     "area.95" = slot(UD.95[[k]]@polygons[[1]], "area")/1000000)
+        
   }
   
   tmp.95 <- lapply(UD.95, 
@@ -666,8 +674,8 @@ extract.UD.eachID <- function(.kd, .data, data.name, grid.value){
       h.multip[k] <- best.h$h.multip
       UD <- kernelUD(dat.utm, h = h[k], 
                      kern = "bivnorm", grid = grid.value)
-      UD.95[[k]] <- getverticeshr(UD, 95)
-      UD.50[[k]] <- getverticeshr(UD, 50)
+      UD.95[[k]] <- getverticeshr(UD, 95, unin = "m", unout = "km2")
+      UD.50[[k]] <- getverticeshr(UD, 50, unin = "m", unout = "km2")
     }
     
     out.list <- list(UD.95 = UD.95,
@@ -709,11 +717,31 @@ run.HR.analysis.no.files <- function(kd.input, grid.value, h.multiplier){
   return(out.list)
 }  
 
+# extract area of intersection between HR (whatever that comes out of getverticeshr) and
+# san diego bay = removes the land area. Input UD should be in longlat projection.
 get.area <- function(UD){
   SDBay.geo <- spTransform(readOGR(dsn = "GISfiles",
                                    layer = "sd_bay",
                                    verbose = FALSE),
                            CRS("+proj=longlat +datum=WGS84"))
+  
+  if (is.list(UD)){
+    areas <- lapply(UD, 
+                    FUN = rgeos::gIntersection,
+                    SDBay.geo)
+  } else {
+    areas <- rgeos::gIntersection(UD, SDBay.geo)
+  }
+  return(areas)  
+}
+
+# extract area of intersection between HR (whatever that comes out of getverticeshr) and
+# san diego bay = removes the land area. Input UD should be in utm zone=11 projection.
+get.area.UTM <- function(UD){
+  SDBay.geo <- spTransform(readOGR(dsn = "GISfiles",
+                                   layer = "sd_bay",
+                                   verbose = FALSE),
+                           CRS("+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
   
   if (is.list(UD)){
     areas <- lapply(UD, 

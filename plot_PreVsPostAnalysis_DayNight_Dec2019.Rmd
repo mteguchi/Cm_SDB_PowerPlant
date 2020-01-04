@@ -53,7 +53,7 @@ SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
 
 
 # internet <- F #TRUE
-save.fig <- F
+save.fig <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -67,83 +67,93 @@ tagprj <- readOGR(dsn = "Tag_065_UTMzone11n",
                   layer = "tag_065_project")
 tagproj <- proj4string(tagprj)
 
-# this file was created in PreVsPostAnalysis_DayNight_Dec2019.Rmd
-all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
+# the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
+pre.daynight <- readRDS(file = "RData/pre_GPS_UD.rds")
+pre.day <- readRDS(file = "RData/pre_GPS_UD_day.rds")
+pre.night <- readRDS(file = "RData/pre_GPS_UD_night.rds")
+post.daynight <- readRDS(file = "RData/post_GPS_UD.rds")
+post.day <- readRDS(file = "RData/post_GPS_UD_day.rds")
+post.night <- readRDS(file = "RData/post_GPS_UD_night.rds")
 
-area.pre.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
+pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
+pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
+post.daynight.byID <- readRDS(file = "RData/post_GPS_UD_byID.rds")
+post.day.byID <- readRDS(file = "RData/post_GPS_UD_day_byID.rds")
+post.night.byID <- readRDS(file = "RData/post_GPS_UD_night_byID.rds")
 
-area.pre.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
+# 
+area.pre.daynight.95 <- spTransform(get.area.UTM(pre.daynight$HR$ver.95),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.day.95 <- spTransform(get.area.UTM(pre.day$HR$ver.95), 
+                               CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.night.95 <- spTransform(get.area.UTM(pre.night$HR$ver.95),
+                                 CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.daynight.50 <- spTransform(get.area.UTM(pre.daynight$HR$ver.50),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.day.50 <- spTransform(get.area.UTM(pre.day$HR$ver.50), 
+                               CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.night.50 <- spTransform(get.area.UTM(pre.night$HR$ver.50),
+                                 CRS=CRS("+proj=longlat +datum=WGS84"))
 
-area.pre.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.95,
-                                             FUN = spTransform,
-                                             CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.95.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.95,
-                                        FUN = spTransform,
-                                        CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.95.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.95,
-                                          FUN = spTransform,
-                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+area.pre.daynight.95.byID <- lapply(pre.daynight.byID$UD.95, 
+                                    FUN = function(x) spTransform(x, 
+                                                                  CRS=CRS("+proj=longlat +datum=WGS84"))) 
+area.pre.day.95.byID <- lapply(pre.day.byID$UD.95, 
+                               FUN = function(x) spTransform(x, 
+                                                             CRS=CRS("+proj=longlat +datum=WGS84"))) 
+area.pre.night.95.byID <- lapply(pre.night.byID$UD.95, 
+                                 FUN = function(x) spTransform(x, 
+                                                               CRS=CRS("+proj=longlat +datum=WGS84"))) 
+area.pre.daynight.50.byID <- lapply(pre.daynight.byID$UD.50, 
+                                    FUN = function(x) spTransform(x, 
+                                                                  CRS=CRS("+proj=longlat +datum=WGS84"))) 
+area.pre.day.50.byID <- lapply(pre.day.byID$UD.50, 
+                               FUN = function(x) spTransform(x, CRS=CRS("+proj=longlat +datum=WGS84")))      
+area.pre.night.50.byID <- lapply(pre.night.byID$UD.50, 
+                                 FUN = function(x) spTransform(x, CRS=CRS("+proj=longlat +datum=WGS84"))) 
 
-area.pre.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.50,
-                                             FUN = spTransform,
-                                             CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.50.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.50,
-                                        FUN = spTransform,
-                                        CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.50.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.50,
-                                          FUN = spTransform,
-                                          CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.daynight.95 <- spTransform(get.area.UTM(post.daynight$HR$ver.95),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.post.day.95 <- spTransform(get.area.UTM(post.day$HR$ver.95),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.post.night.95 <- spTransform(get.area.UTM(post.night$HR$ver.95),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+ 
+area.post.daynight.50 <- spTransform(get.area.UTM(post.daynight$HR$ver.50),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.post.day.50 <- spTransform(get.area.UTM(post.day$HR$ver.50),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
+area.post.night.50 <- spTransform(get.area.UTM(post.night$HR$ver.50),
+                                    CRS=CRS("+proj=longlat +datum=WGS84"))
 
-area.post.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 95),
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 95),
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.daynight.95.byID <- lapply(post.daynight.byID$UD.95, 
+                                    FUN = function(x) spTransform(x, 
+                                                                  CRS=CRS("+proj=longlat +datum=WGS84"))) 
 
-area.post.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 50),
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 50),
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 50),
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.95,
-                                              FUN = spTransform,
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.95.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.95,
-                                         FUN = spTransform,
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.95.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.95,
-                                           FUN = spTransform,
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.50,
-                                              FUN = spTransform,
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.50.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.50,
-                                         FUN = spTransform,
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.50.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.50,
-                                           FUN = spTransform,
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.95.byID <- lapply(post.day.byID$UD.95, 
+                           FUN = function(x) spTransform(x, 
+                                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.95.byID <- lapply(post.night.byID$UD.95, 
+                             FUN = function(x) spTransform(x, 
+                                                           CRS=CRS("+proj=longlat +datum=WGS84")))
+ 
+area.post.daynight.50.byID <- lapply(post.daynight.byID$UD.50, 
+                                FUN = function(x) spTransform(x, 
+                                                              CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.day.50.byID <- lapply(post.day.byID$UD.50, 
+                           FUN = function(x) spTransform(x, 
+                                                         CRS=CRS("+proj=longlat +datum=WGS84")))
+area.post.night.50.byID <- lapply(post.night.byID$UD.50, 
+                             FUN = function(x) spTransform(x, 
+                                                           CRS=CRS("+proj=longlat +datum=WGS84")))# 
 
 ```
 
 Plot UDs by ID for pre period. Need to convert a spatial polygon list into a data frame. 
 
 ```{r, message=FALSE}
-pre.IDs <- all.data$UD.eachID.pre.daynight$area$ID
+pre.IDs <- pre.daynight.byID$area$ID
 pre.50.byID <- mapply(x = area.pre.daynight.50.byID, y = pre.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
                       SIMPLIFY = F)
@@ -161,6 +171,12 @@ p.KDE.pre.combined <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = pre.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
@@ -174,12 +190,6 @@ p.KDE.pre.combined <- ggplot() +
                color = "black",
                fill = pre.50.color,
                alpha = 0.6) +
-  geom_polygon(data = SDBay.eelg.2008.df,
-               aes(x = long,
-                   y = lat,
-                   group = group),
-               fill = eelgrass.color,
-               alpha = 0.5) +
   coord_map(xlim = c(-117.145, -117.09),
             ylim = c(32.595, 32.665)) + 
   facet_grid(. ~ ID) +
@@ -199,7 +209,7 @@ plot(p.KDE.pre.combined)
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.combined,
-         filename = "figures/KDE_pre_combined_Dec2019.png",
+         filename = "figures/KDE_pre_combined_Jan2020.png",
          device = "png",
          dpi = 600)
 ```
@@ -207,7 +217,7 @@ if (save.fig)
 
 Next, post period data are loaded and UDs for day and night combined are computed.
 ```{r, message=FALSE}
-post.IDs <- all.data$UD.eachID.post.daynight$area$ID
+post.IDs <- post.daynight.byID$area$ID
 post.50.byID <- mapply(x = area.post.daynight.50.byID, 
                        y = post.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
@@ -227,6 +237,12 @@ p.KDE.post.combined <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = post.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
@@ -263,7 +279,7 @@ plot(p.KDE.post.combined)
 
 if (save.fig)
   ggsave(plot = p.KDE.post.combined,
-         filename = "figures/KDE_post_combined_Dec2019.png",
+         filename = "figures/KDE_post_combined_Jan2020.png",
          device = "png",
          dpi = 600)
 ```
@@ -271,7 +287,7 @@ if (save.fig)
 
 We then pull out just day time for the pre period. One turtle cannot be analyzed because there were not enough relocation points in the day time. 
 ```{r}
-pre.day.IDs <- all.data$UD.eachID.pre.day$area$ID
+pre.day.IDs <- pre.day.byID$area$ID
 pre.day.50.byID <- mapply(x = area.pre.day.50.byID, 
                        y = pre.day.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
@@ -328,7 +344,7 @@ plot(p.KDE.pre.day)
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.day,
-         filename = "figures/KDE_pre_day_Dec2019.png",
+         filename = "figures/KDE_pre_day_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -339,7 +355,7 @@ Pre-day KDEs for 44366 has two "dots"... what's going on there? 12/4/2018 - has 
 Do the same for the nighttime for the pre period and plot on top of the daytime UDs.
 
 ```{r}
-pre.night.IDs <- all.data$UD.eachID.pre.night$area$ID
+pre.night.IDs <- pre.night.byID$area$ID
 pre.night.50.byID <- mapply(x = area.pre.night.50.byID, 
                        y = pre.night.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
@@ -411,7 +427,7 @@ plot(p.KDE.pre.day.night)
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.day.night,
-         filename = "figures/KDE_pre_day_night_Dec2019.png",
+         filename = "figures/KDE_pre_day_night_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -420,7 +436,7 @@ if (save.fig)
 Post period and daytime. 
 
 ```{r}
-post.day.IDs <- all.data$UD.eachID.post.day$area$ID
+post.day.IDs <- post.day.byID$area$ID
 post.day.50.byID <- mapply(x = area.post.day.50.byID, 
                        y = post.day.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
@@ -480,7 +496,7 @@ p.KDE.post.day <- ggplot() +
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day,
-         filename = "figures/KDE_post_day_Dec2019.png",
+         filename = "figures/KDE_post_day_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -491,7 +507,7 @@ plot(p.KDE.post.day)
 Post period night time overlayed on top of daytime. 
 
 ```{r}
-post.night.IDs <- all.data$UD.eachID.post.night$area$ID
+post.night.IDs <- post.night.byID$area$ID
 post.night.50.byID <- mapply(x = area.post.night.50.byID, 
                        y = post.night.IDs,
                       FUN = function(x, y) broom::tidy(x) %>% mutate(ID = y),
@@ -510,6 +526,12 @@ p.KDE.post.day.night <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = post.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
@@ -565,7 +587,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.post.day.night,
-         filename = "figures/KDE_post_day_night_Dec2019.png",
+         filename = "figures/KDE_post_day_night_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -607,6 +629,12 @@ p.KDE.pre.post.day.night <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = day.vert.95,
                aes(x = long, y = lat,
                    group = group),
@@ -666,7 +694,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.day.night,
-         filename = "figures/KDE_pre_post_day_night_Dec2019.png",
+         filename = "figures/KDE_pre_post_day_night_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -691,6 +719,12 @@ p.KDE.pre.all <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = pre.daynight.95,
                aes(x = long, y = lat,
                    group = group),
@@ -721,7 +755,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.all,
-         filename = "figures/KDE_pre_all_Dec2019.png",
+         filename = "figures/KDE_pre_all_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -740,6 +774,12 @@ p.KDE.pre.post.all <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = pre.daynight.95,
                aes(x = long, y = lat,
                    group = group),
@@ -782,7 +822,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.all,
-         filename = "figures/KDE_pre_post_all_Dec2019.png",
+         filename = "figures/KDE_pre_post_all_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -808,6 +848,12 @@ p.KDE.pre.DayVsNight <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2008.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = pre.95,
                aes(x = long, y = lat,
                    group = group),
@@ -837,7 +883,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.DayVsNight,
-         filename = "figures/KDE_pre_DayVsNight_Dec2019.png",
+         filename = "figures/KDE_pre_DayVsNight_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -863,6 +909,12 @@ p.KDE.post.DayVsNight <- ggplot() +
                aes(x = long, y = lat, group = group),
                fill = water.color,
                color = "black") +
+   geom_polygon(data = SDBay.eelg.2014.df,
+               aes(x = long,
+                   y = lat,
+                   group = group),
+               fill = eelgrass.color,
+               alpha = 0.5) +
   geom_polygon(data = post.95,
                aes(x = long, y = lat,
                    group = group),
@@ -892,7 +944,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.post.DayVsNight,
-         filename = "figures/KDE_post_DayVsNight_Dec2019.png",
+         filename = "figures/KDE_post_DayVsNight_Jan2020.png",
          device = "png",
          dpi = 600)
 
@@ -982,7 +1034,7 @@ theme(panel.border = element_rect(color = "black", fill = NA),
 
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.DayVsNight,
-         filename = "figures/KDE_preVspost_DayVsNight_Dec2019.png",
+         filename = "figures/KDE_preVspost_DayVsNight_Jan2020.png",
          device = "png",
          dpi = 600)
 

@@ -679,8 +679,9 @@ pre.GPS.HR <- run.HR.analysis(pre.GPS.kd,
 saveRDS(pre.GPS.HR,
         file = "RData/pre_GPS_UD.rds")
 
-# remove the land area. START HERE ON 1/3/2020!!!
-
+# remove the land area. 
+area.pre.GPS.50 <- get.area.UTM(pre.GPS.HR$HR$ver.50)
+area.pre.GPS.95 <- get.area.UTM(pre.GPS.HR$HR$ver.95)
 
 # This HR is with the h value with the adhoc method
 plot(pre.GPS.HR$h.adhoc$figure)
@@ -707,6 +708,10 @@ pre.ARGOS.HR <- run.HR.analysis(pre.ARGOS.kd,
 
 saveRDS(pre.ARGOS.HR,
         file = "RData/pre_ARGOS_UD.rds")
+
+# remove the land area. 
+area.pre.ARGOS.50 <- get.area.UTM(pre.ARGOS.HR$HR$ver.50)
+area.pre.ARGOS.95 <- get.area.UTM(pre.ARGOS.HR$HR$ver.95)
 
 plot(pre.ARGOS.HR$h.adhoc$figure)
 
@@ -740,6 +745,10 @@ post.GPS.HR <- run.HR.analysis(post.GPS.kd,
 saveRDS(post.GPS.HR,
         file = "RData/post_GPS_UD.rds")
 
+# remove the land area. 
+area.post.GPS.50 <- get.area.UTM(post.GPS.HR$HR$ver.50)
+area.post.GPS.95 <- get.area.UTM(post.GPS.HR$HR$ver.95)
+
 plot(post.GPS.HR$h.adhoc$figure)
 
 if (save.figure)
@@ -760,6 +769,10 @@ post.ARGOS.HR <- run.HR.analysis(post.ARGOS.kd,
                                  shape.file.dir = "shapefiles_Nov2019/")
 saveRDS(post.ARGOS.HR,
         file = "RData/post_ARGOS_UD.rds")
+
+# remove the land area. 
+area.post.ARGOS.50 <- get.area.UTM(post.ARGOS.HR$HR$ver.50)
+area.post.ARGOS.95 <- get.area.UTM(post.ARGOS.HR$HR$ver.95)
 
 plot(post.ARGOS.HR$h.adhoc$figure)
 
@@ -795,6 +808,11 @@ pre.GPS.HR.day <- run.HR.analysis(pre.GPS.kd.day,
 saveRDS(pre.GPS.HR.day,
         file = "RData/pre_GPS_UD_day.rds")
 
+# remove the land area. 
+area.pre.GPS.day.50 <- get.area.UTM(pre.GPS.HR.day$HR$ver.50)
+area.pre.GPS.day.95 <- get.area.UTM(pre.GPS.HR.day$HR$ver.95)
+
+
 plot(pre.GPS.HR.day$h.adhoc$figure)
 
 if (save.figure)
@@ -818,6 +836,11 @@ pre.ARGOS.HR.day <- run.HR.analysis(pre.ARGOS.kd.day,
 
 saveRDS(pre.ARGOS.HR.day,
         file = "RData/pre_ARGOS_UD_day.rds")
+
+# remove the land area. 
+area.pre.ARGOS.day.50 <- get.area.UTM(pre.ARGOS.HR.day$HR$ver.50)
+area.pre.ARGOS.day.95 <- get.area.UTM(pre.ARGOS.HR.day$HR$ver.95)
+
 
 plot(pre.ARGOS.HR.day$h.adhoc$figure)
 
@@ -854,6 +877,10 @@ pre.GPS.HR.night <- run.HR.analysis(pre.GPS.kd.night,
 saveRDS(pre.GPS.HR.night,
         file = "RData/pre_GPS_UD_night.rds")
 
+# remove the land area. 
+area.pre.GPS.night.50 <- get.area.UTM(pre.GPS.HR.night$HR$ver.50)
+area.pre.GPS.night.95 <- get.area.UTM(pre.GPS.HR.night$HR$ver.95)
+
 plot(pre.GPS.HR.night$h.adhoc$figure)
 
 if (save.figure)
@@ -874,6 +901,10 @@ pre.ARGOS.HR.night <- run.HR.analysis(pre.ARGOS.kd.night,
                                     shape.file.dir = "shapefiles_Nov2019/")
 saveRDS(pre.ARGOS.HR.night,
         file = "RData/pre_ARGOS_UD_night.rds")
+
+# remove the land area. 
+area.pre.ARGOS.night.50 <- get.area.UTM(pre.ARGOS.HR.night$HR$ver.50)
+area.pre.ARGOS.night.95 <- get.area.UTM(pre.ARGOS.HR.night$HR$ver.95)
 
 plot(pre.ARGOS.HR.night$h.adhoc$figure)
 
@@ -910,6 +941,10 @@ post.GPS.HR.day <- run.HR.analysis(post.GPS.kd.day,
 saveRDS(post.GPS.HR.day,
         file = "RData/post_GPS_UD_day.rds")
 
+# remove the land area. 
+area.post.GPS.day.50 <- get.area.UTM(post.GPS.HR.day$HR$ver.50)
+area.post.GPS.day.95 <- get.area.UTM(post.GPS.HR.day$HR$ver.95)
+
 plot(post.GPS.HR.day$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/UD95_post_GPS_h_adhoc_day.png",
@@ -930,6 +965,10 @@ post.ARGOS.HR.day <- run.HR.analysis(post.ARGOS.kd.day,
 
 saveRDS(post.ARGOS.HR.day,
         file = "RData/post_ARGOS_UD_day.rds")
+
+# remove the land area. 
+area.post.ARGOS.day.50 <- get.area.UTM(post.ARGOS.HR.day$HR$ver.50)
+area.post.ARGOS.day.95 <- get.area.UTM(post.ARGOS.HR.day$HR$ver.95)
 
 plot(post.ARGOS.HR.day$h.adhoc$figure)
 if (save.figure)
@@ -963,6 +1002,10 @@ post.GPS.HR.night <- run.HR.analysis(post.GPS.kd.night,
 saveRDS(post.GPS.HR.night,
         file = "RData/post_GPS_UD_night.rds")
 
+# remove the land area. 
+area.post.GPS.night.50 <- get.area.UTM(post.GPS.HR.night$HR$ver.50)
+area.post.GPS.night.95 <- get.area.UTM(post.GPS.HR.night$HR$ver.95)
+
 plot(post.GPS.HR.night$h.adhoc$figure)
 if (save.figure)
   ggsave(filename = "figures/UD95_post_GPS_h_adhoc_night.png",
@@ -982,6 +1025,10 @@ post.ARGOS.HR.night <- run.HR.analysis(post.ARGOS.kd.night,
 
 saveRDS(post.ARGOS.HR.night,
         file = "RData/post_ARGOS_UD_night.rds")
+
+# remove the land area. 
+area.post.ARGOS.night.50 <- get.area.UTM(post.ARGOS.HR.night$HR$ver.50)
+area.post.ARGOS.night.95 <- get.area.UTM(post.ARGOS.HR.night$HR$ver.95)
 
 plot(post.ARGOS.HR.night$h.adhoc$figure)
 if (save.figure)
@@ -1023,7 +1070,31 @@ UD.df <- data.frame(period = rep(c("pre", "pre", "pre", "post", "post", "post"),
                              pre.ARGOS.HR.night$HR$area.95,
                              post.ARGOS.HR$HR$area.95, 
                              post.ARGOS.HR.day$HR$area.95, 
-                             post.ARGOS.HR.night$HR$area.95))
+                             post.ARGOS.HR.night$HR$area.95),
+                    areaNoLand = c(slot(area.pre.GPS.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.GPS.day.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.GPS.night.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.day.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.night.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.GPS.95@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.GPS.day.95@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.GPS.night.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.day.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.GPS.night.95@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.day.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.night.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.day.50@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.night.50@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.95@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.day.95@polygons[[1]], "area")/1000000,
+                                   slot(area.pre.ARGOS.night.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.day.95@polygons[[1]], "area")/1000000,
+                                   slot(area.post.ARGOS.night.95@polygons[[1]], "area")/1000000))
 
 write.csv(UD.df,
           file = paste0("data/UD_allIDs_", Sys.Date(), ".csv"), 
@@ -1277,11 +1348,11 @@ readr::read_csv(paste0("data/pre_sample_ARGOS_summary.csv"),
 dat.table.pre %>% full_join(dat.table.pre.ARGOS, by = "ArgosID") %>%
   mutate(period = "pre") -> dat.table.pre
 
-#if (!file.exists("data/pre_sample_summary_size.csv"))
-  write.csv(dat.table.pre,
-            "data/pre_sample_summary_size.csv",
-            quote = F,
-            row.names = F)
+if (!file.exists("data/pre_sample_summary_size.csv"))
+write.csv(dat.table.pre,
+          "data/pre_sample_summary_size.csv",
+          quote = F,
+          row.names = F)
 ```
 
 
@@ -1486,8 +1557,8 @@ Plotting starts here:
 Make a plot for pre using all data:
 ```{r}
 
-pre.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR$HR$ver.50, CRS("+proj=longlat")))
-pre.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR$HR$ver.95, CRS("+proj=longlat")))
+pre.ver.50.df <- broom::tidy(spTransform(area.pre.GPS.50, CRS("+proj=longlat")))
+pre.ver.95.df <- broom::tidy(spTransform(area.pre.GPS.95, CRS("+proj=longlat")))
 
 map.pre.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
@@ -1539,8 +1610,8 @@ plot(map.pre.HR)
 Make a plot for pre day:
 ```{r}
 
-pre.day.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR.day$HR$ver.50, CRS("+proj=longlat")))
-pre.day.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR.day$HR$ver.95, CRS("+proj=longlat")))
+pre.day.ver.50.df <- broom::tidy(spTransform(area.pre.GPS.day.50, CRS("+proj=longlat")))
+pre.day.ver.95.df <- broom::tidy(spTransform(area.pre.GPS.day.95, CRS("+proj=longlat")))
 
 map.pre.day.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
@@ -1592,10 +1663,10 @@ plot(map.pre.day.HR)
 Make a plot for pre night:
 ```{r}
 
-pre.night.ver.50.df <- broom::tidy(spTransform(pre.GPS.HR.night$HR$ver.50, 
+pre.night.ver.50.df <- broom::tidy(spTransform(area.pre.GPS.night.50, 
                                                CRS("+proj=longlat")))
 
-pre.night.ver.95.df <- broom::tidy(spTransform(pre.GPS.HR.night$HR$ver.95, 
+pre.night.ver.95.df <- broom::tidy(spTransform(area.pre.GPS.night.95, 
                                                CRS("+proj=longlat")))
 
 map.pre.night.HR <- map.sdbay.south + 
@@ -1648,8 +1719,8 @@ plot(map.pre.night.HR)
 Make a plot for post using all data:
 ```{r}
 
-post.ver.50.df <- broom::tidy(spTransform(post.GPS.HR$HR$ver.50, CRS("+proj=longlat")))
-post.ver.95.df <- broom::tidy(spTransform(post.GPS.HR$HR$ver.95, CRS("+proj=longlat")))
+post.ver.50.df <- broom::tidy(spTransform(area.post.GPS.50, CRS("+proj=longlat")))
+post.ver.95.df <- broom::tidy(spTransform(area.post.GPS.95, CRS("+proj=longlat")))
 
 map.post.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
@@ -1701,8 +1772,8 @@ plot(map.post.HR)
 Make a plot for post day:
 ```{r}
 
-post.day.ver.50.df <- broom::tidy(spTransform(post.GPS.HR.day$HR$ver.50, CRS("+proj=longlat")))
-post.day.ver.95.df <- broom::tidy(spTransform(post.GPS.HR.day$HR$ver.95, CRS("+proj=longlat")))
+post.day.ver.50.df <- broom::tidy(spTransform(area.post.GPS.day.50, CRS("+proj=longlat")))
+post.day.ver.95.df <- broom::tidy(spTransform(area.post.GPS.day.95, CRS("+proj=longlat")))
 
 map.post.day.HR <- map.sdbay.south + 
   geom_polygon(data = SDBay.df,
@@ -1755,9 +1826,9 @@ plot(map.post.day.HR)
 Make a plot for post night:
 ```{r}
 
-post.night.ver.50.df <- broom::tidy(spTransform(post.GPS.HR.night$HR$ver.50,
+post.night.ver.50.df <- broom::tidy(spTransform(area.post.GPS.night.50,
                                                 CRS("+proj=longlat")))
-post.night.ver.95.df <- broom::tidy(spTransform(post.GPS.HR.night$HR$ver.95,
+post.night.ver.95.df <- broom::tidy(spTransform(area.post.GPS.night.95,
                                                 CRS("+proj=longlat")))
 
 map.post.night.HR <- map.sdbay.south + 

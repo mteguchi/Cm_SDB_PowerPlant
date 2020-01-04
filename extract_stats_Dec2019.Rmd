@@ -18,6 +18,7 @@ library(tidyverse)
 library(ggridges)
 library(lme4)
 library(mgcv)
+library(sf)
 
 source("HR_analysis_fcns.R")
 
@@ -395,81 +396,7 @@ print(p.d50.n4)
 p.gt0 <- sum(dif.50.list[[1]]$dif > 0)/length(dif.50.list[[1]]$dif)
 ```
 
-Now that we know the stability of the core use area with respect to the sample sizes, we compute them extracting the land space.  
-
-```{r}
-
-all.data <- readRDS(file = "RData/PreVsPost_DayNight_Dec2019.RDS")
-
-area.pre.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.pre.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.daynight, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.day, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.pre.night, 50),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.pre.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.95,
-                                             FUN = spTransform,
-                                             CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.95.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.95,
-                                        FUN = spTransform,
-                                        CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.95.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.95,
-                                          FUN = spTransform,
-                                          CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.pre.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.pre.daynight$UD.50,
-                                             FUN = spTransform,
-                                             CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.day.50.byID <- get.area(lapply(all.data$UD.eachID.pre.day$UD.50,
-                                        FUN = spTransform,
-                                        CRS=CRS("+proj=longlat +datum=WGS84")))
-area.pre.night.50.byID <- get.area(lapply(all.data$UD.eachID.pre.night$UD.50,
-                                          FUN = spTransform,
-                                          CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 95),
-                                   CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 95),
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.95 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 95),
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.daynight, 50),
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.day, 50),
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.50 <- get.area(spTransform(getverticeshr(all.data$UD.allID.post.night, 50),
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.95.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.95,
-                                              FUN = spTransform,
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.95.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.95,
-                                         FUN = spTransform,
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.95.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.95,
-                                           FUN = spTransform,
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-area.post.daynight.50.byID <- get.area(lapply(all.data$UD.eachID.post.daynight$UD.50,
-                                              FUN = spTransform,
-                                              CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.day.50.byID <- get.area(lapply(all.data$UD.eachID.post.day$UD.50,
-                                         FUN = spTransform,
-                                         CRS=CRS("+proj=longlat +datum=WGS84")))
-area.post.night.50.byID <- get.area(lapply(all.data$UD.eachID.post.night$UD.50,
-                                           FUN = spTransform,
-                                           CRS=CRS("+proj=longlat +datum=WGS84")))
-
-```
+Now that we know the stability of the core use area with respect to the sample sizes, we compute them extracting the land space.  (this was already done in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd)
 
 Now, I need to look at the effects of various things on the HR sizes.  
 
@@ -477,9 +404,6 @@ The first comparison is the main one; pre vs. post, where using day and night da
 
 
 ```{r}
-
-area.pre.50 <- slot(area.pre.daynight.50@polygons[[1]], "area")
-
 
 dat.table <- read.csv(file = "data/IDvsUDs.csv") 
 
@@ -499,23 +423,27 @@ lm.fit.all.50 <- lm(formula = area.50.all.GPS ~ period01 + CCL_cm + n.days.GPS +
 summary(lm.fit.all.50)
 ```
 
-The model indicates no significant effects of the period (uncertainty is too big), even though the coefficient is positive, indicating the increase in UD50. Longer deployments result in larger UD50s, whereas larger turtles tend to have smaller UD50s. 
+The model indicates no significant effects of the period, even though the coefficient is positive, indicating the increase in UD50. This tells us that looking at the individual level, no increase in UDs but as a whole, they increased their spatial use within the bay.  
 
 Second, I use day and night data as separate but drop the combined data.  To account for individuals, they are treated as random effects. There are only 7 individuals available for this analysis.  Just because of this small sample issue, I remove CCL from the list of variables. 
 
 ```{r}
 dat.table %>%
-  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, n.day.all.GPS, n.night.all.GPS,
-         Sex, CCL_cm, 
-         period, area.50.night.GPS, area.50.day.GPS) %>%
+  dplyr::select(ArgosID, n.days.GPS, n.relocations.all.GPS, 
+                n.day.all.GPS, n.night.all.GPS,
+                Sex, CCL_cm, 
+                period, area.50.night.GPS, area.50.day.GPS) %>%
   mutate(period01 = ifelse(period == "pre", 0, 1)) %>% #-> area.50.day.night.GPS #%>%
   na.omit() -> area.50.day.night.GPS 
 
 area.50.day.night.GPS.long <- gather(area.50.day.night.GPS,
-                                     day_night, area, 
-                                     area.50.night.GPS, area.50.day.GPS) %>%
+                                     day_night, 
+                                     area, 
+                                     area.50.night.GPS, 
+                                     area.50.day.GPS) %>%
   mutate(day1night2 = ifelse(day_night == "area.50.day.GPS", 1, 2))
 
+# adding period results in singular error
 lmm.fit.all.50 <- lmer(formula = area ~ day1night2 +  (1|ArgosID),
                       data = area.50.day.night.GPS.long)
 
@@ -570,7 +498,6 @@ summary(lmm.fit.all.95)
 
 Nothing really comes out as significant effects because of large uncertainty.  Using individual-based UDs is difficult because of the small sample sizes.  
 
-I think adding Argos data help this issue... To justify, we need to look at how adding Argos locations to GPS data doesn't change the results.
 
 Look at the difference between day and night
 ```{r}
@@ -585,11 +512,119 @@ summary(lm.fit.dif.50)
 
 ```
 
+
 This is going down the rabbit hole... we didn't care so much about at the individual level - we wanted to see how green turtles in SDB as a whole changed their movements/behavior before and after the power plant closure. So, let's focus on that and we already have results!
 
+I think adding Argos data help this issue... To justify, we need to look at how adding Argos locations to GPS data doesn't change the results.
 
+OR DO WE NEED TO DO THAT MUCH... 
+
+Find overlap with eelgrass
 ```{r}
+SDBay <- spTransform(readOGR(dsn = "GISfiles",
+                             layer = "sd_bay",
+                             verbose = FALSE),
+                     CRS(slot(pre.UD$HR$ver.50@proj4string, "projargs")))
+SDBay.df <- broom::tidy(SDBay)
 
+eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                               CRS(slot(pre.UD$HR$ver.50@proj4string, "projargs")))
+eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
+
+eelg.2008.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                        layer = "SD_Baywide_Eelgrass_2008",
+                                        verbose = F),
+                                CRS("+proj=longlat +datum=WGS84"))
+
+eelg.2008.latlon.df <- broom::tidy(eelg.2008.latlon)
+
+# So... only 1st and 6th items contain polygons south of N.end...
+tmp1 <- eelg.2008.latlon@polygons[[1]]@Polygons
+idx1 <- sapply(tmp1, 
+              function(x) max(coordinates(x)[,2]) < N.end)
+
+# tmp2 <- eelg.2008.latlon@polygons[[2]]@Polygons
+# idx2 <- sapply(tmp2, 
+#               function(x) max(coordinates(x)[,2]) < N.end)
+# 
+# tmp3 <- eelg.2008.latlon@polygons[[3]]@Polygons
+# idx3 <- sapply(tmp3, 
+#               function(x) max(coordinates(x)[,2]) < N.end)
+# 
+# tmp4 <- eelg.2008.latlon@polygons[[4]]@Polygons
+# idx4 <- sapply(tmp4, 
+#               function(x) max(coordinates(x)[,2]) < N.end)
+# 
+# tmp5 <- eelg.2008.latlon@polygons[[5]]@Polygons
+# idx5 <- sapply(tmp5, 
+#               function(x) max(coordinates(x)[,2]) < N.end)
+
+tmp6 <- eelg.2008.latlon@polygons[[6]]@Polygons
+idx6 <- sapply(tmp6, 
+              function(x) max(coordinates(x)[,2]) < N.end)
+
+eelg.2008.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp1[idx1], ID = "0"),
+                                               Polygons(srl = tmp6[idx6], ID = "1")),
+                                          proj4string=CRS(proj4string(eelg.2008.latlon)))
+
+eelg.2008.latlon.south.df <- broom::tidy(eelg.2008.latlon.south)
+eelg.2008.UTM.south <- spTransform(eelg.2008.latlon.south,
+                                   CRS = proj4string(SDBay.eelg.2008))
+
+eelg.2008.UTM.south.df <- broom::tidy(eelg.2008.UTM.south)
+
+# compute the eelgrass area
+pre.eelgrass.area <- slot(eelg.2008.UTM.south@polygons[[1]], "area") + 
+  slot(eelg.2008.UTM.south@polygons[[2]], "area")
+
+# compute the overlap between UD and eelgrass
+pre.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, pre.UD$HR$ver.50)
+pre.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south, pre.UD$HR$ver.95)
+
+# create df for plotting
+pre.UD.95.df <- broom::tidy(spTransform(pre.UD$HR$ver.95,
+                                        CRS = CRS("+proj=longlat +datum=WGS84")))
+pre.UD.50.df <- broom::tidy(spTransform(pre.UD$HR$ver.50,
+                                        CRS = CRS("+proj=longlat +datum=WGS84")))
+
+
+ggplot() + 
+  geom_polygon(data = eelg.2008.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = "blue") + 
+  #geom_polygon(data = SDBay.df,
+  #             aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = pre.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = "green",
+               alpha = 0.4)  +
+  geom_polygon(data = pre.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = "darkgreen",
+               alpha = 0.4)  +
+  coord_map()
+
+
+SDBay.eelg.2008 <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2008",
+                                       verbose = F),
+                               CRS( slot(pre.UD$HR$ver.50@proj4string, "projargs")))
+
+pre.eelgrass.UD.area <- slot(pre.eelgrass@polygons[[1]], "area")
+
+eelg.2008.df <- broom::tidy(eelg.2008.UTM.south)
+pre.UD.df <- broom::tidy(pre.UD$HR$ver.50)
+
+ggplot() + 
+  geom_polygon(data = pre.UD.df,
+               aes(x = long, y = lat, group = group),
+               fill = "black") + 
+  geom_polygon(data = eelg.2008.df,
+               aes(x = long, y = lat, group = group),
+               fill = "green")  
+  #coord_map()
 
 ```
 

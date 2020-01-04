@@ -150,8 +150,8 @@ UD.pre <- kernelUD(pre.kd$list.data$all.utm,
                    kern = "bivnorm", 
                    grid = grid)
 
-UD.pre.95 <- getverticeshr(UD.pre, 95)
-UD.pre.50 <- getverticeshr(UD.pre, 50)
+UD.pre.95 <- get.area.UTM(getverticeshr(UD.pre, 95, unin = "m", unout = "km2"))
+UD.pre.50 <- get.area.UTM(getverticeshr(UD.pre, 50, unin = "m", unout = "km2"))
     
 # UD.pre.95.latlon <- broom::tidy(spTransform(UD.pre.95, 
 #                                             CRS("+proj=longlat")))
@@ -168,8 +168,8 @@ UD.post <- kernelUD(post.kd$list.data$all.utm,
                     kern = "bivnorm", 
                     grid = grid)
 
-UD.post.95 <- getverticeshr(UD.post, 95)
-UD.post.50 <- getverticeshr(UD.post, 50)
+UD.post.95 <- get.area.UTM(getverticeshr(UD.post, 95, unin = "m", unout = "km2"))
+UD.post.50 <- get.area.UTM(getverticeshr(UD.post, 50, unin = "m", unout = "km2"))
     
 # UD.post.95.latlon <- broom::tidy(spTransform(UD.post.95, 
 #                                              CRS("+proj=longlat")))
@@ -191,8 +191,8 @@ UD.pre.day <- kernelUD(pre.day.kd$list.data$all.utm,
                        kern = "bivnorm", 
                        grid = grid)
 
-UD.pre.day.95 <- getverticeshr(UD.pre.day, 95)
-UD.pre.day.50 <- getverticeshr(UD.pre.day, 50)
+UD.pre.day.95 <- get.area.UTM(getverticeshr(UD.pre.day, 95, unin = "m", unout = "km2"))
+UD.pre.day.50 <- get.area.UTM(getverticeshr(UD.pre.day, 50, unin = "m", unout = "km2"))
     
 # UD.pre.day.95.latlon <- broom::tidy(spTransform(UD.pre.day.95,
 #                                                 CRS("+proj=longlat")))
@@ -209,8 +209,8 @@ UD.pre.night <- kernelUD(pre.night.kd$list.data$all.utm,
                          kern = "bivnorm", 
                          grid = grid)
 
-UD.pre.night.95 <- getverticeshr(UD.pre.night, 95)
-UD.pre.night.50 <- getverticeshr(UD.pre.night, 50)
+UD.pre.night.95 <- get.area.UTM(getverticeshr(UD.pre.night, 95, unin = "m", unout = "km2"))
+UD.pre.night.50 <- get.area.UTM(getverticeshr(UD.pre.night, 50, unin = "m", unout = "km2"))
     
 # UD.pre.night.95.latlon <- broom::tidy(spTransform(UD.pre.night.95,
 #                                                   CRS("+proj=longlat")))
@@ -236,8 +236,8 @@ UD.post.day <- kernelUD(post.day.kd$list.data$all.utm,
                         kern = "bivnorm", 
                         grid = grid)
 
-UD.post.day.95 <- getverticeshr(UD.post.day, 95)
-UD.post.day.50 <- getverticeshr(UD.post.day, 50)
+UD.post.day.95 <- get.area.UTM(getverticeshr(UD.post.day, 95, unin = "m", unout = "km2"))
+UD.post.day.50 <- get.area.UTM(getverticeshr(UD.post.day, 50, unin = "m", unout = "km2"))
     
 # UD.post.day.95.latlon <- broom::tidy(spTransform(UD.post.day.95,
 #                                                  CRS("+proj=longlat")))
@@ -254,8 +254,8 @@ UD.post.night <- kernelUD(post.night.kd$list.data$all.utm,
                           kern = "bivnorm", 
                           grid = grid)
 
-UD.post.night.95 <- getverticeshr(UD.post.night, 95)
-UD.post.night.50 <- getverticeshr(UD.post.night, 50)
+UD.post.night.95 <- get.area.UTM(getverticeshr(UD.post.night, 95, unin = "m", unout = "km2"))
+UD.post.night.50 <- get.area.UTM(getverticeshr(UD.post.night, 50, unin = "m", unout = "km2"))
     
 # UD.post.night.95.latlon <- broom::tidy(spTransform(UD.post.night.95,
 #                                                    CRS("+proj=longlat")))
