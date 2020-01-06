@@ -527,12 +527,6 @@ SDBay <- spTransform(readOGR(dsn = "GISfiles",
                      CRS(slot(pre.UD$HR$ver.50@proj4string, "projargs")))
 SDBay.df <- broom::tidy(SDBay)
 
-eelg.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
-                                       layer = "SD_Baywide_Eelgrass_2014_Final",
-                                       verbose = F),
-                               CRS(slot(pre.UD$HR$ver.50@proj4string, "projargs")))
-eelg.2014.df <- broom::tidy(SDBay.eelg.2014)
-
 eelg.2008.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
                                         layer = "SD_Baywide_Eelgrass_2008",
                                         verbose = F),
@@ -565,13 +559,20 @@ tmp6 <- eelg.2008.latlon@polygons[[6]]@Polygons
 idx6 <- sapply(tmp6, 
               function(x) max(coordinates(x)[,2]) < N.end)
 
+# Then, put them together as one.
 eelg.2008.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp1[idx1], ID = "0"),
                                                Polygons(srl = tmp6[idx6], ID = "1")),
                                           proj4string=CRS(proj4string(eelg.2008.latlon)))
 
+# compute the overlap between UD without land and eelgrass
+# the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
+pre.daynight <- readRDS(file = "RData/pre_GPS_UD.rds")
+
+# areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
+# but just to be sure.
 eelg.2008.latlon.south.df <- broom::tidy(eelg.2008.latlon.south)
 eelg.2008.UTM.south <- spTransform(eelg.2008.latlon.south,
-                                   CRS = proj4string(SDBay.eelg.2008))
+                                   CRS = proj4string(pre.daynight$HR$ver.50))
 
 eelg.2008.UTM.south.df <- broom::tidy(eelg.2008.UTM.south)
 
@@ -579,14 +580,17 @@ eelg.2008.UTM.south.df <- broom::tidy(eelg.2008.UTM.south)
 pre.eelgrass.area <- slot(eelg.2008.UTM.south@polygons[[1]], "area") + 
   slot(eelg.2008.UTM.south@polygons[[2]], "area")
 
-# compute the overlap between UD and eelgrass
-pre.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, pre.UD$HR$ver.50)
-pre.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south, pre.UD$HR$ver.95)
+# extract the land area
+area.pre.daynight.95 <- get.area.UTM(pre.daynight$HR$ver.95)
+area.pre.daynight.50 <- get.area.UTM(pre.daynight$HR$ver.50)
 
-# create df for plotting
-pre.UD.95.df <- broom::tidy(spTransform(pre.UD$HR$ver.95,
+pre.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, area.pre.daynight.50)
+pre.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south, area.pre.daynight.95)
+
+# create df for plotting using lat/lon
+pre.UD.95.df <- broom::tidy(spTransform(area.pre.daynight.95,
                                         CRS = CRS("+proj=longlat +datum=WGS84")))
-pre.UD.50.df <- broom::tidy(spTransform(pre.UD$HR$ver.50,
+pre.UD.50.df <- broom::tidy(spTransform(area.pre.daynight.50,
                                         CRS = CRS("+proj=longlat +datum=WGS84")))
 
 
@@ -609,7 +613,133 @@ ggplot() +
 
 ```
 
+Post period:
+```{r}
+eelg.2014.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
+                                       layer = "SD_Baywide_Eelgrass_2014_Final",
+                                       verbose = F),
+                                CRS("+proj=longlat +datum=WGS84"))
+
+eelg.2014.latlon.df <- broom::tidy(eelg.2014.latlon)
+
+# there is/are polygon(s) that intersects with 32.66 (N.end), and hole(s) that does not.
+# so just eliminating polygons that max(lat) < N.end creates orphan holes. To avoid it,
+# I convert all latitudes >= 32.66 to 32.659. Then, the intersecting polygon(s) will be
+# truncated at 32.66 with holes inside. (I think...)
+
+# NOT WORKING AS OF 1/6/2020 FIX BELOW!!!!  
+
+# layers 2 and 5 contain eelgrass patches. 
+
+# tmp1 <- eelg.2014.latlon@polygons[[1]]@Polygons
+# idx1 <- sapply(tmp1, 
+#               function(x) max(coordinates(x)[,2]) < N.end)
+
+tmp2 <- eelg.2014.latlon@polygons[[2]]@Polygons
+for (k in 1:length(tmp2)){
+  tmp <- coordinates(tmp2[[k]])
+  tmp[tmp[, 2] > N.end, 2] <- N.end
+  slot(tmp2[[k]], "coords") <- tmp
+}
+
+idx2 <- sapply(tmp2,
+               function(x) min(coordinates(x)[,2]) < N.end)
+
+# tmp3 <- eelg.2014.latlon@polygons[[3]]@Polygons
+# idx3 <- sapply(tmp3,
+#               function(x) max(coordinates(x)[,2]) < N.end)
+# 
+# tmp4 <- eelg.2014.latlon@polygons[[4]]@Polygons
+# idx4 <- sapply(tmp4,
+#               function(x) max(coordinates(x)[,2]) < N.end)
+
+tmp5 <- eelg.2014.latlon@polygons[[5]]@Polygons
+for (k in 1:length(tmp5)){
+  tmp <- coordinates(tmp5[[k]])
+  tmp[tmp[, 2] > N.end, 2] <- N.end
+  slot(tmp5[[k]], "coords") <- tmp
+}
+
+idx5 <- sapply(tmp5,
+               function(x) min(coordinates(x)[,2]) < N.end)
+# idx5 <- sapply(tmp5,
+#                function(x) max(coordinates(x)[,2]) < N.end)
+
+# Then, put them together as one.
+eelg.2014.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp2[idx2], ID = "0"),
+                                               Polygons(srl = tmp5[idx5], ID = "1")),
+                                          proj4string=CRS(proj4string(eelg.2014.latlon)))
+
+# compute the overlap between UD without land and eelgrass
+# the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
+post.daynight <- readRDS(file = "RData/post_GPS_UD.rds")
+
+# areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
+# but just to be sure.
+eelg.2014.latlon.south.df <- broom::tidy(eelg.2014.latlon.south)
+eelg.2014.UTM.south <- spTransform(eelg.2014.latlon.south,
+                                   CRS = proj4string(post.daynight$HR$ver.50))
+
+eelg.2014.UTM.south.df <- broom::tidy(eelg.2014.UTM.south)
+
+# compute the eelgrass area
+post.eelgrass.area <- slot(eelg.2014.UTM.south@polygons[[1]], "area") + 
+  slot(eelg.2014.UTM.south@polygons[[2]], "area")
+
+# extract the land area
+area.post.daynight.95 <- get.area.UTM(post.daynight$HR$ver.95)
+area.post.daynight.50 <- get.area.UTM(post.daynight$HR$ver.50)
+
+post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, area.post.daynight.50)
+post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south, area.post.daynight.95)
+
+# create df for plotting using lat/lon
+post.UD.95.df <- broom::tidy(spTransform(area.post.daynight.95,
+                                        CRS = CRS("+proj=longlat +datum=WGS84")))
+post.UD.50.df <- broom::tidy(spTransform(area.post.daynight.50,
+                                        CRS = CRS("+proj=longlat +datum=WGS84")))
 
 
+ggplot() + 
+  geom_polygon(data = eelg.2014.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = "blue") + 
+  #geom_polygon(data = SDBay.df,
+  #             aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = post.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = "green",
+               alpha = 0.4)  +
+  geom_polygon(data = post.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = "darkgreen",
+               alpha = 0.4)  +
+  coord_map()
+```
+
+
+```{r}
+pre.day <- readRDS(file = "RData/pre_GPS_UD_day.rds")
+pre.night <- readRDS(file = "RData/pre_GPS_UD_night.rds")
+post.daynight <- readRDS(file = "RData/post_GPS_UD.rds")
+post.day <- readRDS(file = "RData/post_GPS_UD_day.rds")
+post.night <- readRDS(file = "RData/post_GPS_UD_night.rds")
+
+pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
+pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
+pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
+post.daynight.byID <- readRDS(file = "RData/post_GPS_UD_byID.rds")
+post.day.byID <- readRDS(file = "RData/post_GPS_UD_day_byID.rds")
+post.night.byID <- readRDS(file = "RData/post_GPS_UD_night_byID.rds")
+
+area.pre.day.95 <- spTransform(get.area.UTM(pre.day$HR$ver.95), 
+                               CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.night.95 <- spTransform(get.area.UTM(pre.night$HR$ver.95),
+                                 CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.day.50 <- spTransform(get.area.UTM(pre.day$HR$ver.50), 
+                               CRS=CRS("+proj=longlat +datum=WGS84"))
+area.pre.night.50 <- spTransform(get.area.UTM(pre.night$HR$ver.50),
+                                 CRS=CRS("+proj=longlat +datum=WGS84"))
+```
 
 
