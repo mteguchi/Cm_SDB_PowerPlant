@@ -627,8 +627,6 @@ eelg.2014.latlon.df <- broom::tidy(eelg.2014.latlon)
 # I convert all latitudes >= 32.66 to 32.659. Then, the intersecting polygon(s) will be
 # truncated at 32.66 with holes inside. (I think...)
 
-# NOT WORKING AS OF 1/6/2020 FIX BELOW!!!!  
-
 # layers 2 and 5 contain eelgrass patches. 
 
 # tmp1 <- eelg.2014.latlon@polygons[[1]]@Polygons
@@ -643,7 +641,7 @@ for (k in 1:length(tmp2)){
 }
 
 idx2 <- sapply(tmp2,
-               function(x) min(coordinates(x)[,2]) < N.end)
+               function(x) var(coordinates(x)[,2]) > 0)
 
 # tmp3 <- eelg.2014.latlon@polygons[[3]]@Polygons
 # idx3 <- sapply(tmp3,
@@ -661,12 +659,21 @@ for (k in 1:length(tmp5)){
 }
 
 idx5 <- sapply(tmp5,
-               function(x) min(coordinates(x)[,2]) < N.end)
+               function(x) var(coordinates(x)[,2]) > 0)
 # idx5 <- sapply(tmp5,
 #                function(x) max(coordinates(x)[,2]) < N.end)
 
+# the first polygon of tmp2 is cut off by the N.end value, making a flat line at N.end
+# from -117.16 to about -117.1523. This causes a problem when trying to find intersections
+# with UDs... so I manually modify it.
+tmp2.1 <- tmp2[idx2]
+coord.2.1 <- coordinates(tmp2.1[[1]])
+coord.2.1[coord.2.1[, 1] < -117.1523, ] <- NA
+coord.2.1 <- na.omit(coord.2.1)
+slot(tmp2.1[[1]], "coords") <- coord.2.1
+
 # Then, put them together as one.
-eelg.2014.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp2[idx2], ID = "0"),
+eelg.2014.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0"),
                                                Polygons(srl = tmp5[idx5], ID = "1")),
                                           proj4string=CRS(proj4string(eelg.2014.latlon)))
 
@@ -690,8 +697,11 @@ post.eelgrass.area <- slot(eelg.2014.UTM.south@polygons[[1]], "area") +
 area.post.daynight.95 <- get.area.UTM(post.daynight$HR$ver.95)
 area.post.daynight.50 <- get.area.UTM(post.daynight$HR$ver.50)
 
-post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, area.post.daynight.50)
-post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south, area.post.daynight.95)
+# these lines crash RStudio.
+post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
+                                            area.post.daynight.50)
+post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south, 
+                                            area.post.daynight.95)
 
 # create df for plotting using lat/lon
 post.UD.95.df <- broom::tidy(spTransform(area.post.daynight.95,
