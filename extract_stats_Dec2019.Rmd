@@ -385,6 +385,7 @@ p.d50.n4 <- ggplot(data = dif.50.list[[1]]) +
                    col = "black") +
     labs(x = "Difference in area (50% UD)", y = "Count")
 
+if (save.fig)
 ggsave(filename = paste0("figures/preVsPost_n4_", Sys.Date(), ".png"),
        plot = p.d50.n4,
        device = "png",
@@ -622,6 +623,9 @@ eelg.2014.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
 
 eelg.2014.latlon.df <- broom::tidy(eelg.2014.latlon)
 
+eelg.2014.UTM <- spTransform(eelg.2014.latlon, 
+                             CRS = CRS("+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
 # there is/are polygon(s) that intersects with 32.66 (N.end), and hole(s) that does not.
 # so just eliminating polygons that max(lat) < N.end creates orphan holes. To avoid it,
 # I convert all latitudes >= 32.66 to 32.659. Then, the intersecting polygon(s) will be
@@ -640,8 +644,18 @@ for (k in 1:length(tmp2)){
   slot(tmp2[[k]], "coords") <- tmp
 }
 
+# this removes all polygons that were north of N.end because latitude that were
+# greater than N.end was set to N.end.
+
 idx2 <- sapply(tmp2,
                function(x) var(coordinates(x)[,2]) > 0)
+
+#also... find the first TRUE in idx2
+#idx.first.T <- min(seq(from = 1, to = length(idx2))[cumsum(idx2) == 1])
+# this returns 1154 - this is the one that gets fixed in tmp2.1 below.
+
+# negate idx2
+#a_idx2 <- !(idx2)
 
 # tmp3 <- eelg.2014.latlon@polygons[[3]]@Polygons
 # idx3 <- sapply(tmp3,
@@ -651,70 +665,114 @@ idx2 <- sapply(tmp2,
 # idx4 <- sapply(tmp4,
 #               function(x) max(coordinates(x)[,2]) < N.end)
 
+# all polygons in [[5]] are south of N.end
 tmp5 <- eelg.2014.latlon@polygons[[5]]@Polygons
-for (k in 1:length(tmp5)){
-  tmp <- coordinates(tmp5[[k]])
-  tmp[tmp[, 2] > N.end, 2] <- N.end
-  slot(tmp5[[k]], "coords") <- tmp
-}
 
-idx5 <- sapply(tmp5,
-               function(x) var(coordinates(x)[,2]) > 0)
+# for (k in 1:length(tmp5)){
+#   tmp <- coordinates(tmp5[[k]])
+#   tmp[tmp[, 2] > N.end, 2] <- N.end
+#   slot(tmp5[[k]], "coords") <- tmp
+# }
+# 
+# idx5 <- sapply(tmp5,
+#                function(x) var(coordinates(x)[,2]) > 0)
 # idx5 <- sapply(tmp5,
 #                function(x) max(coordinates(x)[,2]) < N.end)
 
 # the first polygon of tmp2 is cut off by the N.end value, making a flat line at N.end
 # from -117.16 to about -117.1523. This causes a problem when trying to find intersections
-# with UDs... so I manually modify it.
+# with UDs... so I manually modify it. Did the area fixed also? No. --- need to fix it. 
 tmp2.1 <- tmp2[idx2]
 coord.2.1 <- coordinates(tmp2.1[[1]])
 coord.2.1[coord.2.1[, 1] < -117.1523, ] <- NA
 coord.2.1 <- na.omit(coord.2.1)
+area.2.1 <- geosphere::areaPolygon(coord.2.1)
+
+# set the coordinates with the modified coordinates. I can't replace the area
+# here because the area should be in a different unit from square meters, which 
+# is the unit of output from areaPolygon.  I don't know what the unit is... this needs
+# to be figured out... FIX THIS! 1/8/2020
 slot(tmp2.1[[1]], "coords") <- coord.2.1
 
-# Then, put them together as one.
-eelg.2014.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0"),
-                                               Polygons(srl = tmp5[idx5], ID = "1")),
-                                          proj4string=CRS(proj4string(eelg.2014.latlon)))
+#tmp2.2 <- tmp2[a_idx2]
+
+# Then, put them together as one. this doesn't work because of the tmp2.1... 
+# However... the problem polygon does not overlap with UDs. So... to make things simpler, 
+# I'll keep it for plotting purposes but remove it from computing the overlaps.
+# the area of the modified polygon tmp2.1[[1]] or eelg.2014.latlon.south.1@polygons[[1]]@Polygons[[1]]
+# is not changed from the original size because that was not modified above... So... I need to do 
+# something about that. 
+eelg.2014.latlon.south.1 <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0"),
+                                                 Polygons(srl = tmp5, ID = "1")),
+                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
+
+eelg.2014.latlon.south.df <- broom::tidy(eelg.2014.latlon.south.1)
+
+# The following works with gIntersection
+eelg.2014.latlon.south.2 <- SpatialPolygons(list(Polygons(srl = tmp5, ID = "0")),
+                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
+
+eelg.2014.latlon.south.2.df <- broom::tidy(eelg.2014.latlon.south.2)
+
+##  for checking areas
+eelg.2014.latlon.south.3 <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0")),
+                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
+
+eelg.2014.UTM.south.3 <- spTransform(eelg.2014.latlon.south.3, 
+                                     CRS = CRS("+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+eelg.2014.latlon.south.3.df <- broom::tidy(eelg.2014.latlon.south.3)
+### 
 
 # compute the overlap between UD without land and eelgrass
 # the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
 post.daynight <- readRDS(file = "RData/post_GPS_UD.rds")
 
-# areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
-# but just to be sure.
-eelg.2014.latlon.south.df <- broom::tidy(eelg.2014.latlon.south)
-eelg.2014.UTM.south <- spTransform(eelg.2014.latlon.south,
-                                   CRS = proj4string(post.daynight$HR$ver.50))
-
-eelg.2014.UTM.south.df <- broom::tidy(eelg.2014.UTM.south)
-
-# compute the eelgrass area
-post.eelgrass.area <- slot(eelg.2014.UTM.south@polygons[[1]], "area") + 
-  slot(eelg.2014.UTM.south@polygons[[2]], "area")
-
-# extract the land area
+# extract the land area from UDs
 area.post.daynight.95 <- get.area.UTM(post.daynight$HR$ver.95)
 area.post.daynight.50 <- get.area.UTM(post.daynight$HR$ver.50)
 
-# these lines crash RStudio.
-post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
-                                            area.post.daynight.50)
-post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south, 
-                                            area.post.daynight.95)
-
 # create df for plotting using lat/lon
 post.UD.95.df <- broom::tidy(spTransform(area.post.daynight.95,
-                                        CRS = CRS("+proj=longlat +datum=WGS84")))
+                                         CRS = CRS("+proj=longlat +datum=WGS84")))
 post.UD.50.df <- broom::tidy(spTransform(area.post.daynight.50,
-                                        CRS = CRS("+proj=longlat +datum=WGS84")))
+                                         CRS = CRS("+proj=longlat +datum=WGS84")))
+
+# areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
+# but just to be sure.
+eelg.2014.UTM.south.1 <- spTransform(eelg.2014.latlon.south.1,
+                                     CRS = proj4string(post.daynight$HR$ver.50))
+
+# Area is measured in square meters so it needs to be placed here rather than when 
+# unit was lat/lon - but this would not change the total area...  
+slot(eelg.2014.UTM.south.1@polygons[[1]]@Polygons[[1]], "area") <- area.2.1
+
+# compute the eelgrass area - make sure area is correct with removed polygons!! 1/8/2020!!
+post.eelgrass.area <- slot(eelg.2014.UTM.south.1@polygons[[1]], "area") + 
+  slot(eelg.2014.UTM.south.1@polygons[[2]], "area")
+
+#eelg.2014.UTM.south.df <- broom::tidy(eelg.2014.UTM.south)
+
+# To compute the overlap, use .2 file
+eelg.2014.UTM.south.2 <- spTransform(eelg.2014.latlon.south.2,
+                                     CRS = proj4string(post.daynight$HR$ver.50))
+
+# these lines crash RStudio. They don't when tmp2.1 is taken out.
+post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south.2, 
+                                            area.post.daynight.50)
+post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south.2,
+                                            area.post.daynight.95)
 
 
-ggplot() + 
+
+p1 <- ggplot() + 
   geom_polygon(data = eelg.2014.latlon.south.df,
                aes(x = long, y = lat, group = group),
                fill = "blue") + 
-  #geom_polygon(data = SDBay.df,
+# geom_polygon(data = eelg.2014.latlon.south.2.df,
+#                aes(x = long, y = lat, group = group),
+#                fill = "red") + 
+
+  # geom_polygon(data = SDBay.df,
   #             aes(x = long, y = lat, group = group)) +
   geom_polygon(data = post.UD.95.df,
                aes(x = long, y = lat, group = group),
@@ -725,6 +783,12 @@ ggplot() +
                fill = "darkgreen",
                alpha = 0.4)  +
   coord_map()
+
+# ggsave(filename = "figures/post_eelgrass_with_tmp21.png",
+#        device = "png",
+#        plot = p1)
+
+p1
 ```
 
 
