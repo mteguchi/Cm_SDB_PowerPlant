@@ -1105,7 +1105,7 @@ write.csv(UD.df,
 
 
 Next individual-specific analyses. 
-Extract UDs for each individual. Starting with pre with GPS data:
+Extract UDs for each individual. Starting with pre with GPS data.  UD.eachID removes land area from UDs.
 ```{r message=FALSE}
 
 if (!file.exists("RData/pre_GPS_UD_byID.rds")){
