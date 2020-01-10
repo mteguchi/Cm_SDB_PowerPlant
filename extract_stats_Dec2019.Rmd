@@ -22,13 +22,20 @@ library(sf)
 
 source("HR_analysis_fcns.R")
 
-# internet <- F #TRUE
-save.fig <- F
+save.fig <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
+
+water.color <- "lightblue"
+background.color <- "darkgray"
+eelgrass.color <- "mediumseagreen"
+post.50.color <- "mediumorchid4"
+post.95.color <- "mediumorchid1"
+pre.50.color <- "gold"
+pre.95.color <- "lightgoldenrod1"
 
 grid <- 1000
 extent <- 1
@@ -522,48 +529,55 @@ OR DO WE NEED TO DO THAT MUCH...
 
 Find overlap with eelgrass
 ```{r}
-SDBay <- spTransform(readOGR(dsn = "GISfiles",
-                             layer = "sd_bay",
-                             verbose = FALSE),
-                     CRS(slot(pre.UD$HR$ver.50@proj4string, "projargs")))
-SDBay.df <- broom::tidy(SDBay)
+SDBay <- readOGR(dsn = "GISfiles",
+                 layer = "sd_bay",
+                 verbose = FALSE)
 
-eelg.2008.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
-                                        layer = "SD_Baywide_Eelgrass_2008",
-                                        verbose = F),
-                                CRS("+proj=longlat +datum=WGS84"))
+# create a study area box for the south bay.
+p <- Polygon(coords = matrix(c(-117.16,32.66,  
+                               -117.09,32.66, 
+                               -117.09,32.60, 
+                               -117.16,32.60, 
+                               -117.16, 32.66),
+                             nrow = 5,
+                             byrow = T))
+
+south.bay.box <- SpatialPolygons(list(Polygons(list(p), 1)),
+                                 proj4string = CRS("+proj=longlat +datum=WGS84"))
+
+SDBay.latlon <- spTransform(SDBay,
+                            CRS = CRS("+proj=longlat +datum=WGS84")) 
+
+#SDBay.south.latlon <- rgeos::gIntersection(south.bay.box, SDBay.latlon)
+SDBay.latlon.df <- broom::tidy(SDBay.latlon)
+
+eelg.2008.UTM <- readOGR(dsn = "GISfiles/Features",
+                         layer = "SD_Baywide_Eelgrass_2008",
+                         verbose = F)
+
+eelg.2008.latlon <- spTransform(eelg.2008.UTM,
+                                CRS = CRS("+proj=longlat +datum=WGS84"))
 
 eelg.2008.latlon.df <- broom::tidy(eelg.2008.latlon)
 
-# So... only 1st and 6th items contain polygons south of N.end...
-tmp1 <- eelg.2008.latlon@polygons[[1]]@Polygons
-idx1 <- sapply(tmp1, 
-              function(x) max(coordinates(x)[,2]) < N.end)
+# find the south bay eelgrass
+eelg.2008.latlon.south <- rgeos::gIntersection(south.bay.box, eelg.2008.latlon)
 
-# tmp2 <- eelg.2008.latlon@polygons[[2]]@Polygons
-# idx2 <- sapply(tmp2, 
-#               function(x) max(coordinates(x)[,2]) < N.end)
-# 
-# tmp3 <- eelg.2008.latlon@polygons[[3]]@Polygons
-# idx3 <- sapply(tmp3, 
-#               function(x) max(coordinates(x)[,2]) < N.end)
-# 
-# tmp4 <- eelg.2008.latlon@polygons[[4]]@Polygons
-# idx4 <- sapply(tmp4, 
-#               function(x) max(coordinates(x)[,2]) < N.end)
-# 
-# tmp5 <- eelg.2008.latlon@polygons[[5]]@Polygons
-# idx5 <- sapply(tmp5, 
-#               function(x) max(coordinates(x)[,2]) < N.end)
+# recalulate areas of each polygon to make sure they are "correct." 
+eelg.2008.all.areas <- lapply(eelg.2008.latlon.south@polygons[[1]]@Polygons,
+                    FUN = function(x){
+                      areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                        slot(x, "ringDir")
+                    } )
 
-tmp6 <- eelg.2008.latlon@polygons[[6]]@Polygons
-idx6 <- sapply(tmp6, 
-              function(x) max(coordinates(x)[,2]) < N.end)
+for (k in 1:length(eelg.2008.all.areas)){
+  slot(eelg.2008.latlon.south@polygons[[1]]@Polygons[[k]], "area") <- eelg.2008.all.areas[[k]]
+}
 
-# Then, put them together as one.
-eelg.2008.latlon.south <- SpatialPolygons(list(Polygons(srl = tmp1[idx1], ID = "0"),
-                                               Polygons(srl = tmp6[idx6], ID = "1")),
-                                          proj4string=CRS(proj4string(eelg.2008.latlon)))
+eelg.2008.latlon.south.df <- broom::tidy(eelg.2008.latlon.south)
+
+eelg.2008.UTM.south <- spTransform(eelg.2008.latlon.south,
+                                   CRS = proj4string(eelg.2008.UTM))
 
 # compute the overlap between UD without land and eelgrass
 # the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
@@ -571,22 +585,35 @@ pre.daynight <- readRDS(file = "RData/pre_GPS_UD.rds")
 
 # areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
 # but just to be sure.
-eelg.2008.latlon.south.df <- broom::tidy(eelg.2008.latlon.south)
-eelg.2008.UTM.south <- spTransform(eelg.2008.latlon.south,
-                                   CRS = proj4string(pre.daynight$HR$ver.50))
-
-eelg.2008.UTM.south.df <- broom::tidy(eelg.2008.UTM.south)
 
 # compute the eelgrass area
-pre.eelgrass.area <- slot(eelg.2008.UTM.south@polygons[[1]], "area") + 
-  slot(eelg.2008.UTM.south@polygons[[2]], "area")
+pre.eelgrass.area <- sum(unlist(eelg.2008.all.areas))
 
+# find the intersections with UDs
 # extract the land area
 area.pre.daynight.95 <- get.area.UTM(pre.daynight$HR$ver.95)
 area.pre.daynight.50 <- get.area.UTM(pre.daynight$HR$ver.50)
 
-pre.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, area.pre.daynight.50)
-pre.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south, area.pre.daynight.95)
+pre.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, 
+                                           area.pre.daynight.50)
+pre.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south,
+                                           area.pre.daynight.95)
+
+pre.eelgrass.UD.50.latlon <- spTransform(pre.eelgrass.UD.50,
+                                         CRS = CRS("+proj=longlat +datum=WGS84"))
+pre.eelgrass.UD.95.latlon <- spTransform(pre.eelgrass.UD.95,
+                                         CRS = CRS("+proj=longlat +datum=WGS84"))
+
+pre.UD.50.eelg.all.areas <- lapply(pre.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                   FUN = function(x){
+                                     areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                       slot(x, "ringDir")
+                                   } )
+pre.UD.95.eelg.all.areas <- lapply(pre.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                   FUN = function(x){
+                                     areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                       slot(x, "ringDir")
+                                   } )
 
 # create df for plotting using lat/lon
 pre.UD.95.df <- broom::tidy(spTransform(area.pre.daynight.95,
@@ -595,133 +622,71 @@ pre.UD.50.df <- broom::tidy(spTransform(area.pre.daynight.50,
                                         CRS = CRS("+proj=longlat +datum=WGS84")))
 
 
-ggplot() + 
+p1 <- ggplot() + 
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
   geom_polygon(data = eelg.2008.latlon.south.df,
                aes(x = long, y = lat, group = group),
-               fill = "blue") + 
-  #geom_polygon(data = SDBay.df,
-  #             aes(x = long, y = lat, group = group)) +
+               fill = eelgrass.color) + 
   geom_polygon(data = pre.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = "green",
+               fill = pre.95.color,
                alpha = 0.4)  +
   geom_polygon(data = pre.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = "darkgreen",
+               fill = pre.50.color,
                alpha = 0.4)  +
-  coord_map()
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
+
+if (save.fig)
+  ggsave(filename = "figures/pre_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
 
 
 ```
 
 Post period:
 ```{r}
-eelg.2014.latlon <- spTransform(readOGR(dsn = "GISfiles/Features",
-                                       layer = "SD_Baywide_Eelgrass_2014_Final",
-                                       verbose = F),
-                                CRS("+proj=longlat +datum=WGS84"))
+
+eelg.2014.UTM <- readOGR(dsn = "GISfiles/Features",
+                         layer = "SD_Baywide_Eelgrass_2014_Final",
+                         verbose = F)
+
+
+eelg.2014.latlon <- spTransform(eelg.2014.UTM,
+                                CRS = CRS("+proj=longlat +datum=WGS84"))
 
 eelg.2014.latlon.df <- broom::tidy(eelg.2014.latlon)
 
-eelg.2014.UTM <- spTransform(eelg.2014.latlon, 
-                             CRS = CRS("+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+# find the south bay eelgrass
+eelg.2014.latlon.south <- rgeos::gIntersection(south.bay.box, eelg.2014.latlon)
 
-# there is/are polygon(s) that intersects with 32.66 (N.end), and hole(s) that does not.
-# so just eliminating polygons that max(lat) < N.end creates orphan holes. To avoid it,
-# I convert all latitudes >= 32.66 to 32.659. Then, the intersecting polygon(s) will be
-# truncated at 32.66 with holes inside. (I think...)
+# recalulate areas of each polygon to make sure they are "correct." 
+eelg.2014.all.areas <- lapply(eelg.2014.latlon.south@polygons[[1]]@Polygons,
+                    FUN = function(x){
+                      areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                        slot(x, "ringDir")
+                    } )
 
-# layers 2 and 5 contain eelgrass patches. 
-
-# tmp1 <- eelg.2014.latlon@polygons[[1]]@Polygons
-# idx1 <- sapply(tmp1, 
-#               function(x) max(coordinates(x)[,2]) < N.end)
-
-tmp2 <- eelg.2014.latlon@polygons[[2]]@Polygons
-for (k in 1:length(tmp2)){
-  tmp <- coordinates(tmp2[[k]])
-  tmp[tmp[, 2] > N.end, 2] <- N.end
-  slot(tmp2[[k]], "coords") <- tmp
+for (k in 1:length(eelg.2014.all.areas)){
+  slot(eelg.2014.latlon.south@polygons[[1]]@Polygons[[k]], "area") <- eelg.2014.all.areas[[k]]
 }
 
-# this removes all polygons that were north of N.end because latitude that were
-# greater than N.end was set to N.end.
+eelg.2014.latlon.south.df <- broom::tidy(eelg.2014.latlon.south)
 
-idx2 <- sapply(tmp2,
-               function(x) var(coordinates(x)[,2]) > 0)
-
-#also... find the first TRUE in idx2
-#idx.first.T <- min(seq(from = 1, to = length(idx2))[cumsum(idx2) == 1])
-# this returns 1154 - this is the one that gets fixed in tmp2.1 below.
-
-# negate idx2
-#a_idx2 <- !(idx2)
-
-# tmp3 <- eelg.2014.latlon@polygons[[3]]@Polygons
-# idx3 <- sapply(tmp3,
-#               function(x) max(coordinates(x)[,2]) < N.end)
-# 
-# tmp4 <- eelg.2014.latlon@polygons[[4]]@Polygons
-# idx4 <- sapply(tmp4,
-#               function(x) max(coordinates(x)[,2]) < N.end)
-
-# all polygons in [[5]] are south of N.end
-tmp5 <- eelg.2014.latlon@polygons[[5]]@Polygons
-
-# for (k in 1:length(tmp5)){
-#   tmp <- coordinates(tmp5[[k]])
-#   tmp[tmp[, 2] > N.end, 2] <- N.end
-#   slot(tmp5[[k]], "coords") <- tmp
-# }
-# 
-# idx5 <- sapply(tmp5,
-#                function(x) var(coordinates(x)[,2]) > 0)
-# idx5 <- sapply(tmp5,
-#                function(x) max(coordinates(x)[,2]) < N.end)
-
-# the first polygon of tmp2 is cut off by the N.end value, making a flat line at N.end
-# from -117.16 to about -117.1523. This causes a problem when trying to find intersections
-# with UDs... so I manually modify it. Did the area fixed also? No. --- need to fix it. 
-tmp2.1 <- tmp2[idx2]
-coord.2.1 <- coordinates(tmp2.1[[1]])
-coord.2.1[coord.2.1[, 1] < -117.1523, ] <- NA
-coord.2.1 <- na.omit(coord.2.1)
-area.2.1 <- geosphere::areaPolygon(coord.2.1)
-
-# set the coordinates with the modified coordinates. I can't replace the area
-# here because the area should be in a different unit from square meters, which 
-# is the unit of output from areaPolygon.  I don't know what the unit is... this needs
-# to be figured out... FIX THIS! 1/8/2020
-slot(tmp2.1[[1]], "coords") <- coord.2.1
-
-#tmp2.2 <- tmp2[a_idx2]
-
-# Then, put them together as one. this doesn't work because of the tmp2.1... 
-# However... the problem polygon does not overlap with UDs. So... to make things simpler, 
-# I'll keep it for plotting purposes but remove it from computing the overlaps.
-# the area of the modified polygon tmp2.1[[1]] or eelg.2014.latlon.south.1@polygons[[1]]@Polygons[[1]]
-# is not changed from the original size because that was not modified above... So... I need to do 
-# something about that. 
-eelg.2014.latlon.south.1 <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0"),
-                                                 Polygons(srl = tmp5, ID = "1")),
-                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
-
-eelg.2014.latlon.south.df <- broom::tidy(eelg.2014.latlon.south.1)
-
-# The following works with gIntersection
-eelg.2014.latlon.south.2 <- SpatialPolygons(list(Polygons(srl = tmp5, ID = "0")),
-                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
-
-eelg.2014.latlon.south.2.df <- broom::tidy(eelg.2014.latlon.south.2)
-
-##  for checking areas
-eelg.2014.latlon.south.3 <- SpatialPolygons(list(Polygons(srl = tmp2.1, ID = "0")),
-                                            proj4string=CRS(proj4string(eelg.2014.latlon)))
-
-eelg.2014.UTM.south.3 <- spTransform(eelg.2014.latlon.south.3, 
-                                     CRS = CRS("+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-eelg.2014.latlon.south.3.df <- broom::tidy(eelg.2014.latlon.south.3)
-### 
+eelg.2014.UTM.south <- spTransform(eelg.2014.latlon.south,
+                                   CRS = proj4string(eelg.2014.UTM))
 
 # compute the overlap between UD without land and eelgrass
 # the following files were created in HR_analysis_GPS_LC_newtags_2019-10-30.Rmd
@@ -739,35 +704,42 @@ post.UD.50.df <- broom::tidy(spTransform(area.post.daynight.50,
 
 # areas are computed using UTM coordinates to keep the same unit - shouldn't make any difference
 # but just to be sure.
-eelg.2014.UTM.south.1 <- spTransform(eelg.2014.latlon.south.1,
-                                     CRS = proj4string(post.daynight$HR$ver.50))
-
-# Area is measured in square meters so it needs to be placed here rather than when 
-# unit was lat/lon - but this would not change the total area...  
-slot(eelg.2014.UTM.south.1@polygons[[1]]@Polygons[[1]], "area") <- area.2.1
+eelg.2014.UTM.south <- spTransform(eelg.2014.latlon.south,
+                                   CRS = proj4string(post.daynight$HR$ver.50))
 
 # compute the eelgrass area - make sure area is correct with removed polygons!! 1/8/2020!!
-post.eelgrass.area <- slot(eelg.2014.UTM.south.1@polygons[[1]], "area") + 
-  slot(eelg.2014.UTM.south.1@polygons[[2]], "area")
+post.eelgrass.area <- sum(unlist(eelg.2014.all.areas))
 
-#eelg.2014.UTM.south.df <- broom::tidy(eelg.2014.UTM.south)
-
-# To compute the overlap, use .2 file
-eelg.2014.UTM.south.2 <- spTransform(eelg.2014.latlon.south.2,
-                                     CRS = proj4string(post.daynight$HR$ver.50))
-
-# these lines crash RStudio. They don't when tmp2.1 is taken out.
-post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south.2, 
+# find the intersections with UDs
+post.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
                                             area.post.daynight.50)
-post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south.2,
+post.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south,
                                             area.post.daynight.95)
 
+post.eelgrass.UD.50.latlon <- spTransform(post.eelgrass.UD.50,
+                                          CRS = CRS("+proj=longlat +datum=WGS84"))
+post.eelgrass.UD.95.latlon <- spTransform(post.eelgrass.UD.95,
+                                          CRS = CRS("+proj=longlat +datum=WGS84"))
 
+post.UD.50.eelg.all.areas <- lapply(post.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                    FUN = function(x){
+                                      areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                        slot(x, "ringDir")
+                                    } )
+
+post.UD.95.eelg.all.areas <- lapply(post.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                    FUN = function(x){
+                                      areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                        slot(x, "ringDir")
+                                    } )
 
 p1 <- ggplot() + 
+   geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
   geom_polygon(data = eelg.2014.latlon.south.df,
                aes(x = long, y = lat, group = group),
-               fill = "blue") + 
+               fill = eelgrass.color) + 
 # geom_polygon(data = eelg.2014.latlon.south.2.df,
 #                aes(x = long, y = lat, group = group),
 #                fill = "red") + 
@@ -776,44 +748,344 @@ p1 <- ggplot() +
   #             aes(x = long, y = lat, group = group)) +
   geom_polygon(data = post.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = "green",
+               fill = post.95.color,
                alpha = 0.4)  +
   geom_polygon(data = post.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = "darkgreen",
+               fill = post.50.color,
                alpha = 0.4)  +
-  coord_map()
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
 
-# ggsave(filename = "figures/post_eelgrass_with_tmp21.png",
-#        device = "png",
-#        plot = p1)
+if (save.fig)
+ggsave(filename = "figures/post_eelgrass.png",
+       device = "png", dpi = 600,
+       plot = p1)
+
+p1
+```
+
+
+Pre period just day time
+```{r}
+pre.day <- readRDS(file = "RData/pre_GPS_UD_day.rds")
+
+# extract the land area from UDs
+area.pre.day.95 <- get.area.UTM(pre.day$HR$ver.95)
+area.pre.day.50 <- get.area.UTM(pre.day$HR$ver.50)
+
+# create df for plotting using lat/lon
+pre.day.UD.95.df <- broom::tidy(spTransform(area.pre.day.95,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+pre.day.UD.50.df <- broom::tidy(spTransform(area.pre.day.50,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+
+
+# find the intersections with UDs
+pre.day.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, 
+                                               area.pre.day.50)
+pre.day.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south,
+                                               area.pre.day.95)
+
+pre.day.eelgrass.UD.50.latlon <- spTransform(pre.day.eelgrass.UD.50,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+pre.day.eelgrass.UD.95.latlon <- spTransform(pre.day.eelgrass.UD.95,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+
+pre.day.UD.50.eelg.all.areas <- lapply(pre.day.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+pre.day.UD.95.eelg.all.areas <- lapply(pre.day.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+p1 <- ggplot() + 
+   geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
+  geom_polygon(data = eelg.2008.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color) + 
+# geom_polygon(data = eelg.2014.latlon.south.2.df,
+#                aes(x = long, y = lat, group = group),
+#                fill = "red") + 
+
+  # geom_polygon(data = SDBay.df,
+  #             aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = pre.day.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = pre.95.color,
+               alpha = 0.4)  +
+  geom_polygon(data = pre.day.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = pre.50.color,
+               alpha = 0.4)  +
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
+
+if (save.fig)
+ggsave(filename = "figures/pre_day_eelgrass.png",
+       device = "png", dpi = 600,
+       plot = p1)
+
+p1
+```
+
+
+Pre period just night time
+```{r}
+pre.night <- readRDS(file = "RData/pre_GPS_UD_night.rds")
+
+# extract the land area from UDs
+area.pre.night.95 <- get.area.UTM(pre.night$HR$ver.95)
+area.pre.night.50 <- get.area.UTM(pre.night$HR$ver.50)
+
+# create df for plotting using lat/lon
+pre.night.UD.95.df <- broom::tidy(spTransform(area.pre.night.95,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+pre.night.UD.50.df <- broom::tidy(spTransform(area.pre.night.50,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+
+# find the intersections with UDs
+pre.night.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2008.UTM.south, 
+                                                 area.pre.night.50)
+pre.night.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2008.UTM.south,
+                                                 area.pre.night.95)
+
+pre.night.eelgrass.UD.50.latlon <- spTransform(pre.night.eelgrass.UD.50,
+                                               CRS = CRS("+proj=longlat +datum=WGS84"))
+pre.night.eelgrass.UD.95.latlon <- spTransform(pre.night.eelgrass.UD.95,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+
+pre.night.UD.50.eelg.all.areas <- lapply(pre.night.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+pre.night.UD.95.eelg.all.areas <- lapply(pre.night.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+p1 <- ggplot() + 
+   geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
+  geom_polygon(data = eelg.2008.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color) + 
+# geom_polygon(data = eelg.2014.latlon.south.2.df,
+#                aes(x = long, y = lat, group = group),
+#                fill = "red") + 
+
+  # geom_polygon(data = SDBay.df,
+  #             aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = pre.night.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = pre.95.color,
+               alpha = 0.4)  +
+  geom_polygon(data = pre.night.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = pre.50.color,
+               alpha = 0.4)  +
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
+
+if (save.fig)
+ggsave(filename = "figures/pre_night_eelgrass.png",
+       device = "png", dpi = 600,
+       plot = p1)
+
+p1
+```
+
+
+
+Post period just day time
+```{r}
+post.day <- readRDS(file = "RData/post_GPS_UD_day.rds")
+
+# extract the land area from UDs
+area.post.day.95 <- get.area.UTM(post.day$HR$ver.95)
+area.post.day.50 <- get.area.UTM(post.day$HR$ver.50)
+
+# create df for plotting using lat/lon
+post.day.UD.95.df <- broom::tidy(spTransform(area.post.day.95,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+post.day.UD.50.df <- broom::tidy(spTransform(area.post.day.50,
+                                            CRS = CRS("+proj=longlat +datum=WGS84")))
+
+
+# find the intersections with UDs
+post.day.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
+                                               area.pre.day.50)
+post.day.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south,
+                                               area.pre.day.95)
+
+post.day.eelgrass.UD.50.latlon <- spTransform(post.day.eelgrass.UD.50,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+post.day.eelgrass.UD.95.latlon <- spTransform(post.day.eelgrass.UD.95,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+
+post.day.UD.50.eelg.all.areas <- lapply(post.day.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                        FUN = function(x){
+                                          areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                            slot(x, "ringDir")
+                                        } )
+
+post.day.UD.95.eelg.all.areas <- lapply(post.day.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+p1 <- ggplot() + 
+   geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
+  geom_polygon(data = eelg.2014.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color) + 
+  geom_polygon(data = post.day.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = post.95.color,
+               alpha = 0.4)  +
+  geom_polygon(data = post.day.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = post.50.color,
+               alpha = 0.4)  +
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
+
+if (save.fig)
+ggsave(filename = "figures/post_day_eelgrass.png",
+       device = "png", dpi = 600,
+       plot = p1)
+
+p1
+```
+
+
+Post period just night time
+```{r}
+post.night <- readRDS(file = "RData/post_GPS_UD_night.rds")
+
+# extract the land area from UDs
+area.post.night.95 <- get.area.UTM(post.night$HR$ver.95)
+area.post.night.50 <- get.area.UTM(post.night$HR$ver.50)
+
+# create df for plotting using lat/lon
+post.night.UD.95.df <- broom::tidy(spTransform(area.post.night.95,
+                                               CRS = CRS("+proj=longlat +datum=WGS84")))
+post.night.UD.50.df <- broom::tidy(spTransform(area.post.night.50,
+                                               CRS = CRS("+proj=longlat +datum=WGS84")))
+
+# find the intersections with UDs
+post.night.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
+                                                  area.post.night.50)
+post.night.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south,
+                                                  area.post.night.95)
+
+post.night.eelgrass.UD.50.latlon <- spTransform(post.night.eelgrass.UD.50,
+                                               CRS = CRS("+proj=longlat +datum=WGS84"))
+post.night.eelgrass.UD.95.latlon <- spTransform(post.night.eelgrass.UD.95,
+                                             CRS = CRS("+proj=longlat +datum=WGS84"))
+
+post.night.UD.50.eelg.all.areas <- lapply(post.night.eelgrass.UD.50.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+post.night.UD.95.eelg.all.areas <- lapply(post.night.eelgrass.UD.95.latlon@polygons[[1]]@Polygons,
+                                       FUN = function(x){
+                                         areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                           slot(x, "ringDir")
+                                       } )
+
+p1 <- ggplot() + 
+   geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = water.color) + 
+  geom_polygon(data = eelg.2014.latlon.south.df,
+               aes(x = long, y = lat, group = group),
+               fill = eelgrass.color) + 
+  geom_polygon(data = post.night.UD.95.df,
+               aes(x = long, y = lat, group = group),
+               fill = post.95.color,
+               alpha = 0.4)  +
+  geom_polygon(data = post.night.UD.50.df,
+               aes(x = long, y = lat, group = group),
+               fill = post.50.color,
+               alpha = 0.4)  +
+  labs(x = "", y = "")+ 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color,
+                                        colour = water.color),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.border = element_rect(color = "black",
+                                    fill = NA)) +
+  coord_map(xlim = c(-117.145, -117.09),
+            ylim = c(32.595, 32.665))
+
+if (save.fig)
+ggsave(filename = "figures/post_night_eelgrass.png",
+       device = "png", dpi = 600,
+       plot = p1)
 
 p1
 ```
 
 
 ```{r}
-pre.day <- readRDS(file = "RData/pre_GPS_UD_day.rds")
-pre.night <- readRDS(file = "RData/pre_GPS_UD_night.rds")
-post.daynight <- readRDS(file = "RData/post_GPS_UD.rds")
-post.day <- readRDS(file = "RData/post_GPS_UD_day.rds")
-post.night <- readRDS(file = "RData/post_GPS_UD_night.rds")
 
-pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
-pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
-pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
-post.daynight.byID <- readRDS(file = "RData/post_GPS_UD_byID.rds")
-post.day.byID <- readRDS(file = "RData/post_GPS_UD_day_byID.rds")
-post.night.byID <- readRDS(file = "RData/post_GPS_UD_night_byID.rds")
+# pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
+# pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
+# pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
+# post.daynight.byID <- readRDS(file = "RData/post_GPS_UD_byID.rds")
+# post.day.byID <- readRDS(file = "RData/post_GPS_UD_day_byID.rds")
+# post.night.byID <- readRDS(file = "RData/post_GPS_UD_night_byID.rds")
 
-area.pre.day.95 <- spTransform(get.area.UTM(pre.day$HR$ver.95), 
-                               CRS=CRS("+proj=longlat +datum=WGS84"))
-area.pre.night.95 <- spTransform(get.area.UTM(pre.night$HR$ver.95),
-                                 CRS=CRS("+proj=longlat +datum=WGS84"))
-area.pre.day.50 <- spTransform(get.area.UTM(pre.day$HR$ver.50), 
-                               CRS=CRS("+proj=longlat +datum=WGS84"))
-area.pre.night.50 <- spTransform(get.area.UTM(pre.night$HR$ver.50),
-                                 CRS=CRS("+proj=longlat +datum=WGS84"))
 ```
 
 
