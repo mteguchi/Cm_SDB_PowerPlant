@@ -29,13 +29,22 @@ min_n <- 50
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
 
-water.color <- "lightblue"
-background.color <- "darkgray"
+map.west.east <- c(-117.16, -117.09)
+map.north.south <- c(32.595, 32.665)
+
+pre.95.fill <- "lightgoldenrod2"
+pre.95.color <- "lightgoldenrod3"
+pre.50.fill <- "goldenrod2"
+pre.50.color <- "goldenrod3"
+water.color <- "lavender"
+
+post.95.color <- "mediumpurple3"
+post.95.fill <- "mediumpurple2"
+post.50.color <- "purple3"
+post.50.fill <- "purple2"
+
+background.color <- "grey25" #"darkgray"
 eelgrass.color <- "mediumseagreen"
-post.50.color <- "mediumorchid4"
-post.95.color <- "mediumorchid1"
-pre.50.color <- "gold"
-pre.95.color <- "lightgoldenrod1"
 
 grid <- 1000
 extent <- 1
@@ -631,27 +640,31 @@ p1 <- ggplot() +
                fill = eelgrass.color) + 
   geom_polygon(data = pre.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.95.color,
+               fill = pre.95.fill,
+               color = pre.95.color,
                alpha = 0.4)  +
   geom_polygon(data = pre.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.50.color,
+               fill = pre.50.fill,
+               color = pre.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
   ggsave(filename = "figures/pre_eelgrass.png",
          device = "png", dpi = 600,
          plot = p1)
+
+p1
 
 
 ```
@@ -748,22 +761,24 @@ p1 <- ggplot() +
   #             aes(x = long, y = lat, group = group)) +
   geom_polygon(data = post.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = post.95.color,
+               fill = post.95.fill,
+               color = post.95.color,
                alpha = 0.4)  +
   geom_polygon(data = post.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = post.50.color,
+               fill = post.50.fill,
+               color = post.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
 ggsave(filename = "figures/post_eelgrass.png",
@@ -827,27 +842,29 @@ p1 <- ggplot() +
   #             aes(x = long, y = lat, group = group)) +
   geom_polygon(data = pre.day.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.95.color,
+               fill = pre.95.fill,
+               color = pre.95.color,
                alpha = 0.4)  +
   geom_polygon(data = pre.day.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.50.color,
+               fill = pre.50.fill,
+               color = pre.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
-ggsave(filename = "figures/pre_day_eelgrass.png",
-       device = "png", dpi = 600,
-       plot = p1)
+  ggsave(filename = "figures/pre_day_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
 
 p1
 ```
@@ -905,27 +922,29 @@ p1 <- ggplot() +
   #             aes(x = long, y = lat, group = group)) +
   geom_polygon(data = pre.night.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.95.color,
+               fill = pre.95.fill,
+               color = pre.95.color,
                alpha = 0.4)  +
   geom_polygon(data = pre.night.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = pre.50.color,
+               fill = pre.50.fill,
+               color = pre.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
-ggsave(filename = "figures/pre_night_eelgrass.png",
-       device = "png", dpi = 600,
-       plot = p1)
+  ggsave(filename = "figures/pre_night_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
 
 p1
 ```
@@ -979,27 +998,29 @@ p1 <- ggplot() +
                fill = eelgrass.color) + 
   geom_polygon(data = post.day.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = post.95.color,
+               fill = post.95.fill,
+               color = post.95.color,
                alpha = 0.4)  +
   geom_polygon(data = post.day.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = post.50.color,
+               fill = post.50.fill,
+               color = post.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
-ggsave(filename = "figures/post_day_eelgrass.png",
-       device = "png", dpi = 600,
-       plot = p1)
+  ggsave(filename = "figures/post_day_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
 
 p1
 ```
@@ -1051,34 +1072,36 @@ p1 <- ggplot() +
                fill = eelgrass.color) + 
   geom_polygon(data = post.night.UD.95.df,
                aes(x = long, y = lat, group = group),
-               fill = post.95.color,
+               fill = post.95.fill,
+               color = post.95.color,
                alpha = 0.4)  +
   geom_polygon(data = post.night.UD.50.df,
                aes(x = long, y = lat, group = group),
-               fill = post.50.color,
+               fill = post.50.fill,
+               color = post.50.color,
                alpha = 0.4)  +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = water.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        #axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
-  coord_map(xlim = c(-117.145, -117.09),
-            ylim = c(32.595, 32.665))
+  coord_map(xlim = map.west.east,
+            ylim = map.north.south)
 
 if (save.fig)
-ggsave(filename = "figures/post_night_eelgrass.png",
-       device = "png", dpi = 600,
-       plot = p1)
+  ggsave(filename = "figures/post_night_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
 
 p1
 ```
 
-
+Add all areas for each combination.
 ```{r}
-
+pre.50.area
 # pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
 # pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
 # pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
