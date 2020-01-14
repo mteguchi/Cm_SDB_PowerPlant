@@ -22,7 +22,7 @@ library(sf)
 
 source("HR_analysis_fcns.R")
 
-save.fig <- T
+save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -43,7 +43,7 @@ post.95.fill <- "mediumpurple2"
 post.50.color <- "purple3"
 post.50.fill <- "purple2"
 
-background.color <- "grey25" #"darkgray"
+background.color <- "darkgray" #"grey25" #
 eelgrass.color <- "mediumseagreen"
 
 grid <- 1000
@@ -634,7 +634,8 @@ pre.UD.50.df <- broom::tidy(spTransform(area.pre.daynight.50,
 p1 <- ggplot() + 
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
-               fill = water.color) + 
+               fill = water.color,
+               color = "black") + 
   geom_polygon(data = eelg.2008.latlon.south.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
@@ -648,6 +649,10 @@ p1 <- ggplot() +
                fill = pre.50.fill,
                color = pre.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -769,6 +774,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -850,6 +859,10 @@ p1 <- ggplot() +
                fill = pre.50.fill,
                color = pre.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -930,6 +943,10 @@ p1 <- ggplot() +
                fill = pre.50.fill,
                color = pre.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -1006,6 +1023,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -1080,6 +1101,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_polygon(data = SDBay.latlon.df,
+               aes(x = long, y = lat, group = group),
+               fill = "transparent",
+               color = "black") +
   labs(x = "", y = "")+ 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -1089,7 +1114,20 @@ p1 <- ggplot() +
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
   coord_map(xlim = map.west.east,
-            ylim = map.north.south)
+            ylim = map.north.south) + 
+  ggsn::scalebar(#data = SDBay.latlon.df, 
+                 #location = "topright",
+                 transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 1,
+                 height = 0.1,
+                 st.size = 5,
+                 st.dist = 0.2,
+                 x.min = -117.155,
+                 x.max = -117.135,
+                 y.min = 32.6,
+                 y.max = 32.61) 
 
 if (save.fig)
   ggsave(filename = "figures/post_night_eelgrass.png",
@@ -1101,7 +1139,7 @@ p1
 
 Add all areas for each combination.
 ```{r}
-pre.50.area
+
 # pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
 # pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
 # pre.night.byID <- readRDS(file = "RData/pre_GPS_UD_night_byID.rds")
