@@ -11,7 +11,7 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/R/tools/TomosFunctions.R'))
 library(tidyverse)
 
-water.color <- "lightblue"
+water.color <- "lavender" #"lightblue"
 land.color <- "darkgray"
 #land.color <- '#333333'
 
@@ -49,7 +49,7 @@ coast.line <- getCoastLine(paste0(dirSelector()$Rdir,
 
 coast.line.df <- do.call(rbind, coast.line)
 colnames(coast.line.df) <- c('X', 'Y', 'idx')
-coast.line.Sp <- latlon2sp(coast.line.df, center.latlon)
+#coast.line.Sp <- latlon2sp(coast.line.df, center.latlon)
 
 # the following shape file was obttained from here: #https://gis.stackexchange.com/questions/153514/us-mexican-border-data
 # note that the USGS link is broken but direct link "here" is available. 
@@ -115,9 +115,9 @@ p1 <- ggplot() +
 
 print(p1)
 
-ggsave(filename = "figures/large_map.png",
+ggsave(filename = "figures/large_map.tif",
        plot = p1,
-       device = "png",
+       device = "tiff",
        dpi = 600)
 ```
 

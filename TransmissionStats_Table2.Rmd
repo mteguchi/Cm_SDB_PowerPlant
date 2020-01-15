@@ -7,21 +7,21 @@ output: html_notebook
 rm(list = ls())
 library(dplyr)
 library(tidyverse)
-save.file <- FALSE
+save.file <- T #FALSE
 ```
 
 
 First read in the data files with inside/outside information
 
 ```{r}
-summary.argos <- function(dname, N.end = 32.69){
+summary.argos <- function(dname, N.end = 32.66){
   
   #dname <- "data/files_Apr2018_withNewTags/pre/"
   files <- dir(path = dname, 
                pattern = "_inout.csv")
   
   #pre.IDs <- unlist(lapply(pre.files, FUN = ID.names))
-  if (length(grep("data/files_Jul2018_withNewTags/pre/", dname)) > 0){
+  if (length(grep("data/files_Oct2019_withNewTags/pre/", dname)) > 0){
     col_def <- cols(ID = col_integer(),
                     ArgosID = col_integer(),
                     Message_Type = col_factor(levels = c("DIAG", "DS", "GPS")),
@@ -49,7 +49,7 @@ summary.argos <- function(dname, N.end = 32.69){
                     inside = col_integer())
     
   } else {
-    if (length(grep("data/files_Jul2018_withNewTags/post/", dname)) == 1){
+    if (length(grep("data/files_Oct2019_withNewTags/post/", dname)) == 1){
       date.format <- "%m-%d-%Y %H:%M:%S"
       
     }else{
@@ -140,9 +140,9 @@ summary.argos <- function(dname, N.end = 32.69){
               summary.data = raw.summary))
 }
 
-pre.dname <- "data/files_Jul2018_withNewTags/pre/"
-post.dname <- "data/files_Jul2018_withNewTags/post/"
-new.dname <- "data/files_Jul2018_withNewTags/new/"
+pre.dname <- "data/files_Oct2019_withNewTags/pre/"
+post.dname <- "data/files_Oct2019_withNewTags/post/"
+new.dname <- "data/files_Oct2019_withNewTags/new/"
 
 pre.summary <- summary.argos(pre.dname)
 
@@ -171,6 +171,38 @@ if (save.file)
   write.csv(save.summary,
             file = paste0("data/transmissionSummary_", Sys.Date(), ".csv"),
             row.names = FALSE)
+
+```
+
+Get necessary statistics for the text
+
+```{r}
+
+# toatl proportion of accepted GPS data points
+sum(save.summary$GPS.accept)/sum(save.summary$GPS)
+
+# min and max of the proportion accepted per individual
+min(save.summary$GPS.prop) * 100
+max(save.summary$GPS.prop) * 100
+
+# # individuals with sufficient sample size; pre and post
+save.summary %>% filter(GPS.accept < 50) %>% filter(Date < as.Date("2010-01-01")) %>% nrow()
+save.summary %>% filter(GPS.accept < 50) %>% filter(Date >= as.Date("2010-01-01")) %>% nrow()
+```
+
+Find those that didn't have sufficient data for day- and night-specific UD computations
+```{r}
+dat.table <- read.csv(file = "data/IDvsUDs.csv") 
+
+# pre period that didn't have enough samples
+dat.table %>% filter(period == "pre") %>% 
+  filter(n.relocations.all.GPS >= 50) %>% 
+  filter(n.day.all.GPS < 50 | n.night.all.GPS < 50) %>% nrow()
+
+# post period that didn't have enough samples
+dat.table %>% filter(period == "post") %>% 
+  filter(n.relocations.all.GPS >= 50) %>% 
+  filter(n.day.all.GPS < 50 | n.night.all.GPS < 50) %>% nrow()
 
 ```
 

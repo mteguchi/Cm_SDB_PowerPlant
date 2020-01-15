@@ -51,9 +51,10 @@ eelgrass.2014 <- spTransform(readOGR(dsn = "GISfiles/Features",
                          CRS("+proj=longlat +datum=WGS84"))
 eelgrass.2014.df <- broom::tidy(eelgrass.2014)
 
-water.color <- "lightblue"
+water.color <- "lavender"
+#water.color <- "lightblue"
 background.color <- "darkgray"
-eelgrass.color <- "lightgreen"
+eelgrass.color <- "mediumseagreen" #"lightgreen"
 
 
 # internet <- F #TRUE
@@ -70,7 +71,7 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 #                   layer = "tag_065_project")
 # tagproj <- proj4string(tagprj)
 
-box.coords <- data.frame(lon = c(-117.145, -117.09, -117.09, -117.145, -117.145),
+box.coords <- data.frame(lon = c(-117.16, -117.09, -117.09, -117.16, -117.16),
                          lat = c(32.665, 32.665, 32.595, 32.595, 32.665))
 
 # box.coords %>% st_as_sf(coords = c("longitude", "latitude"),
@@ -98,13 +99,24 @@ p.map.1.2008 <- ggplot() +
                fill = NA) + 
   coord_map(ylim = c(32.57, 32.75),
             xlim = c(-117.27, -117.08)) + 
+  ggsn::scalebar(transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 2,
+                 height = 0.1,
+                 st.size = 4,
+                 st.dist = 0.15,
+                 x.min = -117.25,
+                 x.max = -117.20,
+                 y.min = 32.58,
+                 y.max = 32.61) +
   labs(x = "", y = "")+ 
   theme(panel.border = element_rect(color = "black", fill = NA),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = background.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5))  
+        axis.text = element_text(size = 12))  
 
 if (save.fig)
   ggsave(plot = p.map.1.2008,
@@ -142,7 +154,7 @@ p.map.1.2014 <- ggplot() +
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = background.color,
                                         colour = background.color),
-        axis.text.x = element_text(angle = 90, vjust = 0.5))  
+        axis.text = element_text(size = 12 ))  
 
 if (save.fig)
   ggsave(plot = p.map.1.2014,

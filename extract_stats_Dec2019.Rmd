@@ -22,29 +22,35 @@ library(sf)
 
 source("HR_analysis_fcns.R")
 
-save.fig <- F
+plot.fig <- F
+save.fig <- T
+
+if (!plot.fig) save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
 
-map.west.east <- c(-117.16, -117.09)
-map.north.south <- c(32.595, 32.665)
-
-pre.95.fill <- "lightgoldenrod2"
-pre.95.color <- "lightgoldenrod3"
-pre.50.fill <- "goldenrod2"
-pre.50.color <- "goldenrod3"
-water.color <- "lavender"
-
-post.95.color <- "mediumpurple3"
-post.95.fill <- "mediumpurple2"
-post.50.color <- "purple3"
-post.50.fill <- "purple2"
-
-background.color <- "darkgray" #"grey25" #
-eelgrass.color <- "mediumseagreen"
+if (plot.fig){
+  map.west.east <- c(-117.16, -117.09)
+  map.north.south <- c(32.595, 32.665)
+  
+  pre.95.fill <- "lightgoldenrod2"
+  pre.95.color <- "lightgoldenrod3"
+  pre.50.fill <- "goldenrod2"
+  pre.50.color <- "goldenrod3"
+  
+  post.95.color <- "mediumpurple3"
+  post.95.fill <- "mediumpurple2"
+  post.50.color <- "purple3"
+  post.50.fill <- "purple2"
+  
+  water.color <- "lavender"
+  background.color <- "darkgray" #"grey25" #
+  eelgrass.color <- "mediumseagreen"
+  
+}
 
 grid <- 1000
 extent <- 1
@@ -210,11 +216,11 @@ post.UD.night <- readRDS("RData/post_GPS_UD_night.rds")
 
 Determining the sample size necessary to approximate the observed post-period.  
 ```{r}
-post.summary <- read.csv("data/post_sample_summary.csv")
+post.summary <- read.csv("data/post_sample_GPS_summary.csv")
 ID.post.min_n <- filter(post.summary,
                        n.relocations.all > (min_n - 1))
 
-pre.summary <- read.csv("data/pre_sample_summary.csv")
+pre.summary <- read.csv("data/pre_sample_GPS_summary.csv")
 ID.pre.min_n <- filter(pre.summary,
                        n.relocations.all > (min_n - 1))
 
@@ -303,70 +309,94 @@ area95.means <- area95.df %>%
             median.95 = median(area95),
             n = first(n)) 
 
-pre.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 0)), 
-                           nrow(filter(used.n, pre0post1 == 0))), 
-                     areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
-
-post.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 1)), 
-                            nrow(filter(used.n, pre0post1 == 1))), 
-                     areas = c(post.UD$HR$area.50, post.UD$HR$area.95))
- 
-p.dif.dist <- ggplot() + 
-  geom_point(data = area50.df,
-             aes(x = n, y = area50)) + 
-  geom_point(data = area50.means,
-             aes(x = n, 
-                 y = mean.50),
-             size = 4.5,
-             shape = 15) + 
-  geom_point(data = area95.df,
-             aes(x = n, y = area95)) + 
-  geom_point(data = area95.means,
-             aes(x = n, 
-                 y = mean.95),
-             size = 4.5,
-             shape = 15) + 
-  geom_point(data = pre.df,
-             aes(x = n, y = areas),
-             color = "green",
-             size = 3.5) + 
-  geom_hline(yintercept = post.UD$HR$area.50,
-             size = 1.5, color = "blue",
-             linetype = 2) + 
-  geom_hline(yintercept = post.UD$HR$area.95,
-             size = 1.5, color = "blue",
-             linetype = 2) + 
-  scale_x_continuous(breaks = c(min(area95.df$n):max(area95.df$n)),
-                     limits = c((min(area95.df$n) - 0.2), (max(area95.df$n) + 0.2))) +
-  labs(x = "Number of individuals",
-       y = bquote('Estimated UDs (' *km^2*')'))
+if (plot.fig){
+  pre.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 0)), 
+                             nrow(filter(used.n, pre0post1 == 0))), 
+                       areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
   
-if (save.fig)
-  ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
-         plot = p.dif.dist,
-         device = "png",
-         dpi = 600)
+  post.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 1)), 
+                              nrow(filter(used.n, pre0post1 == 1))), 
+                        areas = c(post.UD$HR$area.50, post.UD$HR$area.95))
+  
+  p.dif.dist <- ggplot() + 
+    geom_point(data = area50.df,
+               aes(x = n, y = area50)) + 
+    geom_point(data = area50.means,
+               aes(x = n, 
+                   y = mean.50),
+               size = 4.5,
+               shape = 15) + 
+    geom_point(data = area95.df,
+               aes(x = n, y = area95)) + 
+    geom_point(data = area95.means,
+               aes(x = n, 
+                   y = mean.95),
+               size = 4.5,
+               shape = 15) + 
+    geom_point(data = pre.df,
+               aes(x = n, y = areas),
+               color = "green",
+               size = 3.5) + 
+    geom_hline(yintercept = post.UD$HR$area.50,
+               size = 1.5, color = "blue",
+               linetype = 2) + 
+    geom_hline(yintercept = post.UD$HR$area.95,
+               size = 1.5, color = "blue",
+               linetype = 2) + 
+    scale_x_continuous(breaks = c(min(area95.df$n):max(area95.df$n)),
+                       limits = c((min(area95.df$n) - 0.2), (max(area95.df$n) + 0.2))) +
+    labs(x = "Number of individuals",
+         y = bquote('Estimated UDs (' *km^2*')'))
+  
+  if (save.fig)
+    ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
+           plot = p.dif.dist,
+           device = "png",
+           dpi = 600)
+  
+  print(p.dif.dist)
+}
 
-print(p.dif.dist)
 ```
 
 This plot shows that (1) the mean 50% UDs did not change from n = 4 to n = 12 and (2) 95% UDs require 11 or more individuals to be a good estimate. The observed pre-period UDs were significantly less than the post-period. 
 
+Look at how many individuals were available:
+```{r}
+ID.post.min_n %>% nrow()
+ID.pre.min_n %>% nrow()
+
+```
+
+
+
 Look at the difference between n = 4 and n = 12
 ```{r}
 # mean of all n = 4 samples
-area50.df %>% filter(n == 4) %>% summarise(mean(area50))
+area50.df %>% filter(n == 4) %>% nrow() -> n.n4
+n.n4
+area50.df %>% filter(n == 4) %>% summarise(min(area50), max(area50), 
+                                           mean(area50), sqrt(var(area50)/n.n4),
+                                           sqrt(var(area50)))
 
-# min and max of n = 12 samples
-area50.df %>% filter(n == 12) %>% summarise(min(area50), max(area50))
-
+# the total 50% UD with all individuals:
+post.UD$HR$area.50
 ```
+
+Increase in UDs
+```{r}
+pre.UD$HR$area.50
+
+post.UD$HR$area.50
+```
+
+
 
 
 Another way to look at the distributions - ridge plots. 
 
 ```{r}
-
+if (plot.fig){
 ggplot(data = area50.df) + 
   geom_density_ridges2(aes(x = area50, y = f.n), 
                        scale = 2,
@@ -375,11 +405,14 @@ ggplot(data = area50.df) +
              size = 1.5, color = "black",
              linetype = 2) + 
   labs(x = "50% UD", y = "Number of individuals")
+  
+}
 
 ```
 
 ```{r}
 
+if (plot.fig){
 ggplot(data = area95.df) + 
   geom_density_ridges2(aes(x = area95, y = f.n), 
                        scale = 2,
@@ -388,12 +421,15 @@ ggplot(data = area95.df) +
              size = 1.5, color = "black",
              linetype = 2) + 
   labs(x = "95% UD", y = "Number of individuals")
+  
+}
 
 ```
 
 Look at the differences between pre and post periods using 50% UDs.
 
 ```{r}
+if (plot.fig){
 # n = 4 is the first list item.
 p.d50.n4 <- ggplot(data = dif.50.list[[1]]) + 
     geom_histogram(aes(x = dif), binwidth = 0.1,
@@ -409,9 +445,24 @@ ggsave(filename = paste0("figures/preVsPost_n4_", Sys.Date(), ".png"),
 
 
 print(p.d50.n4)
+  
+}
 
-p.gt0 <- sum(dif.50.list[[1]]$dif > 0)/length(dif.50.list[[1]]$dif)
+length(dif.50.list[[1]]$dif)
+sum(dif.50.list[[1]]$dif > 0)
+sum(dif.50.list[[1]]$dif > 0)/length(dif.50.list[[1]]$dif)
 ```
+
+Look at changes for day and night
+```{r}
+pre.UD.day$HR$area.50
+post.UD.day$HR$area.50
+
+pre.UD.night$HR$area.50
+post.UD.night$HR$area.50
+
+```
+
 
 Now that we know the stability of the core use area with respect to the sample sizes, we compute them extracting the land space.  (this was already done in HR_analysis_GPS_LC_newtags_2019-10-31.Rmd)
 
@@ -624,55 +675,88 @@ pre.UD.95.eelg.all.areas <- lapply(pre.eelgrass.UD.95.latlon@polygons[[1]]@Polyg
                                        slot(x, "ringDir")
                                    } )
 
-# create df for plotting using lat/lon
-pre.UD.95.df <- broom::tidy(spTransform(area.pre.daynight.95,
-                                        CRS = CRS("+proj=longlat +datum=WGS84")))
-pre.UD.50.df <- broom::tidy(spTransform(area.pre.daynight.50,
-                                        CRS = CRS("+proj=longlat +datum=WGS84")))
-
-
-p1 <- ggplot() + 
-  geom_polygon(data = SDBay.latlon.df,
-               aes(x = long, y = lat, group = group),
-               fill = water.color,
-               color = "black") + 
-  geom_polygon(data = eelg.2008.latlon.south.df,
-               aes(x = long, y = lat, group = group),
-               fill = eelgrass.color) + 
-  geom_polygon(data = pre.UD.95.df,
-               aes(x = long, y = lat, group = group),
-               fill = pre.95.fill,
-               color = pre.95.color,
-               alpha = 0.4)  +
-  geom_polygon(data = pre.UD.50.df,
-               aes(x = long, y = lat, group = group),
-               fill = pre.50.fill,
-               color = pre.50.color,
-               alpha = 0.4)  +
-  geom_polygon(data = SDBay.latlon.df,
-               aes(x = long, y = lat, group = group),
-               fill = "transparent",
-               color = "black") +
-  labs(x = "", y = "")+ 
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_rect(fill = background.color,
-                                        colour = water.color),
-        #axis.text.x = element_text(angle = 90, vjust = 0.5),
-        panel.border = element_rect(color = "black",
-                                    fill = NA)) +
-  coord_map(xlim = map.west.east,
-            ylim = map.north.south)
-
-if (save.fig)
-  ggsave(filename = "figures/pre_eelgrass.png",
-         device = "png", dpi = 600,
-         plot = p1)
-
-p1
+if (plot.fig){
+  # create df for plotting using lat/lon
+  pre.UD.95.df <- broom::tidy(spTransform(area.pre.daynight.95,
+                                          CRS = CRS("+proj=longlat +datum=WGS84")))
+  pre.UD.50.df <- broom::tidy(spTransform(area.pre.daynight.50,
+                                          CRS = CRS("+proj=longlat +datum=WGS84")))
+  
+  
+  p1 <- ggplot() + 
+    geom_polygon(data = SDBay.latlon.df,
+                 aes(x = long, y = lat, group = group),
+                 fill = water.color,
+                 color = "black") + 
+    geom_polygon(data = eelg.2008.latlon.df,
+                 aes(x = long, y = lat, group = group),
+                 fill = eelgrass.color) + 
+    geom_polygon(data = pre.UD.95.df,
+                 aes(x = long, y = lat, group = group),
+                 fill = pre.95.fill,
+                 color = pre.95.color,
+                 alpha = 0.4)  +
+    geom_polygon(data = pre.UD.50.df,
+                 aes(x = long, y = lat, group = group),
+                 fill = pre.50.fill,
+                 color = pre.50.color,
+                 alpha = 0.4)  +
+    geom_line(data = data.frame(long = c(-117.156, -117.117),
+                                lat = c(32.66, 32.66)),
+              aes(x = long, y = lat),
+              size = 1, linetype = 2) +
+    geom_polygon(data = SDBay.latlon.df,
+                 aes(x = long, y = lat, group = group),
+                 fill = "transparent",
+                 color = "black") +
+    labs(x = "", y = "")+ 
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = background.color,
+                                          colour = water.color),
+          #axis.text.x = element_text(angle = 90, vjust = 0.5),
+          panel.border = element_rect(color = "black",
+                                      fill = NA)) +
+    coord_map(xlim = map.west.east,
+              ylim = map.north.south) + 
+    ggsn::scalebar(#data = SDBay.latlon.df, 
+      #location = "topright",
+      transform = TRUE,
+      model = "WGS84",
+      dist_unit = "km", 
+      dist = 1,
+      height = 0.1,
+      st.size = 3,
+      st.dist = 0.2,
+      x.min = -117.155,
+      x.max = -117.135,
+      y.min = 32.6,
+      y.max = 32.61) 
+  
+  if (save.fig)
+    ggsave(filename = "figures/pre_eelgrass.png",
+           device = "png", dpi = 600,
+           plot = p1)
+  
+  p1
+}
 
 
 ```
+
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(pre.UD.50.eelg.all.areas))
+
+# that's in m2
+# so convert it in km2
+sum(unlist(pre.UD.50.eelg.all.areas))/1e+6
+
+pre.eelgrass.area/1e+6
+
+```
+
+
 
 Post period:
 ```{r}
@@ -750,12 +834,12 @@ post.UD.95.eelg.all.areas <- lapply(post.eelgrass.UD.95.latlon@polygons[[1]]@Pol
                                       areas <- geosphere::areaPolygon(slot(x, "coords")) * 
                                         slot(x, "ringDir")
                                     } )
-
-p1 <- ggplot() + 
+if (plot.fig){
+  p1 <- ggplot() + 
    geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = water.color) + 
-  geom_polygon(data = eelg.2014.latlon.south.df,
+  geom_polygon(data = eelg.2014.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
 # geom_polygon(data = eelg.2014.latlon.south.2.df,
@@ -774,6 +858,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_line(data = data.frame(long = c(-117.156, -117.117),
+                              lat = c(32.66, 32.66)),
+            aes(x = long, y = lat),
+            size = 1, linetype = 2) +
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = "transparent",
@@ -787,7 +875,20 @@ p1 <- ggplot() +
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
   coord_map(xlim = map.west.east,
-            ylim = map.north.south)
+            ylim = map.north.south) + 
+  ggsn::scalebar(#data = SDBay.latlon.df, 
+                 #location = "topright",
+                 transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 1,
+                 height = 0.1,
+                 st.size = 3,
+                 st.dist = 0.2,
+                 x.min = -117.155,
+                 x.max = -117.135,
+                 y.min = 32.6,
+                 y.max = 32.61) 
 
 if (save.fig)
 ggsave(filename = "figures/post_eelgrass.png",
@@ -795,8 +896,22 @@ ggsave(filename = "figures/post_eelgrass.png",
        plot = p1)
 
 p1
+}
+
 ```
 
+
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(post.UD.50.eelg.all.areas))
+
+# that's in m2
+# so convert it in km2
+sum(unlist(post.UD.50.eelg.all.areas))/1e+6
+
+post.eelgrass.area/1e+6
+
+```
 
 Pre period just day time
 ```{r}
@@ -836,11 +951,12 @@ pre.day.UD.95.eelg.all.areas <- lapply(pre.day.eelgrass.UD.95.latlon@polygons[[1
                                            slot(x, "ringDir")
                                        } )
 
-p1 <- ggplot() + 
+if (plot.fig){
+  p1 <- ggplot() + 
    geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = water.color) + 
-  geom_polygon(data = eelg.2008.latlon.south.df,
+  geom_polygon(data = eelg.2008.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
 # geom_polygon(data = eelg.2014.latlon.south.2.df,
@@ -859,6 +975,10 @@ p1 <- ggplot() +
                fill = pre.50.fill,
                color = pre.50.color,
                alpha = 0.4)  +
+  geom_line(data = data.frame(long = c(-117.156, -117.117),
+                              lat = c(32.66, 32.66)),
+            aes(x = long, y = lat),
+            size = 1, linetype = 2) +
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = "transparent",
@@ -872,7 +992,20 @@ p1 <- ggplot() +
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
   coord_map(xlim = map.west.east,
-            ylim = map.north.south)
+            ylim = map.north.south) + 
+  ggsn::scalebar(#data = SDBay.latlon.df, 
+                 #location = "topright",
+                 transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 1,
+                 height = 0.1,
+                 st.size = 3,
+                 st.dist = 0.2,
+                 x.min = -117.155,
+                 x.max = -117.135,
+                 y.min = 32.6,
+                 y.max = 32.61) 
 
 if (save.fig)
   ggsave(filename = "figures/pre_day_eelgrass.png",
@@ -880,8 +1013,21 @@ if (save.fig)
          plot = p1)
 
 p1
+}
+
 ```
 
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(pre.day.UD.50.eelg.all.areas))
+
+# that's in m2
+# so convert it in km2
+sum(unlist(pre.day.UD.50.eelg.all.areas))/1e+6
+
+pre.eelgrass.area/1e+6
+
+```
 
 Pre period just night time
 ```{r}
@@ -920,11 +1066,12 @@ pre.night.UD.95.eelg.all.areas <- lapply(pre.night.eelgrass.UD.95.latlon@polygon
                                            slot(x, "ringDir")
                                        } )
 
-p1 <- ggplot() + 
+if (plot.fig){
+  p1 <- ggplot() + 
    geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = water.color) + 
-  geom_polygon(data = eelg.2008.latlon.south.df,
+  geom_polygon(data = eelg.2008.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
 # geom_polygon(data = eelg.2014.latlon.south.2.df,
@@ -943,6 +1090,10 @@ p1 <- ggplot() +
                fill = pre.50.fill,
                color = pre.50.color,
                alpha = 0.4)  +
+  geom_line(data = data.frame(long = c(-117.156, -117.117),
+                              lat = c(32.66, 32.66)),
+            aes(x = long, y = lat),
+            size = 1, linetype = 2) +
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = "transparent",
@@ -956,7 +1107,20 @@ p1 <- ggplot() +
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
   coord_map(xlim = map.west.east,
-            ylim = map.north.south)
+            ylim = map.north.south) + 
+  ggsn::scalebar(#data = SDBay.latlon.df, 
+                 #location = "topright",
+                 transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 1,
+                 height = 0.1,
+                 st.size = 3,
+                 st.dist = 0.2,
+                 x.min = -117.155,
+                 x.max = -117.135,
+                 y.min = 32.6,
+                 y.max = 32.61) 
 
 if (save.fig)
   ggsave(filename = "figures/pre_night_eelgrass.png",
@@ -964,9 +1128,21 @@ if (save.fig)
          plot = p1)
 
 p1
+}
+
 ```
 
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(pre.night.UD.50.eelg.all.areas))
 
+# that's in m2
+# so convert it in km2
+sum(unlist(pre.night.UD.50.eelg.all.areas))/1e+6
+
+pre.eelgrass.area/1e+6
+
+```
 
 Post period just day time
 ```{r}
@@ -1006,11 +1182,12 @@ post.day.UD.95.eelg.all.areas <- lapply(post.day.eelgrass.UD.95.latlon@polygons[
                                            slot(x, "ringDir")
                                        } )
 
-p1 <- ggplot() + 
+if (plot.fig){
+  p1 <- ggplot() + 
    geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = water.color) + 
-  geom_polygon(data = eelg.2014.latlon.south.df,
+  geom_polygon(data = eelg.2014.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
   geom_polygon(data = post.day.UD.95.df,
@@ -1023,6 +1200,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_line(data = data.frame(long = c(-117.156, -117.117),
+                              lat = c(32.66, 32.66)),
+            aes(x = long, y = lat),
+            size = 1, linetype = 2) +
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = "transparent",
@@ -1036,7 +1217,20 @@ p1 <- ggplot() +
         panel.border = element_rect(color = "black",
                                     fill = NA)) +
   coord_map(xlim = map.west.east,
-            ylim = map.north.south)
+            ylim = map.north.south) + 
+  ggsn::scalebar(#data = SDBay.latlon.df, 
+                 #location = "topright",
+                 transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 1,
+                 height = 0.1,
+                 st.size = 3,
+                 st.dist = 0.2,
+                 x.min = -117.155,
+                 x.max = -117.135,
+                 y.min = 32.6,
+                 y.max = 32.61) 
 
 if (save.fig)
   ggsave(filename = "figures/post_day_eelgrass.png",
@@ -1044,8 +1238,21 @@ if (save.fig)
          plot = p1)
 
 p1
+}
+
 ```
 
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(post.day.UD.50.eelg.all.areas))
+
+# that's in m2
+# so convert it in km2
+sum(unlist(post.day.UD.50.eelg.all.areas))/1e+6
+
+post.eelgrass.area/1e+6
+
+```
 
 Post period just night time
 ```{r}
@@ -1084,11 +1291,12 @@ post.night.UD.95.eelg.all.areas <- lapply(post.night.eelgrass.UD.95.latlon@polyg
                                            slot(x, "ringDir")
                                        } )
 
-p1 <- ggplot() + 
+if (plot.fig){
+  p1 <- ggplot() + 
    geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = water.color) + 
-  geom_polygon(data = eelg.2014.latlon.south.df,
+  geom_polygon(data = eelg.2014.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = eelgrass.color) + 
   geom_polygon(data = post.night.UD.95.df,
@@ -1101,6 +1309,10 @@ p1 <- ggplot() +
                fill = post.50.fill,
                color = post.50.color,
                alpha = 0.4)  +
+  geom_line(data = data.frame(long = c(-117.156, -117.117),
+                              lat = c(32.66, 32.66)),
+            aes(x = long, y = lat),
+            size = 1, linetype = 2) +
   geom_polygon(data = SDBay.latlon.df,
                aes(x = long, y = lat, group = group),
                fill = "transparent",
@@ -1122,7 +1334,7 @@ p1 <- ggplot() +
                  dist_unit = "km", 
                  dist = 1,
                  height = 0.1,
-                 st.size = 5,
+                 st.size = 3,
                  st.dist = 0.2,
                  x.min = -117.155,
                  x.max = -117.135,
@@ -1135,6 +1347,21 @@ if (save.fig)
          plot = p1)
 
 p1
+}
+
+```
+
+
+Compute the total area of overlap between UD50 and eelgrass
+```{r}
+sum(unlist(post.night.UD.50.eelg.all.areas))
+
+# that's in m2
+# so convert it in km2
+sum(unlist(post.night.UD.50.eelg.all.areas))/1e+6
+
+post.eelgrass.area/1e+6
+
 ```
 
 Add all areas for each combination.

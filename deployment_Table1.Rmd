@@ -32,7 +32,7 @@ data1 %>% mutate(ID.f = as.factor(ArgosID),
                 n.day, n.night, Sex, Mass_kg, SCL_cm,
                 period) -> data2
 
-head(data2)
+nrow(data2)
 ```
 
 Then compute some statistics that were needed in the text.

@@ -71,7 +71,7 @@ SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
 
 
 # internet <- F #TRUE
-save.fig <- F
+save.fig <- T
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50
@@ -342,8 +342,8 @@ p.KDE.pre.day <- ggplot() +
   geom_polygon(data = pre.day.95.byID.df,
                aes(x = long, y = lat,
                    group = group),
-               color = pre.50.color, #"black",
-               fill = pre.50.fill, #"lightcyan",
+               color = pre.95.color, #"black",
+               fill = pre.95.fill, #"lightcyan",
                alpha = 0.6) +
 
   geom_polygon(data = pre.day.50.byID.df,
@@ -1062,6 +1062,11 @@ all.95$period.f <- factor(all.95$period,
 all.95$UD.f <- as.factor("95")
 all.95$UD.period <- as.factor(paste0(all.95$period.f, all.95$UD.f))
 
+# Because the class of all.95 and all.50 are "tbl_df", "tbl" and "data.frame",
+# using scalebar returns an error message: "Must use a vector in '[', not an object of 
+# class matrix... so force it to become just data frame. 
+all.50 <- as.data.frame(all.50)
+all.95 <- as.data.frame(all.95)
 all. <- rbind(all.50, all.95)
 
 p.KDE.pre.post.DayVsNight <- ggplot() + 
@@ -1095,22 +1100,20 @@ p.KDE.pre.post.DayVsNight <- ggplot() +
                color = "black") +
   coord_map(xlim = map.west.east,
             ylim = map.north.south) + 
-  # font size cannot be changed and they are waaay too big...
-  # ggsn::scalebar(#data = all.95, 
-  #                #location = "topright",
+  # ggsn::scalebar(data = all.95,
   #                transform = TRUE,
   #                model = "WGS84",
-  #                dist_unit = "km", 
+  #                dist_unit = "km",
   #                dist = 1,
-  #                height = 0.1,
-  #                st.size = 5,
-  #                st.dist = 0.2,
-  #                x.min = -117.155,
-  #                x.max = -117.135,
+  #                height = 0.05,
+  #                st.size = 2,
+  #                st.dist = 0.1,
+  #                x.min = -117.15,
+  #                x.max = -117.11,
   #                y.min = 32.6,
-  #                y.max = 32.61) + 
-  #                #facet.var = c("daynight.f", "period.f"),
-  #                #facet.lev = c("day+night", "post")) +
+  #                y.max = 32.62,
+  #                facet.var = c("daynight.f", "period.f"),
+  #                facet.lev = c("day+night", "pre")) +
   facet_grid(daynight.f ~ period.f) +
   # facet_wrap( ~ ID, nrow = 2) + 
   labs(x = "", y = "")+ 
@@ -1129,10 +1132,11 @@ p.KDE.pre.post.DayVsNight <- ggplot() +
                                         colour = background.color),
         axis.text.x = element_text(angle = 90, vjust = 0.5),
         legend.position = "none") +
-  scale_x_continuous(breaks = c(-117.13, -117.11, -117.09)) 
+  scale_x_continuous(breaks = c(-117.15, -117.13, -117.11, -117.09)) 
 # scale_y_continuous(breaks = c(32.60, 32.62, 32.64, 32.66),
 #                    limits = c(32.595, 32.665))
 
+p.KDE.pre.post.DayVsNight
 if (save.fig)
   ggsave(plot = p.KDE.pre.post.DayVsNight,
          filename = "figures/KDE_preVspost_DayVsNight_Jan2020.png",
