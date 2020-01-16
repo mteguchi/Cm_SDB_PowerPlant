@@ -300,20 +300,21 @@ area50.means <- area50.df %>%
             median.50 = median(area50),
             n = first(n)) 
 
-area95.df <- do.call(rbind, area95.list) %>% 
+area95.df <- do.call(rbind, area95.list) %>%
   mutate(f.n = as.factor(n))
 
-area95.means <- area95.df %>% 
-  group_by(f.n) %>% 
+area95.means <- area95.df %>%
+  group_by(f.n) %>%
   summarize(mean.95 = mean(area95),
             median.95 = median(area95),
-            n = first(n)) 
+            n = first(n))
 
 if (plot.fig){
-  pre.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 0)), 
-                             nrow(filter(used.n, pre0post1 == 0))), 
-                       areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
-  
+  # pre.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 0)), 
+  #                            nrow(filter(used.n, pre0post1 == 0))), 
+  #                      areas = c(pre.UD$HR$area.50, pre.UD$HR$area.95))
+  pre.df <- data.frame(n = nrow(filter(used.n, pre0post1 == 0)),
+                       areas = pre.UD$HR$area.50)  
   post.df <- data.frame(n = c(nrow(filter(used.n, pre0post1 == 1)), 
                               nrow(filter(used.n, pre0post1 == 1))), 
                         areas = c(post.UD$HR$area.50, post.UD$HR$area.95))
@@ -326,13 +327,13 @@ if (plot.fig){
                    y = mean.50),
                size = 4.5,
                shape = 15) + 
-    geom_point(data = area95.df,
-               aes(x = n, y = area95)) + 
-    geom_point(data = area95.means,
-               aes(x = n, 
-                   y = mean.95),
-               size = 4.5,
-               shape = 15) + 
+    # geom_point(data = area95.df,
+    #            aes(x = n, y = area95)) + 
+    # geom_point(data = area95.means,
+    #            aes(x = n, 
+    #                y = mean.95),
+    #            size = 4.5,
+    #            shape = 15) + 
     geom_point(data = pre.df,
                aes(x = n, y = areas),
                color = "green",
@@ -340,13 +341,13 @@ if (plot.fig){
     geom_hline(yintercept = post.UD$HR$area.50,
                size = 1.5, color = "blue",
                linetype = 2) + 
-    geom_hline(yintercept = post.UD$HR$area.95,
-               size = 1.5, color = "blue",
-               linetype = 2) + 
+    # geom_hline(yintercept = post.UD$HR$area.95,
+    #            size = 1.5, color = "blue",
+    #            linetype = 2) + 
     scale_x_continuous(breaks = c(min(area95.df$n):max(area95.df$n)),
                        limits = c((min(area95.df$n) - 0.2), (max(area95.df$n) + 0.2))) +
     labs(x = "Number of individuals",
-         y = bquote('Estimated UDs (' *km^2*')'))
+         y = bquote('Estimated 50% UDs (' *km^2*')'))
   
   if (save.fig)
     ggsave(filename = paste0("figures/preVsPost_effect_n_", Sys.Date(), ".png"),
