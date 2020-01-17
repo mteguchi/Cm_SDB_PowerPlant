@@ -1,0 +1,110 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Summarize sst data and saves them for use in extract_stats_Dec2019.Rmd
+
+```{r echo=FALSE}
+rm(list = ls())
+
+#library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(lme4)
+
+source("HR_analysis_fcns.R")
+
+```
+
+
+
+First bring in the individual data:
+```{r}
+data1 <- read.csv(file = "data/IDvsUDs.csv")
+head(data1)
+```
+
+Get the water temp data:
+```{r echo=FALSE, message=FALSE}
+tmp.mid.mean <- tmp14.mean <- tmp7.mean <- vector(mode = "numeric", length = nrow(data1))
+tmp.mid.min <- tmp14.min <- tmp7.min <- vector(mode = "numeric", length = nrow(data1))
+tmp.mid.max <- tmp14.max <- tmp7.max <- vector(mode = "numeric", length = nrow(data1))
+tmp.mid.sd <- tmp14.sd <- tmp7.sd <- vector(mode = "numeric", length = nrow(data1))
+
+tmp.mean <- tmp.min <- tmp.max <- tmp.sd <- vector(mode = "numeric", length = nrow(data1))
+
+k <- 1
+for (k in 1:nrow(data1)){
+  date1 <- as.Date(data1$Capture_Date[k], format = "%Y-%m-%d")
+  n.days <- round(data1$n.days.GPS[k])
+  tmp.7 <- tmp.summary(date1 - days(7), date1)
+  tmp.14 <- tmp.summary(date1 - days(14), date1)
+  tmp.deploy <- tmp.summary(date1, date1 + days(n.days))
+  tmp.middle <- tmp.summary(date1 + days(round(n.days/2)), date1 + days(round(n.days/2)))
+  
+  # 7 days prior to deployment
+  tmp7.mean[k] <- tmp.7$mean
+  tmp7.min[k] <- tmp.7$min
+  tmp7.max[k] <- tmp.7$max
+  tmp7.sd[k] <- tmp.7$SD
+  
+  # 14 days prior to deployment
+  tmp14.mean[k] <- tmp.14$mean
+  tmp14.min[k] <- tmp.14$min
+  tmp14.max[k] <- tmp.14$max
+  tmp14.sd[k] <- tmp.14$SD
+
+  # depolyment to end of transmission
+  tmp.mean[k] <- tmp.deploy$mean
+  tmp.min[k] <- tmp.deploy$min
+  tmp.max[k] <- tmp.deploy$max
+  tmp.sd[k] <- tmp.deploy$SD
+  
+  # depolyment to end of transmission
+  tmp.mid.mean[k] <- tmp.middle$mean
+  tmp.mid.min[k] <- tmp.middle$min
+  tmp.mid.max[k] <- tmp.middle$max
+  tmp.mid.sd[k] <- tmp.middle$SD
+  
+}
+
+data1$tmp.lag7.mean <- unlist(tmp7.mean)
+data1$tmp.lag7.min <- unlist(tmp7.min)
+data1$tmp.lag7.max <- unlist(tmp7.max)
+data1$tmp.lag7.sd <- unlist(tmp7.sd)
+
+data1$tmp.lag14.mean <- unlist(tmp14.mean)
+data1$tmp.lag14.min <- unlist(tmp14.min)
+data1$tmp.lag14.max <- unlist(tmp14.max)
+data1$tmp.lag14.sd <- unlist(tmp14.sd)
+
+data1$tmp.deploy.mean <- unlist(tmp.mean)
+data1$tmp.deploy.min <- unlist(tmp.min)
+data1$tmp.deploy.max <- unlist(tmp.max)
+data1$tmp.deploy.sd <- unlist(tmp.sd)
+
+data1$tmp.middle.mean <- unlist(tmp.mid.mean)
+data1$tmp.middle.min <- unlist(tmp.mid.min)
+data1$tmp.middle.max <- unlist(tmp.mid.max)
+data1$tmp.middle.sd <- unlist(tmp.mid.sd)
+
+data1$month <- month(as.Date(data1$Capture_Date, format = "%Y-%m-%d"))
+
+write.csv(data1, file = "data/IDvsUDs_SST.csv",
+          quote = FALSE, row.names = FALSE)
+# data1 %>% mutate(sex.num = ifelse(Sex == "F", 1, 
+#                                   ifelse(Sex == "M", 2, 3))) %>%
+#   mutate(period.num = ifelse(period == "pre", 1, 2)) -> data1
+
+# data2 is centered and scaled. 
+data2 <- data.frame(scale(select_if(data1, is.numeric)) )
+data2$sex <- data1$Sex
+data2$period <- data1$period
+```
+
+Some temperature data were already in IDvsUDs... so there are some duplicates. 
+
+
