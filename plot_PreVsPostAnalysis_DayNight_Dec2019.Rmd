@@ -71,7 +71,7 @@ SDBay.eelg.2008.df <- broom::tidy(SDBay.eelg.2008)
 
 
 # internet <- F #TRUE
-save.fig <- T
+save.fig <- F
 
 # Minimum number of relocations per individual to be included in HR analysis
 min_n <- 50

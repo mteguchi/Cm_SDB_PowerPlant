@@ -25,6 +25,10 @@ library(sf)
 
 source("HR_analysis_fcns.R")
 
+
+# internet <- F #TRUE
+save.fig <- T
+
 SDBay.gis <- spTransform(readOGR(dsn = "GISfiles",
                                  layer = "sd_bay",
                                  verbose = FALSE),
@@ -56,10 +60,6 @@ water.color <- "lavender"
 background.color <- "darkgray"
 eelgrass.color <- "mediumseagreen" #"lightgreen"
 
-
-# internet <- F #TRUE
-save.fig <- T
-
 #N.end <- 32.69   # approx Coronado bridge
 N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points between ~32.65 and ~32.66 - seems like there was a different behavior south and north of 32.66
 ```
@@ -73,6 +73,8 @@ N.end <- 32.66 # changed from 32.69 because 152314 had a gap in data points betw
 
 box.coords <- data.frame(lon = c(-117.16, -117.09, -117.09, -117.16, -117.16),
                          lat = c(32.665, 32.665, 32.595, 32.595, 32.665))
+
+buoy.location <- data.frame(lon = -117.173, lat = 32.713)
 
 # box.coords %>% st_as_sf(coords = c("longitude", "latitude"),
 #                         crs = 4326) %>%
@@ -97,6 +99,10 @@ p.map.1.2008 <- ggplot() +
                color = "black",
                size = 1.2,
                fill = NA) + 
+  geom_point(data = buoy.location,
+             aes(x = lon, y = lat),
+             color = "firebrick2",
+             size = 3) + 
   coord_map(ylim = c(32.57, 32.75),
             xlim = c(-117.27, -117.08)) + 
   ggsn::scalebar(transform = TRUE,
@@ -146,6 +152,10 @@ p.map.1.2014 <- ggplot() +
                color = "black",
                size = 1.2,
                fill = NA) + 
+   geom_point(data = buoy.location,
+             aes(x = lon, y = lat),
+             color = "firebrick2",
+             size = 3) + 
   coord_map(ylim = c(32.57, 32.75),
             xlim = c(-117.27, -117.08)) + 
   labs(x = "", y = "")+ 

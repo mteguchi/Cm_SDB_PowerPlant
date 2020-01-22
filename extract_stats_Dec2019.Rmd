@@ -607,142 +607,181 @@ data2$period <- data1.2$period
 ```
 
 
-Use Random Forests to find useful variables - just throw in everything! Something is not working here. RF is giving nonsensical results - look into this! 1/16/2020
+Use Random Forests to find useful variables - just throw in everything! Something is not working here. RF is giving nonsensical results - probably because of the small number of observations (n = 17)...
 
 ```{r}
-library(party)
-M1 <- as.formula("area.50.all.GPS ~ n.days.GPS + Mass_kg + month +tmp.lag14.mean + tmp.lag14.min + tmp.lag14.max + tmp.lag14.sd + tmp.lag7.mean + tmp.lag7.min + tmp.lag7.max + tmp.lag7.sd + tmp.deploy.mean + tmp.deploy.min + tmp.deploy.max + tmp.deploy.sd + tmp.middle.mean + tmp.middle.min + tmp.middle.max + tmp.middle.sd")
-
-if (!file.exists("RData/RF_M1_out.rds")){
-  RF.M1 <- cforest(formula = M1,
-                   data = data2, 
-                   control = cforest_unbiased(ntree = 5000, trace = 500))
-  
-  saveRDS(RF.M1, file = "RData/RF_M1_out.rds")
-  
-} else {
-  RF.M1 <- readRDS("RData/RF_M_1_out.rds")
-}
-
-if (!file.exists("RData/RF_M1_varImp.rds")){
-  var.imp <- sort(varimp(RF.M1), decreasing = FALSE)
-  saveRDS(var.imp, file = "RData/RF_M1_varImp.rds")
-} else {
-  var.imp <- readRDS("RData/RF_M1_varImp.rds")
-}
-
-if (!file.exists("RData/RF_M1_predict.rds")){
-  pred.RF.M1 <- predict(RF.M1, newdata = NULL)
-  saveRDS(pred.RF.M1, file = "RData/RF_M1_predict.rds")
-} else {
-  pred.RF.M1 <- readRDS("RData/RF_M1_predict.rds")
-}
-
-var.imp.df <- data.frame(var.imp)
-var.imp.df$Variable <- rownames(var.imp.df)
-
-ggplot(data = var.imp.df) + 
-  geom_point(aes(x = var.imp, y = reorder(Variable, var.imp)),
-             size = 3) + 
-  theme_bw() + 
-  labs(x = "Variable importance") + 
-  theme(axis.title.y = element_blank(),
-        axis.title.x = element_text(size =12))
-
-RF.M1
-summary(RF.M1)
+# library(party)
+# M1 <- as.formula("area.50.all.GPS ~ n.days.GPS + Mass_kg + month +tmp.lag14.mean + tmp.lag14.min + tmp.lag14.max + tmp.lag14.sd + tmp.lag7.mean + tmp.lag7.min + tmp.lag7.max + tmp.lag7.sd + tmp.deploy.mean + tmp.deploy.min + tmp.deploy.max + tmp.deploy.sd + tmp.middle.mean + tmp.middle.min + tmp.middle.max + tmp.middle.sd")
+# 
+# if (!file.exists("RData/RF_M1_out.rds")){
+#   RF.M1 <- cforest(formula = M1,
+#                    data = data1.2, 
+#                    control = cforest_unbiased(ntree = 2000, trace = 200))
+#   
+#   saveRDS(RF.M1, file = "RData/RF_M1_out.rds")
+#   
+# } else {
+#   RF.M1 <- readRDS("RData/RF_M_1_out.rds")
+# }
+# 
+# if (!file.exists("RData/RF_M1_varImp.rds")){
+#   var.imp <- sort(varimp(RF.M1), decreasing = FALSE)
+#   saveRDS(var.imp, file = "RData/RF_M1_varImp.rds")
+# } else {
+#   var.imp <- readRDS("RData/RF_M1_varImp.rds")
+# }
+# 
+# if (!file.exists("RData/RF_M1_predict.rds")){
+#   pred.RF.M1 <- predict(RF.M1, newdata = NULL)
+#   saveRDS(pred.RF.M1, file = "RData/RF_M1_predict.rds")
+# } else {
+#   pred.RF.M1 <- readRDS("RData/RF_M1_predict.rds")
+# }
+# 
+# var.imp.df <- data.frame(var.imp)
+# var.imp.df$Variable <- rownames(var.imp.df)
+# 
+# ggplot(data = var.imp.df) + 
+#   geom_point(aes(x = var.imp, y = reorder(Variable, var.imp)),
+#              size = 3) + 
+#   theme_bw() + 
+#   labs(x = "Variable importance") + 
+#   theme(axis.title.y = element_blank(),
+#         axis.title.x = element_text(size =12))
+# 
+# RF.M1
+# varimp(RF.M1)
 ```
 
 
 Then use GLM to look at how they affected the HR:
 
+Create AICc function:
+```{r}
+AICc <- function(x){
+  k <- length(coef(x))
+  n <- nrow(x$model)
+  
+  AICc <- AIC(x) + ((2 * k) * (k + 1))/(n - k - 1)
+  return(AICc)
+}
+```
+
+
 Lag 14 days.
 ```{r}
 
-fit.lag14.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag14.mean + tmp.lag14.min + tmp.lag14.max + tmp.lag14.sd + month,
-            data = data2)
+fit.lag14.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag14.mean + tmp.lag14.sd + month,
+            data = data1.2)
 summary(fit.lag14.50)
 ```
 
+Not very useful... 
+
 lag 7
 ```{r}
-fit.lag7.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.mean + tmp.lag7.min + tmp.lag7.max + tmp.lag7.sd + month,
-            data = data2)
+fit.lag7.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.mean + tmp.lag7.sd + month,
+                  data = data1.2)
 summary(fit.lag7.50)
 
 ```
 
+This one is not very useful either...
+
 entire deploy period
 ```{r}
-fit.deploy.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.deploy.mean + tmp.deploy.min + tmp.deploy.max + tmp.deploy.sd + month,
-            data = data2)
+fit.deploy.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.deploy.mean + tmp.deploy.sd + month,
+                    data = data1.2)
 summary(fit.deploy.50)
 
 ```
 
+Neither is this one...
+
 middle of deployment
 ```{r}
-fit.middle.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.middle.mean + tmp.middle.min + tmp.middle.max + tmp.middle.sd + month,
-            data = data2)
-summary(fit.middle.50)
+fit.middle.50.1 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.middle.mean + tmp.middle.sd + month,
+                      data = data1.2)
+summary(fit.middle.50.1)
 
 ```
 
-drop some 
+A bit better but still not very useful - interesting that sd of temperature is a little important. 
+
 ```{r}
-fit.middle.50.2 <- lm(area.50.all.GPS ~ tmp.middle.mean + tmp.middle.min + tmp.middle.max + month,
-                      data = data2)
+fit.middle.50.2 <- lm(area.50.all.GPS ~ n.days.GPS + period + tmp.middle.mean + tmp.middle.sd + month,
+                      data = data1.2)
 summary(fit.middle.50.2)
 
 ```
 
-But... they are very correlated so drop two and go with min
-
 ```{r}
-fit.middle.50.3 <- lm(area.50.all.GPS ~ tmp.middle.min + month,
-            data = data2)
+fit.middle.50.3 <- lm(area.50.all.GPS ~ period + tmp.middle.mean + tmp.middle.sd + month,
+                      data = data1.2)
 summary(fit.middle.50.3)
-```
-
-But that doesn't work! 
-
-
-Just means only
-```{r}
-fit.means.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.mean + tmp.lag14.mean + tmp.deploy.mean + tmp.middle.mean + month,
-            data = data2)
-summary(fit.means.50)
 
 ```
 
 
-Just minimum 
 ```{r}
-fit.min.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.min + tmp.lag14.min + tmp.deploy.min + tmp.middle.min + month,
-            data = data2)
-summary(fit.min.50)
+fit.middle.50.4 <- lm(area.50.all.GPS ~ period + tmp.middle.sd + month,
+                      data = data1.2)
+summary(fit.middle.50.4)
+
+```
+
+So... this model explains about 34% of the variability in the area, although none of the variables were "significant." 
+
+
+```{r}
+fit.middle.50.5 <- lm(area.50.all.GPS ~ tmp.middle.sd + month,
+                      data = data1.2)
+summary(fit.middle.50.5)
+
 ```
 
 
-Just max
 ```{r}
-fit.max.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.max + tmp.lag14.max + tmp.deploy.max + tmp.middle.max + month,
-            data = data2)
-summary(fit.max.50)
-```
+fit.middle.50.6 <- lm(area.50.all.GPS ~ tmp.middle.sd,
+            data = data1.2)
+summary(fit.middle.50.6)
 
-Just sd
-```{r}
-fit.sd.50 <- lm(area.50.all.GPS ~ n.days.GPS + Mass_kg + period + tmp.lag7.sd + tmp.lag14.sd + tmp.deploy.sd + tmp.middle.sd + month,
-            data = data2)
-summary(fit.sd.50)
 ```
 
 ```{r}
-fit.month.50 <- lm(area.50.all.GPS ~ month + SCL_cm,
-            data = data2)
-summary(fit.month.50)
+fit.middle.50.7 <- lm(area.50.all.GPS ~ period + tmp.middle.sd * tmp.middle.mean + month,
+                      data = data1.2)
+summary(fit.middle.50.7)
+
 ```
+
+
+
+```{r}
+fit.middle.50.8 <- lm(area.50.all.GPS ~ period * month + tmp.middle.sd,
+                      data = data1.2)
+summary(fit.middle.50.8)
+
+```
+
+
+```{r}
+AICs <- c(AICc(fit.middle.50.1), AICc(fit.middle.50.2),
+          AICc(fit.middle.50.3), AICc(fit.middle.50.4),
+          AICc(fit.middle.50.5), AICc(fit.middle.50.6),
+          AICc(fit.middle.50.7), AICc(fit.middle.50.8))
+
+AICs
+```
+
+It appears that Model 6 is most parsimonious according to AICc. The model included only SD of temperature at the middle of deployments.  
+
+```{r}
+summary(fit.middle.50.6)
+```
+
+
+
 
 
 Find overlap with eelgrass
@@ -1049,11 +1088,11 @@ if (plot.fig){
                  y.max = 32.61) 
 
 if (save.fig)
-ggsave(filename = "figures/post_eelgrass.png",
-       device = "png", dpi = 600,
-       plot = p1)
-
-p1
+  ggsave(filename = "figures/post_eelgrass.png",
+         device = "png", dpi = 600,
+         plot = p1)
+  
+  p1
 }
 
 ```
@@ -1319,9 +1358,9 @@ post.day.UD.50.df <- broom::tidy(spTransform(area.post.day.50,
 
 # find the intersections with UDs
 post.day.eelgrass.UD.50 <- rgeos::gIntersection(eelg.2014.UTM.south, 
-                                               area.pre.day.50)
+                                                area.pre.day.50)
 post.day.eelgrass.UD.95 <- rgeos::gIntersection(eelg.2014.UTM.south,
-                                               area.pre.day.95)
+                                                area.pre.day.95)
 
 post.day.eelgrass.UD.50.latlon <- spTransform(post.day.eelgrass.UD.50,
                                              CRS = CRS("+proj=longlat +datum=WGS84"))
@@ -1522,8 +1561,36 @@ post.eelgrass.area/1e+6
 
 ```
 
-Add all areas for each combination.
+Compute overlap between day and night:
 ```{r}
+# find the intersections with UDs
+pre.day.vs.night.UD.50 <- rgeos::gIntersection(area.pre.night.50,
+                                                area.pre.day.50)
+
+pre.day.vs.night.UD.50.latlon <- spTransform(pre.day.vs.night.UD.50,
+                                               CRS = CRS("+proj=longlat +datum=WGS84"))
+
+pre.day.vs.night.UD.50.all.areas <- lapply(pre.day.vs.night.UD.50.latlon@polygons[[1]]@Polygons,
+                                           FUN = function(x){
+                                             areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                               slot(x, "ringDir")
+                                           } )
+
+# in km2
+sum(unlist(pre.day.vs.night.UD.50.all.areas))/1e+6
+
+post.day.vs.night.UD.50 <- rgeos::gIntersection(area.post.night.50,
+                                                area.post.day.50)
+post.day.vs.night.UD.50.latlon <- spTransform(post.day.vs.night.UD.50,
+                                               CRS = CRS("+proj=longlat +datum=WGS84"))
+
+post.day.vs.night.UD.50.all.areas <- lapply(post.day.vs.night.UD.50.latlon@polygons[[1]]@Polygons,
+                                           FUN = function(x){
+                                             areas <- geosphere::areaPolygon(slot(x, "coords")) * 
+                                               slot(x, "ringDir")
+                                           } )
+
+sum(unlist(post.day.vs.night.UD.50.all.areas))/1e+6
 
 # pre.daynight.byID <- readRDS(file = "RData/pre_GPS_UD_byID.rds")
 # pre.day.byID <- readRDS(file = "RData/pre_GPS_UD_day_byID.rds")
