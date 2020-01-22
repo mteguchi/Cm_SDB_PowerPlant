@@ -765,6 +765,17 @@ summary(fit.middle.50.8)
 ```
 
 
+
+<!-- ```{r} -->
+<!-- data1.2$tmp.middle.dif <- abs(data1.2$tmp.middle.max - data1.2$tmp.middle.min)/data1.2$tmp.middle.mean -->
+
+<!-- fit.middle.50.9 <- lm(area.50.all.GPS ~ tmp.middle.dif*tmp.middle.dif, -->
+<!--                       data = data1.2) -->
+<!-- summary(fit.middle.50.9) -->
+
+<!-- ``` -->
+
+
 ```{r}
 AICs <- c(AICc(fit.middle.50.1), AICc(fit.middle.50.2),
           AICc(fit.middle.50.3), AICc(fit.middle.50.4),
@@ -780,8 +791,21 @@ It appears that Model 6 is most parsimonious according to AICc. The model includ
 summary(fit.middle.50.6)
 ```
 
+This is Weird!!  
 
+Look into this in a bit more details...
 
+```{r}
+ggplot(data = data1.2) + 
+  #geom_point(aes(x = tmp.middle.sd, y = area.50.all.GPS)) + 
+  geom_text(aes(x = tmp.middle.sd,
+                y = area.50.all.GPS,
+                label = ArgosID,
+                color = as.factor(month),
+                size = Mass_kg))
+```
+
+Not sure what would cause this result... 
 
 
 Find overlap with eelgrass
