@@ -27,7 +27,7 @@ source("HR_analysis_fcns.R")
 
 
 # internet <- F #TRUE
-save.fig <- T
+save.fig <- F#T
 
 SDBay.gis <- spTransform(readOGR(dsn = "GISfiles",
                                  layer = "sd_bay",
@@ -117,6 +117,57 @@ p.map.1.2008 <- ggplot() +
                  y.min = 32.58,
                  y.max = 32.61) +
   labs(x = "", y = "")+ 
+  geom_text(data = data.frame(x = -117.1, y = 32.740), 
+            aes(x = x, y = y, label = "2008"),
+            size = 6, fontface = "bold") +
+  geom_segment(data = data.frame(x1 = buoy.location$lon + 0.005, 
+                                 x2 = buoy.location$lon + 0.025,
+                                 y1 = buoy.location$lat + 0.003, 
+                                 y2 = buoy.location$lat + 0.01),
+               aes(x = x2, y = y2, xend = x1, yend = y1),
+               size = 1,
+               linetype = 1,
+               arrow = arrow(length = unit(0.03, "npc")),
+               arrow.fill = T) + 
+  geom_text(data = data.frame(x = buoy.location$lon + 0.03, 
+                              y = buoy.location$lat + 0.01),
+            aes(x = x, y = y, label = "Weather buoy"),
+            size = 4.5, hjust = 0, vjust = 0) + 
+  geom_segment(data = data.frame(x1 = -117.11, 
+                                 x2 = -117.10,
+                                 y1 = 32.688, 
+                                 y2 = 32.655),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1,
+               linetype = 1,
+               arrow = arrow(length = unit(0.03, "npc")),
+               arrow.fill = T) + 
+  geom_text(data = data.frame(x = -117.115, 
+                              y = 32.692),
+            aes(x = x, y = y, label = "Sweetwater river"),
+            size = 4.5, vjust = 0) + 
+  geom_segment(data = data.frame(x1 = -117.112, x2 = -117.102,
+                                 y1 = 32.62, y2 = 32.616),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               #alpha = 0.95,
+               size = 1.5, color = "gold",
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") + 
+  geom_segment(data = data.frame(x1 = -117.100, x2 = -117.112,
+                                 y1 = 32.611, y2 = 32.608),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               #alpha = 0.95,
+               size = 1.5, color = "firebrick1",
+               arrow = arrow(length = unit(0.02, "npc"),
+                             angle = 30),
+               lineend = "butt", linejoin = "mitre") + 
+  geom_text(data = data.frame(y = 32.615, x = -117.096),
+             aes(x = x, y = y, label = "\u2605"),
+             size = 8,
+             color = "orange1") +
+  geom_text(data = data.frame(y = 32.61, x = -117.225),
+            aes(x = x, y = y, label = "Pacific Ocean"),
+            size = 6, fontface = "bold") + 
   theme(panel.border = element_rect(color = "black", fill = NA),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -124,13 +175,14 @@ p.map.1.2008 <- ggplot() +
                                         colour = background.color),
         axis.text = element_text(size = 12))  
 
+p.map.1.2008
+
 if (save.fig)
   ggsave(plot = p.map.1.2008,
-         filename = "figures/SanDiegoBay_Figure1_2008.png",
-         device = "png",
+         filename = "figures/SanDiegoBay_Figure1_2008.tiff",
+         device = "tiff",
          dpi = 600)
 
-p.map.1.2008
 ```
 
 ```{r}
@@ -159,6 +211,26 @@ p.map.1.2014 <- ggplot() +
   coord_map(ylim = c(32.57, 32.75),
             xlim = c(-117.27, -117.08)) + 
   labs(x = "", y = "")+ 
+  geom_text(data = data.frame(x = -117.1, y = 32.740), 
+            aes(x = x, y = y, label = "2014"),
+            size = 6, fontface = "bold") +
+  geom_segment(data = data.frame(x1 = -117.13, 
+                                 x2 = -117.093,
+                                 y1 = 32.577, 
+                                 y2 = 32.589),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1,
+               linetype = 1,
+               arrow = arrow(length = unit(0.03, "npc")),
+               arrow.fill = T) + 
+  geom_text(data = data.frame(x = -117.149, 
+                              y = 32.576),
+            aes(x = x, y = y, label = "Otay river"),
+            size = 4.5, vjust = 0) + 
+  
+  geom_text(data = data.frame(y = 32.61, x = -117.225),
+            aes(x = x, y = y, label = "Pacific Ocean"),
+            size = 6, fontface = "bold") + 
   theme(panel.border = element_rect(color = "black", fill = NA),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -168,8 +240,8 @@ p.map.1.2014 <- ggplot() +
 
 if (save.fig)
   ggsave(plot = p.map.1.2014,
-         filename = "figures/SanDiegoBay_Figure1_2014.png",
-         device = "png",
+         filename = "figures/SanDiegoBay_Figure1_2014.tif",
+         device = "tiff",
          dpi = 600)
 
 p.map.1.2014

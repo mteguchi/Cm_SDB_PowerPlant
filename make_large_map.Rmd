@@ -104,9 +104,83 @@ p1 <- ggplot() +
              size = 2.5,
              fill = NA) + 
   coord_map() +
+  geom_segment(data = data.frame(x1 = -111, x2 = -116.5,
+                                 y1 = 34, y2 = 32.7),
+               aes(x = x1, xend = x2, y = y1, yend = y2),
+               size = 1.5, 
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") + 
+  geom_text(data = data.frame(x = -109.5, y = 34),
+            aes(x = x, y = y, label = "SDB"),
+            size = 7) +
+  geom_text(data = data.frame(x = -102.5, y = 32.5),
+            aes(x = x, y = y, label = "USA"),
+            size = 8, fontface = "bold") + 
+  geom_text(data = data.frame(x = -112, y = 29),
+            aes(x = x, y = y, label = "Mexico"),
+            size = 8, fontface = "bold") +
+  geom_segment(data = data.frame(x1 = -115, x2 = -112.6,
+                                 y1 = 21, y2 = 19.2),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1.5, 
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") +
+  geom_text(data = data.frame(x = -118, y = 23),
+            aes(x = x, y = y, label = "Revillagigedo"),
+            size = 7) + 
+  geom_text(data = data.frame(x = -118, y = 22),
+            aes(x = x, y = y, label = "Archipelago"),
+            size = 7) + 
+  
+  geom_segment(data = data.frame(x1 = -107, x2 = -106.6,
+                                 y1 = 24, y2 = 22),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1.5, 
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") +
+  geom_text(data = data.frame(x = -107.5, y = 26.5),
+            aes(x = x, y = y, label = "Tres Marias"),
+            size = 7) + 
+  geom_text(data = data.frame(x = -107.5, y = 25.5),
+            aes(x = x, y = y, label = "Archipelago"),
+            size = 7) + 
+  
+  geom_segment(data = data.frame(x1 = -103.5, x2 = -102.7,
+                                 y1 = 16.5, y2 = 17.5),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1.5, 
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") +
+  geom_text(data = data.frame(x = -105, y = 16),
+            aes(x = x, y = y, label = "Michoacan"),
+            size = 7) + 
+
+  geom_segment(data = data.frame(x1 = -120, x2 = -119,
+                                 y1 = 30, y2 = 33.5),
+               aes(x = x1, y = y1, xend = x2, yend = y2),
+               size = 1.5, 
+               arrow = arrow(length = unit(0.02, "npc")),
+               lineend = "butt", linejoin = "mitre") +
+  geom_text(data = data.frame(x = -120, y = 29),
+            aes(x = x, y = y, label = "SCB"),
+            size = 7) + 
+  ggsn::scalebar(transform = TRUE,
+                 model = "WGS84",
+                 dist_unit = "km", 
+                 dist = 500,
+                 height = 0.1,
+                 st.size = 4,
+                 st.dist = 0.25,
+                 x.min = -122,
+                 x.max = -112,
+                 y.min = 16,
+                 y.max = 18) +
   ylab(expression(paste("Latitude (", degree, "N)"))) +
-  xlab(expression(paste("Longitude (", degree, "W)", sep=""))) 
-  theme(panel.background = element_rect(fill = water.color))  # theme(plot.title = element_text(hjust = 0.5),
+  xlab(expression(paste("Longitude (", degree, "W)", sep=""))) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14))  
+  #panel.background = element_rect(fill = water.color),
+  # theme(plot.title = element_text(hjust = 0.5),
   #       legend.title = element_text(size = 12, hjust = 0.5),
   #       legend.text = element_text(size = 10, vjust = 0),
   #       axis.title = element_text(size = 12),
