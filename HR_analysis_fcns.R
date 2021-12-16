@@ -394,7 +394,8 @@ UD.eachID <- function(kd.all, grid.value = 1000){
                    grid = grid.value)
     
     # remove land
-    UD.95[[k]] <- get.area.UTM(getverticeshr(UD, 95, unin = "m", unout = "km2"))
+    UD.95[[k]] <- get.area.UTM(getverticeshr(UD, 95, 
+                                             unin = "m", unout = "km2"))
     UD.75[[k]] <- get.area.UTM(getverticeshr(UD, 75, unin = "m", unout = "km2")) 
     UD.50[[k]] <- get.area.UTM(getverticeshr(UD, 50, unin = "m", unout = "km2"))
     UD.all[[k]] <- UD
