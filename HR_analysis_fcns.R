@@ -372,12 +372,13 @@ tmp.summary <- function(begin.date, end.date){
 
 # extracts KD for each ID given the total KD
 UD.eachID <- function(kd.all, grid.value = 1000){
-  UD.95 <- UD.75 <- UD.50 <- vector(mode = "list", 
-                                          length = length(kd.all$list.data$eachID.utm))
+  UD.all <- UD.95 <- UD.75 <- UD.50 <- vector(mode = "list", 
+                                              length = length(kd.all$list.data$eachID.utm))
   
   h.eachID <- h.multip.eachID <- vector(mode = "numeric", 
                                         length = length(kd.all$list.data$eachID.utm))
-  UD.area <- data.frame(ID = NA, area.50 = NA, area.75 = NA, area.95 = NA)
+  UD.area <- data.frame(ID = NA, area.50 = NA, 
+                        area.75 = NA, area.95 = NA)
   #UD.area <- vector(mode = "list", 
   #                  length = length(kd.all$list.data$eachID.utm))
   k <- 1
@@ -396,6 +397,7 @@ UD.eachID <- function(kd.all, grid.value = 1000){
     UD.95[[k]] <- get.area.UTM(getverticeshr(UD, 95, unin = "m", unout = "km2"))
     UD.75[[k]] <- get.area.UTM(getverticeshr(UD, 75, unin = "m", unout = "km2")) 
     UD.50[[k]] <- get.area.UTM(getverticeshr(UD, 50, unin = "m", unout = "km2"))
+    UD.all[[k]] <- UD
     
     # UD.tmp <- kernel.area(UD,
     #                       percent = c(50, 75, 95),
@@ -444,7 +446,8 @@ UD.eachID <- function(kd.all, grid.value = 1000){
                    h.multip = h.multip.eachID,
                    UD.95 = UD.95,
                    UD.75 = UD.75,
-                   UD.50 = UD.50)
+                   UD.50 = UD.50, 
+                   UD.all = UD.all)
   return(out.list)
 }
 
