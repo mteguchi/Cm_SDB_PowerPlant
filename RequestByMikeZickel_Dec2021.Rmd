@@ -1,0 +1,79 @@
+---
+title: "Request by Mike Zickel (Navy) on 2021-12-08"
+output: html_notebook
+---
+
+
+```{r message=FALSE}
+rm(list = ls())
+
+library(tidyverse)
+library(adehabitatHR)
+```
+
+Mike Zickel requested shapefiles for the homeranges that we estimated in Eguchi et al. (2020). 
+
+"Hi Jeff,
+
+Thank you for sending the thesis. Very helpful!
+
+I have another request. Would it be possible to get the shapefiles for the home ranges of green turtles in San Diego Bay shown in Eguchi et al. (2020)?
+
+I would like to use the 95% range as the area for estimating a density in the south part of the Bay.
+
+For reference, in our previous iteration of density estimates, we assumed 61 green turtles in the Bay, with 95% in the south Bay and 5% in the north bay in summer and fall, and then 100% in the south Bay in winter and spring (0% in the north Bay). See attached maps.
+
+I would still assume some percentage of turtles occur in the north bay in summer and fall (5%?), but I would like to use the home ranges as the distribution area in the south Bay, unless you think that would not be appropriate.
+
+Eguchi, T., J. Bredvik, S. Graham, R. LeRoux, B. Saunders, and J. A. Seminoff. (2020). Effects of a power plant closure on home ranges of green turtles in an urban foraging area. Endangered Species Research, 41, 265-277.
+
+Thanks,
+
+Mike"
+
+I responded that I did not make shapefiles but can provide lat-lon pairs. 
+
+This notebook creates those files.
+
+Get the RData file that contains all home ranges:
+
+```{r}
+# this was created in PreVsPostAnalysis_DayNight_Dec2019.Rmd
+HR.all <- readRDS(file = "RData/PreVsPost_DayNight_Dec2021.rds")
+set.names <- names(HR.all)
+
+k <- 7
+k1 <- 1
+for (k in 1:length(set.names)){
+  out.name.root <- str_replace_all(set.names[k], "[.]", "_")
+  # for each item in HR.all[[k]], k < 7, there are 9 items 
+  # (created by UD.eachID function in HR_analysis_fcns.R).
+  # These are named. "vert.95.df" is what he's after.
+  #tmp <- HR.all[[k]]$vert.95.df
+  #out.name <- paste0(out.name.root, ".csv")
+  #write_csv(tmp, file = paste0("data/MikeZickel_Dec2021/", out.name))
+  IDs <- unique(HR.all[[k]]$vert.95.df$ID)
+  if (is.null(IDs)){
+    # all individuals combined together
+    UD.95 <- getverticeshr(HR.all[[k]], 95, unin = "m", unout = "km2")
+    raster::shapefile(UD.95,
+                        paste0("data/MikeZickel_Dec2021/", 
+                               out.name.root, ".shp"), 
+                      overwrite = T)
+  } else {
+    # for each individual
+    for (k1 in 1:length(HR.all[[k]]$UD.95)){    
+      # Or use shapefile function in raster package to create shapefiles
+      raster::shapefile(HR.all[[k]]$UD.95[[k1]],
+                        paste0("data/MikeZickel_Dec2021/", 
+                               out.name.root, "_", 
+                               IDs[k1],  ".shp"), overwrite = T)
+    }  
+    
+  }
+  
+  
+  
+}
+```
+
